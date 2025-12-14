@@ -7,7 +7,7 @@ import {
   StructuredTime,
   Time
 } from './types';
-import { minutesToISODuration } from './converters/duration';
+import { formatDuration } from './parsers/duration';
 import { formatYield } from './converters/yield';
 
 type SchemaOrgInstruction =
@@ -122,7 +122,7 @@ function flattenInstructions(items: InstructionItem[] = []): Instruction[] {
 function extractPrepTime(time?: Time): string | undefined {
   if (!time) return undefined;
   if (isStructuredTime(time)) {
-    return minutesToISODuration(time.prep);
+    return maybeFormatDuration(time.prep);
   }
   return time.prepTime;
 }
@@ -130,7 +130,7 @@ function extractPrepTime(time?: Time): string | undefined {
 function extractCookTime(time?: Time): string | undefined {
   if (!time) return undefined;
   if (isStructuredTime(time)) {
-    return minutesToISODuration(time.active);
+    return maybeFormatDuration(time.active);
   }
   return time.cookTime;
 }
@@ -138,7 +138,7 @@ function extractCookTime(time?: Time): string | undefined {
 function extractTotalTime(time?: Time): string | undefined {
   if (!time) return undefined;
   if (isStructuredTime(time)) {
-    return minutesToISODuration(time.total);
+    return maybeFormatDuration(time.total);
   }
   return undefined;
 }
@@ -152,4 +152,11 @@ function formatNumber(value: number): string {
     return value.toString();
   }
   return Number(value.toFixed(2)).toString();
+}
+
+function maybeFormatDuration(value: number | undefined): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  return formatDuration(value);
 }
