@@ -46,6 +46,13 @@ export interface Yield {
   description?: string;
 }
 
+export interface ParsedYield {
+  amount: number;
+  unit: string;
+  servings?: number;
+  description?: string;
+}
+
 /**
  * Time can be structured (machine-readable) or simple (strings).
  * Structured time takes precedence if both exist.
