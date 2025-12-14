@@ -1,0 +1,108 @@
+{
+  "$schema": "./soustack.schema.json",
+  "id": "country-sourdough-v1",
+  "name": "Rustic Country Sourdough",
+  "version": "1.0.0",
+  "yield": {
+    "amount": 2,
+    "unit": "loaves",
+    "description": "Two 900g boules"
+  },
+  "metadata": {
+    "description": "High hydration sourdough using the Soustack scaling engine."
+  },
+  
+  "ingredients": [
+    { 
+      "id": "flour-bread",
+      "item": "900g Bread Flour",
+      "quantity": { "amount": 900, "unit": "g" },
+      "scaling": { "type": "linear" }
+    },
+    {
+      "id": "flour-whole-wheat",
+      "item": "100g Whole Wheat Flour",
+      "quantity": { "amount": 100, "unit": "g" },
+      "scaling": { "type": "linear" }
+    },
+    {
+      "id": "water",
+      "item": "750g Water (75% hydration)",
+      "quantity": { "amount": 750, "unit": "g" },
+      "scaling": { 
+        "type": "bakers_percentage", 
+        "referenceId": "flour-bread" 
+      },
+      "notes": "Scaling relative to bread flour for hydration control"
+    },
+    {
+      "id": "starter",
+      "item": "200g Leaven (Active Starter)",
+      "quantity": { "amount": 200, "unit": "g" },
+      "scaling": { 
+        "type": "bakers_percentage", 
+        "referenceId": "flour-bread", 
+        "factor": 0.2
+      }
+    },
+    {
+      "id": "salt",
+      "item": "20g Fine Sea Salt",
+      "quantity": { "amount": 20, "unit": "g" },
+      "scaling": { 
+        "type": "bakers_percentage", 
+        "referenceId": "flour-bread",
+        "factor": 0.02
+      }
+    }
+  ],
+
+  "instructions": [
+    {
+      "id": "levain-build",
+      "text": "Mix starter with warm water and flour. Let rise until tripled.",
+      "timing": { "duration": 240, "type": "passive", "scaling": "fixed" },
+      "dependsOn": [] 
+    },
+    {
+      "id": "autolyse",
+      "text": "Mix flour and water (exclude salt/starter). Let sit for 1 hour.",
+      "timing": { "duration": 60, "type": "passive", "scaling": "fixed" },
+      "dependsOn": [] 
+    },
+    {
+      "id": "mix-dough",
+      "text": "Combine Autolyse dough with Levain and Salt.",
+      "inputs": [
+          {"ingredientId": "salt"}, 
+          {"ingredientId": "starter"}
+      ],
+      "timing": { "duration": 10, "type": "active", "scaling": "linear" },
+      "dependsOn": ["levain-build", "autolyse"]
+    },
+    {
+      "id": "bulk-ferment",
+      "text": "Perform 4 sets of stretch and folds every 30 mins.",
+      "timing": { "duration": 240, "type": "passive", "scaling": "fixed" },
+      "dependsOn": ["mix-dough"]
+    },
+    {
+      "id": "shape",
+      "text": "Divide and shape into rounds.",
+      "timing": { "duration": 20, "type": "active", "scaling": "linear" },
+      "dependsOn": ["bulk-ferment"]
+    },
+    {
+      "id": "cold-proof",
+      "text": "Place in bannetons and refrigerate overnight.",
+      "timing": { "duration": 720, "type": "passive", "scaling": "fixed" },
+      "dependsOn": ["shape"]
+    },
+    {
+      "id": "bake",
+      "text": "Bake in Dutch Oven at 450F.",
+      "timing": { "duration": 45, "type": "passive", "scaling": "fixed" },
+      "dependsOn": ["cold-proof"]
+    }
+  ]
+}
