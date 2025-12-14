@@ -33,3 +33,16 @@ Soustack is **computational**—it understands _how_ a recipe behaves.
 ```bash
 npm install soustack-core
 ```
+
+## 🔄 Keeping the Schema in Sync
+
+The `src/schema.json` file in this repository is a **copy** of the official standard.
+The source of truth lives in [RichardHerold/soustack-spec](https://github.com/RichardHerold/soustack-spec).
+
+**Do not edit `src/schema.json` manually.**
+
+To update to the latest version of the standard, run:
+
+```bash
+npm run sync:spec
+```
