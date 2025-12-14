@@ -10,3 +10,9 @@ export {
   parseHumanDuration,
   smartParseDuration
 } from './duration';
+
+export {
+  parseYield,
+  formatYield,
+  normalizeYield
+} from './yield';
