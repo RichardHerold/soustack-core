@@ -1,14 +1,13 @@
 import Ajv from "ajv";
-import schema from "./soustack.schema.json"; // Loads the rules
+import addFormats from "ajv-formats"; // <--- Import this
+import schema from "./soustack.schema.json";
 import { Recipe } from "./types";
 
 const ajv = new Ajv();
+addFormats(ajv); // <--- Enable formats like date-time, uri, email
+
 const validate = ajv.compile(schema);
 
-/**
- * Validates a recipe object against the Soustack Standard.
- * Returns true if valid, throws error if invalid.
- */
 export function validateRecipe(data: any): data is Recipe {
   const isValid = validate(data);
   if (!isValid) {
