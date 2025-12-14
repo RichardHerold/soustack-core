@@ -1,0 +1,35 @@
+# Soustack Core
+
+> **The Logic Engine for Computational Recipes.**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
+
+**Soustack Core** is the reference implementation for the [Soustack Standard](https://github.com/soustack/spec). It provides the validation, parsing, and scaling logic required to turn static recipe data into dynamic, computable objects.
+
+---
+
+## 💡 The Value Proposition
+
+Most recipe formats (like Schema.org) are **descriptive**—they tell you _what_ a recipe is.
+Soustack is **computational**—it understands _how_ a recipe behaves.
+
+### The Problems We Solve:
+
+1.  **The "Salty Soup" Problem (Intelligent Scaling):**
+    - _Old Way:_ Doubling a recipe doubles every ingredient blindly.
+    - _Soustack:_ Understands that salt scales differently than flour, and frying oil shouldn't scale at all. It supports **Linear**, **Fixed**, **Discrete**, and **Baker's Percentage** scaling modes.
+2.  **The "Lying Prep Time" Problem:**
+    - _Old Way:_ Authors guess "Prep: 15 mins."
+    - _Soustack:_ Calculates total time dynamically based on the active/passive duration of every step.
+3.  **The "Timing Clash" Problem:**
+    - _Old Way:_ A flat list of instructions.
+    - _Soustack:_ A **Dependency Graph** that knows you can chop vegetables while the water boils.
+
+---
+
+## 📦 Installation
+
+```bash
+npm install soustack-core
+```

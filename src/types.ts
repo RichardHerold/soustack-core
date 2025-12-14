@@ -142,9 +142,11 @@ export interface ScalingFixed extends ScalingBase {
 }
 
 export interface ScalingBakersPercentage extends ScalingBase {
-  type: "bakers_percentage";
+  type: 'bakers_percentage';
   /** The ID of the flour/base ingredient this is relative to */
   referenceId: string;
+  /** The percentage relative to the reference (e.g. 0.02 for 2%) */
+  factor?: number; // <--- ADD THIS LINE
 }
 
 // --- Instruction Logic ---

@@ -176,16 +176,29 @@ function calculateIngredient(
 
   // Apply formatted text
   const unit = ing.quantity?.unit || '';
-  const text = `${parseFloat(newAmount.toFixed(2))}${unit ? ' ' + unit : ''} ${ing.name || ing.item}`;
+  // Extract ingredient name: use ing.name if available, otherwise strip quantity from ing.item
+  const ingredientName = ing.name || extractNameFromItem(ing.item);
+  const text = `${parseFloat(newAmount.toFixed(2))}${unit ? ' ' + unit : ''} ${ingredientName}`;
 
   return {
     id: ing.id || ing.item,
-    name: ing.name || ing.item,
+    name: ingredientName,
     amount: newAmount,
     unit: ing.quantity?.unit || null,
     text,
     notes: ing.notes
   };
+}
+
+/**
+ * Extracts the ingredient name from an item string by removing the leading quantity.
+ * Example: "900g Bread Flour" -> "Bread Flour"
+ */
+function extractNameFromItem(item: string): string {
+  // Match pattern: optional number, optional decimal, optional unit, then the name
+  // Examples: "900g Bread Flour", "2 cups flour", "100g Whole Wheat Flour"
+  const match = item.match(/^\s*\d+(?:\.\d+)?\s*\w*\s*(.+)$/);
+  return match ? match[1].trim() : item;
 }
 
 function calculateInstruction(inst: Instruction, multiplier: number): ComputedInstruction {
