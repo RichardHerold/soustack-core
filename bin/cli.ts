@@ -84,6 +84,9 @@ async function handleImport(args: string[]) {
 
   const schemaOrg = readJsonFile(filePath);
   const soustack = fromSchemaOrg(schemaOrg);
+  if (!soustack) {
+    throw new Error('No valid Schema.org recipe found in input');
+  }
   writeOutput(soustack, outputPath);
   console.log(`✅ Converted Schema.org → Soustack${outputPath ? ` (${outputPath})` : ''}`);
 }

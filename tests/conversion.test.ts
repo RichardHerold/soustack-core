@@ -87,19 +87,21 @@ describe('Schema.org <-> Soustack', () => {
 
   it('imports Schema.org JSON-LD into Soustack format', () => {
     const soustack = fromSchemaOrg(schemaOrgFixture);
+    expect(soustack).not.toBeNull();
 
-    expect(soustack.name).toBe('Perfect Chocolate Chip Cookies');
-    expect(soustack.yield).toMatchObject({ amount: 24, unit: 'cookies' });
-    expect(soustack.time).toMatchObject({ prep: 20, active: 12, total: 32 });
-    expect(soustack.ingredients[0]).toMatchObject({
+    const recipe = soustack as Recipe;
+    expect(recipe.name).toBe('Perfect Chocolate Chip Cookies');
+    expect(recipe.yield).toMatchObject({ amount: 24, unit: 'cookies' });
+    expect(recipe.time).toMatchObject({ prep: 20, active: 12, total: 32 });
+    expect(recipe.ingredients[0]).toMatchObject({
       name: 'all-purpose flour',
       quantity: { amount: 2.25, unit: 'cup' }
     });
-    expect(soustack.instructions).toHaveLength(2);
-    expect(soustack.category).toBe('Dessert');
-    expect(soustack.tags).toEqual(expect.arrayContaining(['American', 'cookies', 'chocolate']));
-    expect(soustack.source).toMatchObject({ author: 'Jane Baker', name: 'Test Kitchen' });
-    expect(soustack.nutrition).toMatchObject({ calories: '250 cal' });
+    expect(recipe.instructions).toHaveLength(2);
+    expect(recipe.category).toBe('Dessert');
+    expect(recipe.tags).toEqual(expect.arrayContaining(['American', 'cookies', 'chocolate']));
+    expect(recipe.source).toMatchObject({ author: 'Jane Baker', name: 'Test Kitchen' });
+    expect(recipe.nutrition).toMatchObject({ calories: '250 cal' });
   });
 
   it('exports Soustack recipes to Schema.org JSON-LD', () => {

@@ -19,6 +19,8 @@ export interface Recipe {
   image?: string;
   /** ISO 8601 date string */
   dateAdded?: string;
+  /** Last updated timestamp */
+  dateModified?: string;
   source?: Source;
   yield?: Yield;
   time?: Time;
