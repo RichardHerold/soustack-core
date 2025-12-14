@@ -9,7 +9,7 @@ import {
   StructuredTime
 } from './types';
 import { parseIngredientLine } from './converters/ingredient';
-import { parseISODuration } from './converters/duration';
+import { smartParseDuration } from './parsers/duration';
 import { parseYield } from './converters/yield';
 
 const SchemaOrgRecipe = z
@@ -127,18 +127,22 @@ function normalizeInstruction(item: unknown): InstructionItem[] {
 }
 
 function buildTimeObject(recipe: SchemaOrgRecipeType): StructuredTime | undefined {
-  const prep = parseISODuration(recipe.prepTime);
-  const cook = parseISODuration(recipe.cookTime);
-  const total = parseISODuration(recipe.totalTime);
+  const prep = smartParseDuration(recipe.prepTime ?? '');
+  const cook = smartParseDuration(recipe.cookTime ?? '');
+  const total = smartParseDuration(recipe.totalTime ?? '');
 
-  if (!prep && !cook && !total) {
+  const hasPrep = prep !== null && prep !== undefined;
+  const hasCook = cook !== null && cook !== undefined;
+  const hasTotal = total !== null && total !== undefined;
+
+  if (!hasPrep && !hasCook && !hasTotal) {
     return undefined;
   }
 
   const structured: StructuredTime = {};
-  if (prep) structured.prep = prep;
-  if (cook) structured.active = cook;
-  if (total) structured.total = total;
+  if (hasPrep) structured.prep = prep!;
+  if (hasCook) structured.active = cook!;
+  if (hasTotal) structured.total = total!;
   return structured;
 }
 
