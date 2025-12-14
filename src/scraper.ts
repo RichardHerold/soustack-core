@@ -35,7 +35,12 @@ export async function scrapeRecipe(url: string): Promise<Recipe> {
     throw new Error('No Schema.org recipe data found in page');
   }
 
-  return fromSchemaOrg(schemaOrg);
+  const recipe = fromSchemaOrg(schemaOrg);
+  if (!recipe) {
+    throw new Error('Schema.org data did not include a valid recipe');
+  }
+
+  return recipe;
 }
 
 function extractSchemaOrg(html: string): unknown {

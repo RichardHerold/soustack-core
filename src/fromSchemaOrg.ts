@@ -1,6 +1,4 @@
-import { z } from 'zod';
 import {
-  Ingredient,
   IngredientItem,
   Instruction,
   InstructionItem,
@@ -9,56 +7,44 @@ import {
   StructuredTime
 } from './types';
 import { parseIngredientLine } from './converters/ingredient';
-import { smartParseDuration } from './parsers/duration';
 import { parseYield } from './converters/yield';
+import { smartParseDuration } from './parsers/duration';
+import {
+  HowToSection,
+  HowToStep,
+  SchemaOrgImage,
+  SchemaOrgPersonOrOrganization,
+  SchemaOrgRecipe
+} from './types/schemaOrg';
 
-const SchemaOrgRecipe = z
-  .object({
-    name: z.string().min(1, 'Recipe name is required'),
-    description: z.string().optional(),
-    image: z.any().optional(),
-    recipeIngredient: z.any().optional(),
-    recipeInstructions: z.any().optional(),
-    recipeYield: z.any().optional(),
-    prepTime: z.string().optional(),
-    cookTime: z.string().optional(),
-    totalTime: z.string().optional(),
-    recipeCategory: z.any().optional(),
-    recipeCuisine: z.any().optional(),
-    keywords: z.any().optional(),
-    author: z.any().optional(),
-    publisher: z.any().optional(),
-    mainEntityOfPage: z.any().optional(),
-    url: z.string().optional(),
-    nutrition: z.any().optional()
-  })
-  .passthrough();
+export function fromSchemaOrg(input: unknown): Recipe | null {
+  const recipeNode = extractRecipeNode(input);
+  if (!recipeNode) {
+    return null;
+  }
 
-type SchemaOrgRecipeType = z.infer<typeof SchemaOrgRecipe>;
-
-export function fromSchemaOrg(input: unknown): Recipe {
-  const schemaOrg = SchemaOrgRecipe.parse(input);
-
-  const ingredients = parseIngredients(schemaOrg.recipeIngredient);
-  const instructions = parseInstructions(schemaOrg.recipeInstructions);
-  const time = buildTimeObject(schemaOrg);
-  const recipeYield = parseYield(schemaOrg.recipeYield);
-  const tags = collectTags(schemaOrg.recipeCuisine, schemaOrg.keywords);
-  const category = extractFirst(schemaOrg.recipeCategory);
-  const image = normalizeImage(schemaOrg.image);
-  const source = buildSource(schemaOrg);
+  const ingredients = convertIngredients(recipeNode.recipeIngredient);
+  const instructions = convertInstructions(recipeNode.recipeInstructions);
+  const time = convertTime(recipeNode);
+  const recipeYield = parseYield(recipeNode.recipeYield);
+  const tags = collectTags(recipeNode.recipeCuisine, recipeNode.keywords);
+  const category = extractFirst(recipeNode.recipeCategory);
+  const image = convertImage(recipeNode.image);
+  const source = convertSource(recipeNode);
   const nutrition =
-    schemaOrg.nutrition && typeof schemaOrg.nutrition === 'object'
-      ? schemaOrg.nutrition
+    recipeNode.nutrition && typeof recipeNode.nutrition === 'object'
+      ? recipeNode.nutrition
       : undefined;
 
   return {
-    name: schemaOrg.name,
-    description: schemaOrg.description,
+    name: recipeNode.name.trim(),
+    description: recipeNode.description?.trim() || undefined,
     image,
     category,
     tags: tags.length ? tags : undefined,
     source,
+    dateAdded: recipeNode.datePublished || undefined,
+    dateModified: recipeNode.dateModified || undefined,
     yield: recipeYield,
     time,
     ingredients,
@@ -67,107 +53,192 @@ export function fromSchemaOrg(input: unknown): Recipe {
   };
 }
 
-function parseIngredients(value: unknown): IngredientItem[] {
+function extractRecipeNode(input: unknown): SchemaOrgRecipe | null {
+  if (!input) return null;
+
+  if (Array.isArray(input)) {
+    for (const entry of input) {
+      const found = extractRecipeNode(entry);
+      if (found) {
+        return found;
+      }
+    }
+    return null;
+  }
+
+  if (typeof input !== 'object') {
+    return null;
+  }
+
+  const record = input as Partial<SchemaOrgRecipe> & { [key: string]: unknown };
+
+  if (record['@graph']) {
+    const fromGraph = extractRecipeNode(record['@graph']);
+    if (fromGraph) {
+      return fromGraph;
+    }
+  }
+
+  if (!hasRecipeType(record['@type'])) {
+    return null;
+  }
+
+  if (!isValidName(record.name)) {
+    return null;
+  }
+
+  return record as SchemaOrgRecipe;
+}
+
+function hasRecipeType(value: SchemaOrgRecipe['@type']): boolean {
+  if (!value) return false;
+  const types = Array.isArray(value) ? value : [value];
+  return types.some(
+    entry => typeof entry === 'string' && entry.toLowerCase() === 'recipe'
+  );
+}
+
+function isValidName(name: unknown): name is string {
+  return typeof name === 'string' && Boolean(name.trim());
+}
+
+function convertIngredients(
+  value: SchemaOrgRecipe['recipeIngredient']
+): IngredientItem[] {
   if (!value) return [];
   const normalized = Array.isArray(value) ? value : [value];
   return normalized
-    .map(item => {
-      if (typeof item === 'string') {
-        return parseIngredientLine(item);
-      }
-      if (item && typeof item === 'object') {
-        const maybeText =
-          (item as any).text ||
-          (item as any).name ||
-          (item as any).description;
-        if (typeof maybeText === 'string') {
-          return parseIngredientLine(maybeText);
-        }
-      }
-      return undefined;
-    })
-    .filter((ing): ing is Ingredient => Boolean(ing));
+    .map(item => (typeof item === 'string' ? item.trim() : ''))
+    .filter(Boolean)
+    .map(line => parseIngredientLine(line));
 }
 
-function parseInstructions(value: unknown): InstructionItem[] {
+function convertInstructions(
+  value: SchemaOrgRecipe['recipeInstructions']
+): InstructionItem[] {
   if (!value) return [];
-  if (typeof value === 'string') {
-    return [{ text: value }];
+  const normalized = Array.isArray(value) ? value : [value];
+  const result: InstructionItem[] = [];
+
+  for (const entry of normalized) {
+    if (!entry) continue;
+
+    if (typeof entry === 'string') {
+      const text = entry.trim();
+      if (text) {
+        result.push(text);
+      }
+      continue;
+    }
+
+    if (isHowToSection(entry)) {
+      const subsectionItems = extractSectionItems(entry.itemListElement);
+      if (subsectionItems.length) {
+        result.push({
+          subsection: entry.name?.trim() || 'Section',
+          items: subsectionItems
+        });
+      }
+      continue;
+    }
+
+    if (isHowToStep(entry)) {
+      const text = extractInstructionText(entry);
+      if (text) {
+        result.push(text);
+      }
+    }
   }
-  if (Array.isArray(value)) {
-    return value.flatMap(item => normalizeInstruction(item));
-  }
-  return normalizeInstruction(value);
+
+  return result;
 }
 
-function normalizeInstruction(item: unknown): InstructionItem[] {
-  if (!item) return [];
-  if (typeof item === 'string') {
-    return [{ text: item }];
+function extractSectionItems(
+  items: Array<string | HowToStep | HowToSection> = []
+): Array<string | Instruction> {
+  const result: Array<string | Instruction> = [];
+
+  for (const item of items) {
+    if (!item) continue;
+
+    if (typeof item === 'string') {
+      const text = item.trim();
+      if (text) {
+        result.push(text);
+      }
+      continue;
+    }
+
+    if (isHowToStep(item)) {
+      const text = extractInstructionText(item);
+      if (text) {
+        result.push(text);
+      }
+      continue;
+    }
+
+    if (isHowToSection(item)) {
+      result.push(...extractSectionItems(item.itemListElement));
+    }
   }
 
-  const typed = item as Record<string, any>;
-
-  if (Array.isArray(typed.itemListElement)) {
-    return typed.itemListElement.flatMap(child => normalizeInstruction(child));
-  }
-
-  const text =
-    typed.text || typed.name || typed.description || typed['@type'] || '';
-  if (!text) return [];
-
-  const instruction: Instruction = {
-    text: text.trim(),
-    ...(Array.isArray(typed.dependsOn)
-      ? { dependsOn: typed.dependsOn.filter(Boolean) }
-      : {})
-  };
-
-  return [instruction];
+  return result;
 }
 
-function buildTimeObject(recipe: SchemaOrgRecipeType): StructuredTime | undefined {
+function extractInstructionText(value: HowToStep): string | undefined {
+  const text = typeof value.text === 'string' ? value.text : value.name;
+  return typeof text === 'string' ? text.trim() || undefined : undefined;
+}
+
+function isHowToStep(value: unknown): value is HowToStep {
+  return (
+    Boolean(value) &&
+    typeof value === 'object' &&
+    (value as HowToStep)['@type'] === 'HowToStep'
+  );
+}
+
+function isHowToSection(value: unknown): value is HowToSection {
+  return (
+    Boolean(value) &&
+    typeof value === 'object' &&
+    (value as HowToSection)['@type'] === 'HowToSection' &&
+    Array.isArray((value as HowToSection).itemListElement)
+  );
+}
+
+function convertTime(recipe: SchemaOrgRecipe): StructuredTime | undefined {
   const prep = smartParseDuration(recipe.prepTime ?? '');
   const cook = smartParseDuration(recipe.cookTime ?? '');
   const total = smartParseDuration(recipe.totalTime ?? '');
 
-  const hasPrep = prep !== null && prep !== undefined;
-  const hasCook = cook !== null && cook !== undefined;
-  const hasTotal = total !== null && total !== undefined;
-
-  if (!hasPrep && !hasCook && !hasTotal) {
-    return undefined;
-  }
-
   const structured: StructuredTime = {};
-  if (hasPrep) structured.prep = prep!;
-  if (hasCook) structured.active = cook!;
-  if (hasTotal) structured.total = total!;
-  return structured;
+  if (prep !== null && prep !== undefined) structured.prep = prep;
+  if (cook !== null && cook !== undefined) structured.active = cook;
+  if (total !== null && total !== undefined) structured.total = total;
+
+  return Object.keys(structured).length ? structured : undefined;
 }
 
 function collectTags(cuisine: unknown, keywords: unknown): string[] {
   const tags = new Set<string>();
-  flattenToArray(cuisine).forEach(item => {
-    if (item) tags.add(item);
-  });
-
+  flattenStrings(cuisine).forEach(tag => tags.add(tag));
   if (typeof keywords === 'string') {
-    keywords
-      .split(',')
-      .map(part => part.trim())
-      .filter(Boolean)
-      .forEach(part => tags.add(part));
+    splitKeywords(keywords).forEach(tag => tags.add(tag));
   } else {
-    flattenToArray(keywords).forEach(item => {
-      if (item) tags.add(item);
-    });
+    flattenStrings(keywords).forEach(tag => tags.add(tag));
   }
-
   return Array.from(tags);
 }
 
-function flattenToArray(value: unknown): string[] {
+function splitKeywords(value: string): string[] {
+  return value
+    .split(/[,|]/)
+    .map(part => part.trim())
+    .filter(Boolean);
+}
+
+function flattenStrings(value: unknown): string[] {
   if (!value) return [];
   if (typeof value === 'string') return [value.trim()].filter(Boolean);
   if (Array.isArray(value)) {
@@ -179,61 +250,82 @@ function flattenToArray(value: unknown): string[] {
 }
 
 function extractFirst(value: unknown): string | undefined {
-  const arr = flattenToArray(value);
+  const arr = flattenStrings(value);
   return arr.length ? arr[0] : undefined;
 }
 
-function normalizeImage(value: unknown): string | undefined {
+function convertImage(value: SchemaOrgImage | undefined): string | undefined {
   if (!value) return undefined;
-  if (typeof value === 'string') return value;
+
+  if (typeof value === 'string') {
+    return value;
+  }
+
   if (Array.isArray(value)) {
-    const first = value.find(item => typeof item === 'string');
-    if (first) return first;
-  }
-  if (typeof value === 'object' && 'url' in (value as Record<string, any>)) {
-    const url = (value as Record<string, any>).url;
-    if (typeof url === 'string') return url;
-  }
-  return undefined;
-}
-
-function buildSource(recipe: SchemaOrgRecipeType): Source | undefined {
-  const author = extractEntityName(recipe.author);
-  const publisher = extractEntityName(recipe.publisher);
-  const url = typeof recipe.mainEntityOfPage === 'string'
-    ? recipe.mainEntityOfPage
-    : recipe.url;
-
-  if (!author && !publisher && !url) {
+    for (const item of value) {
+      const url = typeof item === 'string' ? item : extractImageUrl(item);
+      if (url) return url;
+    }
     return undefined;
   }
 
-  return {
-    author: author || undefined,
-    name: publisher || undefined,
-    url: url || undefined
-  };
+  return extractImageUrl(value);
 }
 
-function extractEntityName(value: unknown): string | undefined {
+function extractImageUrl(value: unknown): string | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const record = value as { url?: unknown; contentUrl?: unknown };
+  const candidate =
+    typeof record.url === 'string'
+      ? record.url
+      : typeof record.contentUrl === 'string'
+        ? record.contentUrl
+        : undefined;
+  return candidate?.trim() || undefined;
+}
+
+function convertSource(recipe: SchemaOrgRecipe): Source | undefined {
+  const author = extractEntityName(recipe.author);
+  const publisher = extractEntityName(recipe.publisher);
+  const url = (recipe.url || recipe.mainEntityOfPage)?.trim();
+
+  const source: Source = {};
+  if (author) source.author = author;
+  if (publisher) source.name = publisher;
+  if (url) source.url = url;
+
+  return Object.keys(source).length ? source : undefined;
+}
+
+function extractEntityName(
+  value:
+    | SchemaOrgPersonOrOrganization
+    | SchemaOrgPersonOrOrganization[]
+    | string
+    | string[]
+    | undefined
+): string | undefined {
   if (!value) return undefined;
-  if (typeof value === 'string') return value;
-  if (Array.isArray(value)) {
-    const first = value.find(item => typeof item === 'string' || isObjectWithName(item));
-    if (typeof first === 'string') return first;
-    if (first && isObjectWithName(first)) return first.name;
-  }
-  if (isObjectWithName(value)) {
-    return value.name;
-  }
-  return undefined;
-}
 
-function isObjectWithName(value: unknown): value is { name: string } {
-  return Boolean(
-    value &&
-      typeof value === 'object' &&
-      'name' in (value as Record<string, unknown>) &&
-      typeof (value as Record<string, unknown>).name === 'string'
-  );
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const name = extractEntityName(entry as any);
+      if (name) {
+        return name;
+      }
+    }
+    return undefined;
+  }
+
+  if (typeof value === 'object' && typeof value.name === 'string') {
+    const trimmed = value.name.trim();
+    return trimmed || undefined;
+  }
+
+  return undefined;
 }
