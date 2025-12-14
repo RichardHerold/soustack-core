@@ -108,6 +108,19 @@ export interface Ingredient {
   notes?: string;
 }
 
+export interface ParsedIngredient {
+  item: string;
+  quantity?: {
+    amount: number | null;
+    unit: string | null;
+  };
+  name?: string;
+  prep?: string;
+  optional?: boolean;
+  notes?: string;
+  scaling?: Scaling;
+}
+
 /**
  * Intelligent Scaling Logic
  * Defines how an ingredient behaves when the recipe yield changes.
