@@ -1,0 +1,305 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://soustack.org/schema/v0.1",
+  "title": "Soustack Recipe Schema v0.1",
+  "description": "A portable, scalable, interoperable recipe format.",
+  "type": "object",
+  "required": ["name", "ingredients", "instructions"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier (slug or UUID)"
+    },
+    "name": {
+      "type": "string",
+      "description": "The title of the recipe"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic versioning (e.g., 1.0.0)"
+    },
+    "description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "examples": ["Main Course", "Dessert"]
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "image": {
+      "type": "string",
+      "format": "uri"
+    },
+    "dateAdded": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "author": { "type": "string" },
+        "url": { "type": "string", "format": "uri" },
+        "name": { "type": "string" },
+        "adapted": { "type": "boolean" }
+      }
+    },
+    "yield": {
+      "$ref": "#/definitions/yield"
+    },
+    "time": {
+      "$ref": "#/definitions/time"
+    },
+    "equipment": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/equipment" }
+    },
+    "ingredients": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          { "type": "string" },
+          { "$ref": "#/definitions/ingredient" },
+          { "$ref": "#/definitions/ingredientSubsection" }
+        ]
+      }
+    },
+    "instructions": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          { "type": "string" },
+          { "$ref": "#/definitions/instruction" },
+          { "$ref": "#/definitions/instructionSubsection" }
+        ]
+      }
+    },
+    "storage": {
+      "$ref": "#/definitions/storage"
+    },
+    "substitutions": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/substitution" }
+    }
+  },
+  "definitions": {
+    "yield": {
+      "type": "object",
+      "required": ["amount", "unit"],
+      "properties": {
+        "amount": { "type": "number" },
+        "unit": { "type": "string" },
+        "servings": { "type": "number" },
+        "description": { "type": "string" }
+      }
+    },
+    "time": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "prep": { "type": "number" },
+            "active": { "type": "number" },
+            "passive": { "type": "number" },
+            "total": { "type": "number" }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "prepTime": { "type": "string" },
+            "cookTime": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "quantity": {
+      "type": "object",
+      "required": ["amount"],
+      "properties": {
+        "amount": { "type": "number" },
+        "unit": { "type": ["string", "null"] }
+      }
+    },
+    "scaling": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["linear", "discrete", "proportional", "fixed", "bakers_percentage"]
+        },
+        "factor": { "type": "number" },
+        "referenceId": { "type": "string" },
+        "roundTo": { "type": "number" },
+        "min": { "type": "number" },
+        "max": { "type": "number" }
+      },
+      "if": {
+        "properties": { "type": { "const": "bakers_percentage" } }
+      },
+      "then": {
+        "required": ["referenceId"]
+      }
+    },
+    "ingredient": {
+      "type": "object",
+      "required": ["item"],
+      "properties": {
+        "id": { "type": "string" },
+        "item": { "type": "string" },
+        "quantity": { "$ref": "#/definitions/quantity" },
+        "name": { "type": "string" },
+        "aisle": { "type": "string" },
+        "prep": { "type": "string" },
+        "prepAction": { "type": "string" },
+        "prepTime": { "type": "number" },
+        "destination": { "type": "string" },
+        "scaling": { "$ref": "#/definitions/scaling" },
+        "critical": { "type": "boolean" },
+        "optional": { "type": "boolean" },
+        "notes": { "type": "string" }
+      }
+    },
+    "ingredientSubsection": {
+      "type": "object",
+      "required": ["subsection", "items"],
+      "properties": {
+        "subsection": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ingredient" }
+        }
+      }
+    },
+    "equipment": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "required": { "type": "boolean" },
+        "label": { "type": "string" },
+        "capacity": { "$ref": "#/definitions/quantity" },
+        "scalingLimit": { "type": "number" },
+        "alternatives": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "instruction": {
+      "type": "object",
+      "required": ["text"],
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "destination": { "type": "string" },
+        "dependsOn": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "inputs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "timing": {
+          "type": "object",
+          "required": ["duration", "type"],
+          "properties": {
+            "duration": { "type": "number" },
+            "type": { "type": "string", "enum": ["active", "passive"] },
+            "scaling": { "type": "string", "enum": ["linear", "fixed", "sqrt"] }
+          }
+        }
+      }
+    },
+    "instructionSubsection": {
+      "type": "object",
+      "required": ["subsection", "items"],
+      "properties": {
+        "subsection": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              { "type": "string" },
+              { "$ref": "#/definitions/instruction" }
+            ]
+          }
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "properties": {
+        "roomTemp": { "$ref": "#/definitions/storageMethod" },
+        "refrigerated": { "$ref": "#/definitions/storageMethod" },
+        "frozen": {
+          "allOf": [
+            { "$ref": "#/definitions/storageMethod" },
+            {
+              "type": "object",
+              "properties": { "thawing": { "type": "string" } }
+            }
+          ]
+        },
+        "reheating": { "type": "string" },
+        "makeAhead": {
+          "type": "array",
+          "items": {
+            "allOf": [
+              { "$ref": "#/definitions/storageMethod" },
+              {
+                "type": "object",
+                "required": ["component", "storage"],
+                "properties": {
+                  "component": { "type": "string" },
+                  "storage": { "type": "string", "enum": ["roomTemp", "refrigerated", "frozen"] }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "storageMethod": {
+      "type": "object",
+      "required": ["duration"],
+      "properties": {
+        "duration": { "type": "string", "pattern": "^P" },
+        "method": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "substitution": {
+      "type": "object",
+      "required": ["ingredient"],
+      "properties": {
+        "ingredient": { "type": "string" },
+        "critical": { "type": "boolean" },
+        "notes": { "type": "string" },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "ratio"],
+            "properties": {
+              "name": { "type": "string" },
+              "ratio": { "type": "string" },
+              "notes": { "type": "string" },
+              "impact": { "type": "string" },
+              "dietary": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
