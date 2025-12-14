@@ -34,6 +34,30 @@ Soustack is **computational**—it understands _how_ a recipe behaves.
 npm install soustack-core
 ```
 
+## 🔁 Schema.org Conversion
+
+Use the new helpers to move between Schema.org JSON-LD and Soustack's structured recipe format.
+
+```ts
+import { fromSchemaOrg, toSchemaOrg } from 'soustack-core';
+
+const soustackRecipe = fromSchemaOrg(schemaOrgJsonLd);
+const schemaOrgRecipe = toSchemaOrg(soustackRecipe);
+```
+
+### CLI
+
+```bash
+# Validate & Scale (existing commands)
+npx soustack-convert validate recipe.soustack.json
+npx soustack-convert scale recipe.soustack.json 2
+
+# Schema.org ↔ Soustack
+npx soustack-convert import recipe.jsonld -o recipe.soustack.json
+npx soustack-convert export recipe.soustack.json -o recipe.jsonld
+npx soustack-convert scrape "https://example.com/recipe" -o recipe.soustack.json
+```
+
 ## 🔄 Keeping the Schema in Sync
 
 The `src/schema.json` file in this repository is a **copy** of the official standard.

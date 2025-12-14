@@ -27,6 +27,7 @@ export interface Recipe {
   instructions: InstructionItem[];
   storage?: Storage;
   substitutions?: Substitution[];
+  nutrition?: NutritionFacts;
 }
 
 // --- Core Definitions ---
@@ -214,4 +215,16 @@ export interface Alternative {
   notes?: string;
   impact?: string;
   dietary?: string[];
+}
+
+export interface NutritionFacts {
+  calories?: string;
+  fatContent?: string;
+  carbohydrateContent?: string;
+  proteinContent?: string;
+  fiberContent?: string;
+  sugarContent?: string;
+  sodiumContent?: string;
+  servingSize?: string;
+  [key: string]: string | number | null | string[] | undefined;
 }
