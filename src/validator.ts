@@ -1,6 +1,6 @@
 import Ajv from "ajv";
 import addFormats from "ajv-formats"; // <--- Import this
-import schema from "./soustack.schema.json";
+import schema from "./schema.json";
 import { Recipe } from "./types";
 
 const ajv = new Ajv();

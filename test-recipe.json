@@ -1,5 +1,5 @@
 {
-  "$schema": "./soustack.schema.json",
+  "$schema": "https://raw.githubusercontent.com/RichardHerold/soustack-spec/main/soustack.schema.json",
   "id": "country-sourdough-v1",
   "name": "Rustic Country Sourdough",
   "version": "1.0.0",
