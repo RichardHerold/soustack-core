@@ -21,11 +21,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/RichardHerold/soustack-core.git"
+    "url": "git+https://github.com/RichardHerold/soustack-core.git"
   },
   "bin": {
-    "soustack": "./dist/cli/index.js",
-    "soustack-convert": "./dist/cli/index.js"
+    "soustack": "dist/cli/index.js",
+    "soustack-convert": "dist/cli/index.js"
   },
   "files": [
     "dist",
