@@ -1,4 +1,11 @@
-import { IngredientItem, InstructionItem, Recipe, StructuredTime, Time } from '../types';
+import {
+  IngredientItem,
+  Instruction,
+  InstructionItem,
+  Recipe,
+  StructuredTime,
+  Time
+} from '../types';
 import { formatDuration } from '../parsers/duration';
 import { formatYield } from './yield';
 import { HowToSection, HowToStep, SchemaOrgRecipe } from '../types/schemaOrg';
@@ -82,7 +89,7 @@ function convertInstruction(entry: InstructionItem): SchemaOrgInstruction | null
 
   if ('subsection' in entry) {
     const steps = entry.items
-      .map(item => (typeof item === 'string' ? createHowToStep(item) : createHowToStep(item.text)))
+      .map(item => createHowToStep(item))
       .filter((step): step is HowToStep => Boolean(step));
 
     if (!steps.length) {
@@ -97,20 +104,41 @@ function convertInstruction(entry: InstructionItem): SchemaOrgInstruction | null
   }
 
   if ('text' in entry) {
-    return createHowToStep(entry.text);
+    return createHowToStep(entry);
   }
 
   return createHowToStep(String(entry));
 }
 
-function createHowToStep(text?: string): HowToStep | null {
-  if (!text) return null;
-  const trimmed = text.trim();
-  if (!trimmed) return null;
-  return {
+function createHowToStep(entry: string | Instruction | undefined): HowToStep | null {
+  if (!entry) return null;
+
+  if (typeof entry === 'string') {
+    const trimmed = entry.trim();
+    if (!trimmed) {
+      return null;
+    }
+    return {
+      '@type': 'HowToStep',
+      text: trimmed
+    };
+  }
+
+  const trimmed = entry.text?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const step: HowToStep = {
     '@type': 'HowToStep',
     text: trimmed
   };
+
+  if (entry.image) {
+    step.image = entry.image;
+  }
+
+  return step;
 }
 
 export function convertTime(time?: Time): Partial<SchemaOrgRecipe> {

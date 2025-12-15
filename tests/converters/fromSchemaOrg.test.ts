@@ -95,29 +95,41 @@ describe('metadata mapping', () => {
 });
 
 describe('image handling', () => {
-  it('supports string, array, and object formats', () => {
-    expect(convert({ image: 'https://example.com/one.jpg' })?.image).toBe(
-      'https://example.com/one.jpg'
-    );
-    expect(
-      convert({ image: ['https://example.com/a.jpg', 'https://example.com/b.jpg'] })?.image
-    ).toBe('https://example.com/a.jpg');
-    expect(convert({ image: { url: 'https://example.com/object.jpg' } })?.image).toBe(
-      'https://example.com/object.jpg'
-    );
-    expect(
-      convert({ image: [{ url: 'https://example.com/list.jpg' }] })?.image
-    ).toBe('https://example.com/list.jpg');
+  it('captures string recipe images', () => {
+    const recipe = getRecipe({ image: 'https://example.com/one.jpg' });
+    expect(recipe.image).toBe('https://example.com/one.jpg');
   });
 
-  it('falls back to contentUrl or undefined', () => {
-    expect(convert({ image: { contentUrl: 'https://example.com/content.jpg' } })?.image).toBe(
-      'https://example.com/content.jpg'
-    );
-    expect(convert({ image: [{ }, 'https://example.com/real.jpg'] })?.image).toBe(
-      'https://example.com/real.jpg'
-    );
+  it('preserves multiple recipe images as arrays', () => {
+    const recipe = getRecipe({
+      image: ['https://example.com/a.jpg', 'https://example.com/b.jpg']
+    });
+    expect(recipe.image).toEqual(['https://example.com/a.jpg', 'https://example.com/b.jpg']);
+  });
+
+  it('extracts URLs from image objects', () => {
+    const recipe = getRecipe({ image: { url: 'https://example.com/object.jpg' } });
+    expect(recipe.image).toBe('https://example.com/object.jpg');
+  });
+
+  it('normalizes mixed image arrays', () => {
+    const recipe = getRecipe({
+      image: [{ url: 'https://example.com/object.jpg' }, 'https://example.com/string.jpg']
+    });
+    expect(recipe.image).toEqual([
+      'https://example.com/object.jpg',
+      'https://example.com/string.jpg'
+    ]);
+  });
+
+  it('returns undefined when no valid image exists', () => {
     expect(convert({ image: { invalid: true } as any })?.image).toBeUndefined();
+    expect(convert({ image: null })?.image).toBeUndefined();
+  });
+
+  it('uses contentUrl when url is unavailable', () => {
+    const recipe = getRecipe({ image: { contentUrl: 'https://example.com/content.jpg' } });
+    expect(recipe.image).toBe('https://example.com/content.jpg');
   });
 });
 
@@ -244,6 +256,46 @@ describe('instruction conversion', () => {
         subsection: 'Main',
         items: ['Inner step']
       }
+    ]);
+  });
+
+  it('creates instruction objects when HowToStep includes an image', () => {
+    const recipe = getRecipe({
+      recipeInstructions: [
+        {
+          '@type': 'HowToStep',
+          text: 'Snap photo',
+          image: 'https://example.com/step.jpg'
+        }
+      ]
+    });
+
+    expect(recipe.instructions).toEqual([
+      { text: 'Snap photo', image: 'https://example.com/step.jpg' }
+    ]);
+  });
+
+  it('keeps instructions as strings when no image metadata exists', () => {
+    const recipe = getRecipe({
+      recipeInstructions: [{ '@type': 'HowToStep', text: 'Bake' }]
+    });
+
+    expect(recipe.instructions).toEqual(['Bake']);
+  });
+
+  it('mixes object and string instructions depending on image availability', () => {
+    const recipe = getRecipe({
+      recipeInstructions: [
+        { '@type': 'HowToStep', text: 'Prep', image: 'https://example.com/prep.jpg' },
+        { '@type': 'HowToStep', text: 'Cook' },
+        'Serve'
+      ]
+    });
+
+    expect(recipe.instructions).toEqual([
+      { text: 'Prep', image: 'https://example.com/prep.jpg' },
+      'Cook',
+      'Serve'
     ]);
   });
 });

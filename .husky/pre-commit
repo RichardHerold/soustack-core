@@ -1,1 +1,3 @@
+npm run sync:spec
+git add src/schema.json
 npm test

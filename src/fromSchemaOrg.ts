@@ -12,10 +12,10 @@ import { smartParseDuration } from './parsers/duration';
 import {
   HowToSection,
   HowToStep,
-  SchemaOrgImage,
   SchemaOrgPersonOrOrganization,
   SchemaOrgRecipe
 } from './types/schemaOrg';
+import { normalizeImage } from './utils/image';
 
 export function fromSchemaOrg(input: unknown): Recipe | null {
   const recipeNode = extractRecipeNode(input);
@@ -29,7 +29,6 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
   const recipeYield = parseYield(recipeNode.recipeYield);
   const tags = collectTags(recipeNode.recipeCuisine, recipeNode.keywords);
   const category = extractFirst(recipeNode.recipeCategory);
-  const image = convertImage(recipeNode.image);
   const source = convertSource(recipeNode);
   const nutrition =
     recipeNode.nutrition && typeof recipeNode.nutrition === 'object'
@@ -39,7 +38,7 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
   return {
     name: recipeNode.name.trim(),
     description: recipeNode.description?.trim() || undefined,
-    image,
+    image: normalizeImage(recipeNode.image),
     category,
     tags: tags.length ? tags : undefined,
     source,
@@ -146,9 +145,9 @@ function convertInstructions(
     }
 
     if (isHowToStep(entry)) {
-      const text = extractInstructionText(entry);
-      if (text) {
-        result.push(text);
+      const parsed = convertHowToStep(entry);
+      if (parsed) {
+        result.push(parsed);
       }
     }
   }
@@ -173,9 +172,9 @@ function extractSectionItems(
     }
 
     if (isHowToStep(item)) {
-      const text = extractInstructionText(item);
-      if (text) {
-        result.push(text);
+      const parsed = convertHowToStep(item);
+      if (parsed) {
+        result.push(parsed);
       }
       continue;
     }
@@ -191,6 +190,20 @@ function extractSectionItems(
 function extractInstructionText(value: HowToStep): string | undefined {
   const text = typeof value.text === 'string' ? value.text : value.name;
   return typeof text === 'string' ? text.trim() || undefined : undefined;
+}
+
+function convertHowToStep(step: HowToStep): string | Instruction | undefined {
+  const text = extractInstructionText(step);
+  if (!text) {
+    return undefined;
+  }
+
+  const normalizedImage = normalizeImage(step.image);
+  if (typeof normalizedImage === 'string') {
+    return { text, image: normalizedImage };
+  }
+
+  return text;
 }
 
 function isHowToStep(value: unknown): value is HowToStep {
@@ -255,36 +268,6 @@ function flattenStrings(value: unknown): string[] {
 function extractFirst(value: unknown): string | undefined {
   const arr = flattenStrings(value);
   return arr.length ? arr[0] : undefined;
-}
-
-function convertImage(value: SchemaOrgImage | undefined): string | undefined {
-  if (!value) return undefined;
-
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const url = typeof item === 'string' ? item : extractImageUrl(item);
-      if (url) return url;
-    }
-    return undefined;
-  }
-
-  return extractImageUrl(value);
-}
-
-function extractImageUrl(value: unknown): string | undefined {
-  if (!value || typeof value !== 'object') return undefined;
-  const record = value as { url?: unknown; contentUrl?: unknown };
-  const candidate =
-    typeof record.url === 'string'
-      ? record.url
-      : typeof record.contentUrl === 'string'
-        ? record.contentUrl
-        : undefined;
-  return candidate?.trim() || undefined;
 }
 
 function convertSource(recipe: SchemaOrgRecipe): Source | undefined {
