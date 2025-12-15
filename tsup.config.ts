@@ -19,7 +19,7 @@ export default defineConfig([
     clean: true,
     splitting: false,
     outDir: 'dist',
-    external: ['ajv', 'ajv-formats', 'cheerio', 'node-fetch', 'zod']
+    external: ['ajv', 'ajv-formats', 'cheerio', 'zod']
   },
   {
     ...shared,
@@ -31,6 +31,6 @@ export default defineConfig([
     banner: {
       js: '#!/usr/bin/env node'
     },
-    external: ['ajv', 'ajv-formats', 'cheerio', 'node-fetch', 'zod']
+    external: ['ajv', 'ajv-formats', 'cheerio', 'zod']
   }
 ]);

@@ -1,5 +1,4 @@
-import type { RequestInit } from 'node-fetch';
-import type { FetchOptions } from './types';
+import type { FetchImplementation, FetchOptions, FetchRequestInit } from './types';
 
 const DEFAULT_USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -7,21 +6,29 @@ const DEFAULT_USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0'
 ];
 
-type FetchFn = typeof import('node-fetch')['default'];
-
-let fetchImpl: Promise<FetchFn> | null = null;
-
-async function ensureFetch(): Promise<FetchFn> {
-  if (!fetchImpl) {
-    fetchImpl = import('node-fetch').then(mod => mod.default as FetchFn);
-  }
-  return fetchImpl;
-}
-
 function chooseUserAgent(provided?: string): string {
   if (provided) return provided;
   const index = Math.floor(Math.random() * DEFAULT_USER_AGENTS.length);
   return DEFAULT_USER_AGENTS[index];
+}
+
+function resolveFetch(fetchFn?: FetchImplementation): FetchImplementation {
+  if (fetchFn) {
+    return fetchFn;
+  }
+
+  const globalFetch = (globalThis as { fetch?: FetchImplementation }).fetch;
+  if (!globalFetch) {
+    throw new Error(
+      'A global fetch implementation is not available. Provide window.fetch in browsers or upgrade to Node 18+.'
+    );
+  }
+
+  return globalFetch;
+}
+
+function isBrowserEnvironment(): boolean {
+  return typeof (globalThis as { document?: unknown }).document !== 'undefined';
 }
 
 function isClientError(error: Error & { status?: number }): boolean {
@@ -39,28 +46,35 @@ export async function fetchPage(url: string, options: FetchOptions = {}): Promis
   const {
     timeout = 10_000,
     userAgent,
-    maxRetries = 2
+    maxRetries = 2,
+    fetchFn
   } = options;
 
   let lastError: Error | null = null;
+  const resolvedFetch = resolveFetch(fetchFn);
+  const isBrowser = isBrowserEnvironment();
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const fetch = await ensureFetch();
-      const headers = {
-        'User-Agent': chooseUserAgent(userAgent),
+      const headers: Record<string, string> = {
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5'
       };
 
-      const response = await fetch(url, {
+      if (!isBrowser) {
+        headers['User-Agent'] = chooseUserAgent(userAgent);
+      }
+
+      const requestInit: FetchRequestInit = {
         headers,
         signal: controller.signal,
         redirect: 'follow'
-      } as RequestInit);
+      };
+
+      const response = await resolvedFetch(url, requestInit);
 
       clearTimeout(timeoutId);
 

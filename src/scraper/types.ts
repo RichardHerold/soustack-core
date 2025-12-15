@@ -27,10 +27,26 @@ export interface SchemaOrgRecipe {
   [key: string]: unknown;
 }
 
+export interface FetchRequestInit {
+  headers?: Record<string, string>;
+  signal?: AbortSignal;
+  redirect?: 'follow' | 'error' | 'manual';
+}
+
+export interface FetchResponse {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  text(): Promise<string>;
+}
+
+export type FetchImplementation = (url: string, init?: FetchRequestInit) => Promise<FetchResponse>;
+
 export interface FetchOptions {
   timeout?: number;
   userAgent?: string;
   maxRetries?: number;
+  fetchFn?: FetchImplementation;
 }
 
 export interface ScrapeRecipeOptions extends FetchOptions {}
