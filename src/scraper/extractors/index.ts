@@ -21,7 +21,7 @@ export function extractRecipe(html: string): ExtractionResult {
   // Fallback to cheerio-based extraction for Node.js
   const jsonLdRecipe = extractJsonLd(html);
   // #region agent log
-  if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+  if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
     try {
       const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
       if (globalFetch) {
@@ -36,7 +36,7 @@ export function extractRecipe(html: string): ExtractionResult {
 
   const microdataRecipe = extractMicrodata(html);
   // #region agent log
-  if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+  if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
     try {
       const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
       if (globalFetch) {
