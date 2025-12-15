@@ -5,7 +5,7 @@ import { scaleRecipe } from '../src/parser';
 import { validateRecipe } from '../src/validator';
 import { fromSchemaOrg } from '../src/fromSchemaOrg';
 import { toSchemaOrg } from '../src/toSchemaOrg';
-import { scrapeRecipe } from '../src/scraper';
+import { scrapeRecipe } from '../src/scraper/index';
 
 const [, , command, ...args] = process.argv;
 

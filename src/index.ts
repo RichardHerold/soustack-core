@@ -3,5 +3,5 @@ export * from './parser';
 export * from './validator';
 export { fromSchemaOrg } from './fromSchemaOrg';
 export { toSchemaOrg } from './toSchemaOrg';
-export { scrapeRecipe } from './scraper';
+export { scrapeRecipe } from './scraper/index';
 export * from './parsers';
