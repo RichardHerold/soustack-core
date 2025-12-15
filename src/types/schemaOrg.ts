@@ -35,6 +35,9 @@ export interface SchemaOrgImageObject {
   '@type'?: string;
   url?: string;
   contentUrl?: string;
+  width?: number;
+  height?: number;
+  [key: string]: unknown;
 }
 
 export type SchemaOrgImage =
@@ -53,7 +56,7 @@ export interface HowToStep {
   text?: string;
   name?: string;
   url?: string;
-  image?: string;
+  image?: SchemaOrgImage;
 }
 
 export interface HowToSection {

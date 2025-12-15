@@ -6,3 +6,4 @@ export { toSchemaOrg } from './toSchemaOrg';
 export { scrapeRecipe, extractRecipeFromHTML, extractSchemaOrgRecipeFromHTML } from './scraper/index';
 export type { SchemaOrgRecipe } from './scraper/types';
 export * from './parsers';
+export { normalizeImage } from './utils/image';

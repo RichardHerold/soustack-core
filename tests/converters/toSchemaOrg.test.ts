@@ -39,9 +39,10 @@ function buildRecipe(overrides: Partial<Recipe> = {}): Recipe {
   };
 }
 
-const step = (text: string): HowToStep => ({
+const step = (text: string, image?: string): HowToStep => ({
   '@type': 'HowToStep',
-  text
+  text,
+  ...(image ? { image } : {})
 });
 
 describe('convertBasicMetadata', () => {
@@ -220,6 +221,11 @@ describe('convertInstructions', () => {
       name: 'drops subsection when no valid items',
       input: [{ subsection: 'Empty', items: [] }],
       expected: []
+    },
+    {
+      name: 'includes instruction images when present',
+      input: [{ text: 'Decorate', image: 'https://example.com/step.jpg' }],
+      expected: [step('Decorate', 'https://example.com/step.jpg')]
     }
   ] as Array<{
     name: string;
@@ -486,13 +492,15 @@ describe('toSchemaOrg integration', () => {
 describe('round-trip conversion', () => {
   it('preserves key recipe data', () => {
     const recipe = buildRecipe({
+      image: ['https://example.com/hero.jpg', 'https://example.com/gallery.jpg'],
       ingredients: [
         { item: '2 cups flour', name: 'flour' },
         { subsection: 'Frosting', items: ['1 cup sugar'] } as any
       ],
       instructions: [
         'Mix dry ingredients',
-        { subsection: 'Finish', items: ['Frost cake'] } as any
+        { subsection: 'Finish', items: ['Frost cake'] } as any,
+        { text: 'Serve', image: 'https://example.com/step.jpg' }
       ],
       tags: ['Dessert', 'Party']
     });
@@ -505,7 +513,12 @@ describe('round-trip conversion', () => {
     expect(roundTrip?.category).toBe(recipe.category);
     expect(roundTrip?.tags).toEqual(expect.arrayContaining(['Dessert', 'Party']));
     expect(roundTrip?.ingredients.length).toBeGreaterThanOrEqual(2);
-    expect(roundTrip?.instructions.length).toBe(2);
+    expect(roundTrip?.instructions.length).toBe(3);
     expect(roundTrip?.time).toMatchObject(recipe.time!);
+    expect(roundTrip?.image).toEqual(recipe.image);
+    expect(roundTrip?.instructions[2]).toEqual({
+      text: 'Serve',
+      image: 'https://example.com/step.jpg'
+    });
   });
 });

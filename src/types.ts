@@ -3,7 +3,7 @@
  * A portable, scalable, interoperable recipe format.
  */
 
-export interface Recipe {
+export interface SoustackRecipe {
   /** Unique identifier (slug or UUID) */
   id?: string;
   /** The title of the recipe */
@@ -15,8 +15,8 @@ export interface Recipe {
   category?: string;
   /** Additional tags for filtering */
   tags?: string[];
-  /** URL to recipe image */
-  image?: string;
+  /** URL(s) to recipe image(s) */
+  image?: string | string[];
   /** ISO 8601 date string */
   dateAdded?: string;
   /** Last updated timestamp */
@@ -32,6 +32,7 @@ export interface Recipe {
   nutrition?: NutritionFacts;
 }
 
+export type Recipe = SoustackRecipe;
 // --- Core Definitions ---
 
 export interface Source {
@@ -181,7 +182,7 @@ export interface InstructionSubsection {
   items: (string | Instruction)[];
 }
 
-export interface Instruction {
+export interface SoustackInstruction {
   id?: string;
   text: string;
   destination?: string;
@@ -190,7 +191,11 @@ export interface Instruction {
   /** IDs of ingredients used in this step */
   inputs?: string[];
   timing?: StepTiming;
+  /** Optional image URL for this instruction */
+  image?: string;
 }
+
+export type Instruction = SoustackInstruction;
 
 export interface StepTiming {
   duration: number;
