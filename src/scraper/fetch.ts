@@ -78,7 +78,7 @@ export async function fetchPage(url: string, options: FetchOptions = {}): Promis
 
       clearTimeout(timeoutId);
       // #region agent log
-      if (response && (typeof process === 'undefined' || process.env.NODE_ENV !== 'test')) {
+      if (response && typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
         try {
           const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
           if (globalFetch) {
@@ -98,7 +98,7 @@ export async function fetchPage(url: string, options: FetchOptions = {}): Promis
 
       const html = await response.text();
       // #region agent log
-      if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+      if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
         try {
           const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
           if (globalFetch) {
