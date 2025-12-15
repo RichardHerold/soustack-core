@@ -34,6 +34,48 @@ Soustack is **computational**—it understands _how_ a recipe behaves.
 npm install soustack-core
 ```
 
+## What’s Included
+
+- **Validation**: `validateRecipe()` validates Soustack JSON against the bundled schema.
+- **Scaling & Computation**: `scaleRecipe()` produces a flat, UI-ready “computed recipe” (scaled ingredients + aggregated timing).
+- **Parsers**:
+  - Ingredient parsing (`parseIngredient`, `parseIngredientLine`)
+  - Duration parsing (`smartParseDuration`)
+  - Yield parsing (`parseYield`)
+- **Schema.org Conversion**:
+  - `fromSchemaOrg()` (Schema.org JSON-LD → Soustack)
+  - `toSchemaOrg()` (Soustack → Schema.org JSON-LD)
+- **Web Scraping**: `scrapeRecipe()` fetches a recipe page and extracts Schema.org recipe data from:
+  - JSON-LD (`<script type="application/ld+json">`)
+  - Microdata (`itemscope/itemtype`)
+
+## Programmatic Usage
+
+```ts
+import {
+  scrapeRecipe,
+  fromSchemaOrg,
+  toSchemaOrg,
+  validateRecipe,
+  scaleRecipe
+} from 'soustack-core';
+
+// Validate a Soustack recipe JSON object
+validateRecipe(recipe);
+
+// Scale a recipe to a target yield amount (returns a "computed recipe")
+const computed = scaleRecipe(recipe, 2);
+
+// Scrape a URL into a Soustack recipe (throws if no recipe is found)
+const scraped = await scrapeRecipe('https://example.com/recipe');
+
+// Convert Schema.org → Soustack
+const soustack = fromSchemaOrg(schemaOrgJsonLd);
+
+// Convert Soustack → Schema.org
+const jsonLd = toSchemaOrg(recipe);
+```
+
 ## 🔁 Schema.org Conversion
 
 Use the new helpers to move between Schema.org JSON-LD and Soustack's structured recipe format.
@@ -43,6 +85,23 @@ import { fromSchemaOrg, toSchemaOrg } from 'soustack-core';
 
 const soustackRecipe = fromSchemaOrg(schemaOrgJsonLd);
 const schemaOrgRecipe = toSchemaOrg(soustackRecipe);
+```
+
+## 🧰 Scraping Options
+
+`scrapeRecipe(url, options)` supports basic fetch tuning:
+
+- `timeout` (ms, default `10000`)
+- `userAgent` (string, optional)
+- `maxRetries` (default `2`, retries on non-4xx failures)
+
+```ts
+import { scrapeRecipe } from 'soustack-core';
+
+const recipe = await scrapeRecipe('https://example.com/recipe', {
+  timeout: 15000,
+  maxRetries: 3
+});
 ```
 
 ### CLI
@@ -69,4 +128,10 @@ To update to the latest version of the standard, run:
 
 ```bash
 npm run sync:spec
+```
+
+## Development
+
+```bash
+npm test
 ```
