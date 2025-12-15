@@ -17,7 +17,7 @@ import type { ScrapeRecipeOptions, SchemaOrgRecipe } from './types';
  */
 export async function scrapeRecipe(url: string, options: ScrapeRecipeOptions = {}): Promise<Recipe> {
   // #region agent log
-  if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+  if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
     try {
       const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
       if (globalFetch) {
@@ -28,7 +28,7 @@ export async function scrapeRecipe(url: string, options: ScrapeRecipeOptions = {
   // #endregion
   const html = await fetchPage(url, options);
   // #region agent log
-  if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+  if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
     try {
       const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
       if (globalFetch) {
@@ -39,7 +39,7 @@ export async function scrapeRecipe(url: string, options: ScrapeRecipeOptions = {
   // #endregion
   const { recipe } = extractRecipe(html);
   // #region agent log
-  if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+  if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
     try {
       const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
       if (globalFetch) {
@@ -55,7 +55,7 @@ export async function scrapeRecipe(url: string, options: ScrapeRecipeOptions = {
 
   const soustackRecipe = fromSchemaOrg(recipe);
   // #region agent log
-  if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+  if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
     try {
       const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
       if (globalFetch) {
