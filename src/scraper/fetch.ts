@@ -77,6 +77,16 @@ export async function fetchPage(url: string, options: FetchOptions = {}): Promis
       const response = await resolvedFetch(url, requestInit);
 
       clearTimeout(timeoutId);
+      // #region agent log
+      if (response && (typeof process === 'undefined' || process.env.NODE_ENV !== 'test')) {
+        try {
+          const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
+          if (globalFetch) {
+            globalFetch('http://127.0.0.1:7243/ingest/7225c3b5-9ac2-4c94-b561-807ca9003b66',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/fetch.ts:63',message:'fetch response',data:{url,status:response.status,statusText:response.statusText,ok:response.ok,isNYTimes:url.includes('nytimes.com')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          }
+        } catch {}
+      }
+      // #endregion
 
       if (!response.ok) {
         const error: Error & { status?: number } = new Error(
@@ -86,7 +96,18 @@ export async function fetchPage(url: string, options: FetchOptions = {}): Promis
         throw error;
       }
 
-      return await response.text();
+      const html = await response.text();
+      // #region agent log
+      if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+        try {
+          const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
+          if (globalFetch) {
+            globalFetch('http://127.0.0.1:7243/ingest/7225c3b5-9ac2-4c94-b561-807ca9003b66',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/fetch.ts:75',message:'HTML received',data:{htmlLength:html.length,hasLoginPage:html.toLowerCase().includes('login')||html.toLowerCase().includes('sign in'),hasRecipeData:html.includes('application/ld+json')||html.includes('schema.org/Recipe')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B,D'})}).catch(()=>{});
+          }
+        } catch {}
+      }
+      // #endregion
+      return html;
     } catch (err) {
       clearTimeout(timeoutId);
 
