@@ -46,19 +46,21 @@ npm install soustack
 - **Schema.org Conversion**:
   - `fromSchemaOrg()` (Schema.org JSON-LD → Soustack)
   - `toSchemaOrg()` (Soustack → Schema.org JSON-LD)
-- **Web Scraping**: `scrapeRecipe()` fetches a recipe page and extracts Schema.org recipe data from:
-  - JSON-LD (`<script type="application/ld+json">`)
-  - Microdata (`itemscope/itemtype`)
+- **Web Scraping**:
+  - `scrapeRecipe()` fetches a recipe page and extracts Schema.org recipe data (Node.js only)
+  - `extractRecipeFromHTML()` extracts recipe data from HTML string (browser & Node.js compatible)
+  - Supports JSON-LD (`<script type="application/ld+json">`) and Microdata (`itemscope/itemtype`)
 
 ## Programmatic Usage
 
 ```ts
 import {
   scrapeRecipe,
+  extractRecipeFromHTML,
   fromSchemaOrg,
   toSchemaOrg,
   validateRecipe,
-  scaleRecipe
+  scaleRecipe,
 } from 'soustack';
 
 // Validate a Soustack recipe JSON object
@@ -67,8 +69,12 @@ validateRecipe(recipe);
 // Scale a recipe to a target yield amount (returns a "computed recipe")
 const computed = scaleRecipe(recipe, 2);
 
-// Scrape a URL into a Soustack recipe (throws if no recipe is found)
+// Scrape a URL into a Soustack recipe (Node.js only, throws if no recipe is found)
 const scraped = await scrapeRecipe('https://example.com/recipe');
+
+// Extract recipe from HTML string (browser & Node.js compatible)
+const html = await fetch('https://example.com/recipe').then((r) => r.text());
+const recipe = extractRecipeFromHTML(html);
 
 // Convert Schema.org → Soustack
 const soustack = fromSchemaOrg(schemaOrgJsonLd);
@@ -88,9 +94,13 @@ const soustackRecipe = fromSchemaOrg(schemaOrgJsonLd);
 const schemaOrgRecipe = toSchemaOrg(soustackRecipe);
 ```
 
-## 🧰 Scraping Options
+## 🧰 Web Scraping
 
-`scrapeRecipe(url, options)` supports basic fetch tuning:
+### Node.js: `scrapeRecipe()`
+
+`scrapeRecipe(url, options)` fetches a recipe page and extracts Schema.org data. **Node.js only** due to CORS restrictions.
+
+Options:
 
 - `timeout` (ms, default `10000`)
 - `userAgent` (string, optional)
@@ -101,9 +111,29 @@ import { scrapeRecipe } from 'soustack';
 
 const recipe = await scrapeRecipe('https://example.com/recipe', {
   timeout: 15000,
-  maxRetries: 3
+  maxRetries: 3,
 });
 ```
+
+### Browser: `extractRecipeFromHTML()`
+
+`extractRecipeFromHTML(html)` extracts recipe data from an HTML string. **Works in both browser and Node.js**. Perfect for browser usage where you fetch HTML yourself (with cookies/session for authenticated content).
+
+```ts
+import { extractRecipeFromHTML } from 'soustack';
+
+// In browser: fetch HTML yourself (bypasses CORS, uses your cookies/session)
+const response = await fetch('https://example.com/recipe');
+const html = await response.text();
+const recipe = extractRecipeFromHTML(html);
+```
+
+**Why use `extractRecipeFromHTML()` in browsers?**
+
+- ✅ No CORS issues — you fetch HTML yourself
+- ✅ Works with authenticated/paywalled content — uses browser cookies
+- ✅ Smaller bundle — no Node.js dependencies
+- ✅ Universal — works in both browser and Node.js environments
 
 ### CLI
 

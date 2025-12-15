@@ -3,7 +3,7 @@
     /* Basic Options */
     "target": "ES2020",                       /* Modern JS features */
     "module": "commonjs",                     /* Standard for Node.js */
-    "lib": ["ES2020"],                        /* Library files to include */
+    "lib": ["ES2020", "DOM"],                 /* Library files to include */
     "outDir": "./dist",                       /* Redirect output structure to the directory */
     "rootDir": "./",                          /* Specify the root directory of input files */
     
