@@ -46,9 +46,10 @@ npm install soustack
 - **Schema.org Conversion**:
   - `fromSchemaOrg()` (Schema.org JSON-LD → Soustack)
   - `toSchemaOrg()` (Soustack → Schema.org JSON-LD)
-- **Web Scraping**:
+- **Web Scraping**: 
   - `scrapeRecipe()` fetches a recipe page and extracts Schema.org recipe data (Node.js only)
-  - `extractRecipeFromHTML()` extracts recipe data from HTML string (browser & Node.js compatible)
+  - `extractRecipeFromHTML()` extracts recipe data from HTML string, returns Soustack format (browser & Node.js compatible)
+  - `extractSchemaOrgRecipeFromHTML()` extracts raw Schema.org recipe data from HTML string (browser & Node.js compatible)
   - Supports JSON-LD (`<script type="application/ld+json">`) and Microdata (`itemscope/itemtype`)
 
 ## Programmatic Usage
@@ -57,6 +58,7 @@ npm install soustack
 import {
   scrapeRecipe,
   extractRecipeFromHTML,
+  extractSchemaOrgRecipeFromHTML,
   fromSchemaOrg,
   toSchemaOrg,
   validateRecipe,
@@ -73,8 +75,15 @@ const computed = scaleRecipe(recipe, 2);
 const scraped = await scrapeRecipe('https://example.com/recipe');
 
 // Extract recipe from HTML string (browser & Node.js compatible)
+// Option 1: Get Soustack format directly
 const html = await fetch('https://example.com/recipe').then((r) => r.text());
 const recipe = extractRecipeFromHTML(html);
+
+// Option 2: Get Schema.org format first (for inspection/modification)
+const schemaOrgRecipe = extractSchemaOrgRecipeFromHTML(html);
+if (schemaOrgRecipe) {
+  const soustackRecipe = fromSchemaOrg(schemaOrgRecipe);
+}
 
 // Convert Schema.org → Soustack
 const soustack = fromSchemaOrg(schemaOrgJsonLd);
@@ -115,9 +124,11 @@ const recipe = await scrapeRecipe('https://example.com/recipe', {
 });
 ```
 
-### Browser: `extractRecipeFromHTML()`
+### Browser: `extractRecipeFromHTML()` and `extractSchemaOrgRecipeFromHTML()`
 
-`extractRecipeFromHTML(html)` extracts recipe data from an HTML string. **Works in both browser and Node.js**. Perfect for browser usage where you fetch HTML yourself (with cookies/session for authenticated content).
+#### `extractRecipeFromHTML()` - Returns Soustack Format
+
+`extractRecipeFromHTML(html)` extracts recipe data from an HTML string and returns it in Soustack format. **Works in both browser and Node.js**. Perfect for browser usage where you fetch HTML yourself (with cookies/session for authenticated content).
 
 ```ts
 import { extractRecipeFromHTML } from 'soustack';
@@ -125,15 +136,39 @@ import { extractRecipeFromHTML } from 'soustack';
 // In browser: fetch HTML yourself (bypasses CORS, uses your cookies/session)
 const response = await fetch('https://example.com/recipe');
 const html = await response.text();
-const recipe = extractRecipeFromHTML(html);
+const recipe = extractRecipeFromHTML(html); // Already in Soustack format
 ```
 
-**Why use `extractRecipeFromHTML()` in browsers?**
+#### `extractSchemaOrgRecipeFromHTML()` - Returns Schema.org Format
+
+`extractSchemaOrgRecipeFromHTML(html)` extracts the raw Schema.org recipe data from HTML. Returns `null` if no recipe is found. Use this when you need to inspect, debug, or modify the Schema.org data before converting to Soustack format.
+
+```ts
+import { extractSchemaOrgRecipeFromHTML, fromSchemaOrg } from 'soustack';
+
+// In browser: fetch HTML yourself
+const response = await fetch('https://example.com/recipe');
+const html = await response.text();
+
+// Extract Schema.org format (for inspection/modification)
+const schemaOrgRecipe = extractSchemaOrgRecipeFromHTML(html);
+
+if (schemaOrgRecipe) {
+  // Inspect or modify Schema.org data before converting
+  console.log('Found recipe:', schemaOrgRecipe.name);
+  
+  // Convert to Soustack format when ready
+  const soustackRecipe = fromSchemaOrg(schemaOrgRecipe);
+}
+```
+
+**Why use these functions in browsers?**
 
 - ✅ No CORS issues — you fetch HTML yourself
 - ✅ Works with authenticated/paywalled content — uses browser cookies
 - ✅ Smaller bundle — no Node.js dependencies
 - ✅ Universal — works in both browser and Node.js environments
+- ✅ Flexible — choose Schema.org format for inspection/modification, or Soustack format for direct use
 
 ### CLI
 

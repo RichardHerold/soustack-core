@@ -1,7 +1,7 @@
 import { fetchPage } from '../../src/scraper/fetch';
 import { extractJsonLd } from '../../src/scraper/extractors/jsonld';
 import { extractMicrodata } from '../../src/scraper/extractors/microdata';
-import { extractRecipeFromHTML } from '../../src/scraper/index';
+import { extractRecipeFromHTML, extractSchemaOrgRecipeFromHTML } from '../../src/scraper/index';
 
 type MockResponse = {
   ok: boolean;
@@ -181,5 +181,74 @@ describe('extractRecipeFromHTML', () => {
   it('throws error when no recipe found', () => {
     const html = '<html><body>No recipe here</body></html>';
     expect(() => extractRecipeFromHTML(html)).toThrow('No Schema.org recipe data found in HTML');
+  });
+});
+
+describe('extractSchemaOrgRecipeFromHTML', () => {
+  it('extracts Schema.org recipe from JSON-LD HTML', () => {
+    const html = `
+      <script type="application/ld+json">
+        {
+          "@type": "Recipe",
+          "name": "Chocolate Chip Cookies",
+          "recipeIngredient": ["2 cups flour", "1 cup sugar"],
+          "recipeInstructions": ["Mix ingredients", "Bake at 350F"]
+        }
+      </script>
+    `;
+
+    const result = extractSchemaOrgRecipeFromHTML(html);
+    expect(result).not.toBeNull();
+    expect(result?.name).toBe('Chocolate Chip Cookies');
+    expect(result?.['@type']).toBe('Recipe');
+    expect(result?.recipeIngredient).toEqual(['2 cups flour', '1 cup sugar']);
+  });
+
+  it('extracts Schema.org recipe from microdata HTML', () => {
+    const html = `
+      <div itemscope itemtype="https://schema.org/Recipe">
+        <h1 itemprop="name">Test Recipe</h1>
+        <span itemprop="recipeIngredient">1 cup flour</span>
+        <span itemprop="recipeIngredient">2 eggs</span>
+        <div itemprop="recipeInstructions">
+          <span itemprop="text">Mix well</span>
+        </div>
+      </div>
+    `;
+
+    const result = extractSchemaOrgRecipeFromHTML(html);
+    expect(result).not.toBeNull();
+    expect(result?.name).toBe('Test Recipe');
+    expect(result?.['@type']).toBe('Recipe');
+    expect(result?.recipeIngredient).toEqual(['1 cup flour', '2 eggs']);
+  });
+
+  it('returns null when no recipe found', () => {
+    const html = '<html><body>No recipe here</body></html>';
+    const result = extractSchemaOrgRecipeFromHTML(html);
+    expect(result).toBeNull();
+  });
+
+  it('returns Schema.org format (not Soustack format)', () => {
+    const html = `
+      <script type="application/ld+json">
+        {
+          "@type": "Recipe",
+          "name": "Test Recipe",
+          "recipeIngredient": ["1 cup flour"],
+          "prepTime": "PT15M",
+          "cookTime": "PT30M"
+        }
+      </script>
+    `;
+
+    const result = extractSchemaOrgRecipeFromHTML(html);
+    expect(result).not.toBeNull();
+    // Should have Schema.org properties
+    expect(result?.prepTime).toBe('PT15M');
+    expect(result?.cookTime).toBe('PT30M');
+    // Should NOT have Soustack properties (like structured time)
+    expect(result).not.toHaveProperty('time');
+    expect(result).not.toHaveProperty('ingredients');
   });
 });
