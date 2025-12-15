@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import * as fs from 'fs';
 import * as path from 'path';
 import { scaleRecipe } from '../src/parser';
@@ -39,11 +38,11 @@ async function main() {
 
 function printUsage() {
   console.log('Usage:');
-  console.log('  npx soustack-convert validate <soustack.json>');
-  console.log('  npx soustack-convert scale <soustack.json> <multiplier>');
-  console.log('  npx soustack-convert import <schema-org.jsonld> -o <soustack.json>');
-  console.log('  npx soustack-convert export <soustack.json> -o <schema-org.jsonld>');
-  console.log('  npx soustack-convert scrape <url> -o <soustack.json>');
+  console.log('  npx soustack validate <soustack.json>');
+  console.log('  npx soustack scale <soustack.json> <multiplier>');
+  console.log('  npx soustack import <schema-org.jsonld> -o <soustack.json>');
+  console.log('  npx soustack export <soustack.json> -o <schema-org.jsonld>');
+  console.log('  npx soustack scrape <url> -o <soustack.json>');
 }
 
 async function handleValidate(args: string[]) {

@@ -358,6 +358,10 @@ export function parseIngredient(text: string): ParsedIngredient {
   return parsed;
 }
 
+export function parseIngredientLine(text: string): ParsedIngredient {
+  return parseIngredient(text);
+}
+
 export function parseIngredients(texts: string[]): ParsedIngredient[] {
   if (!Array.isArray(texts)) return [];
   return texts

@@ -1,5 +1,6 @@
 export {
   parseIngredient,
+  parseIngredientLine,
   parseIngredients,
   normalizeIngredientInput
 } from './ingredient';

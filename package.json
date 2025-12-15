@@ -1,24 +1,60 @@
 {
-  "name": "soustack-core",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "soustack",
+  "version": "0.1.0",
+  "description": "The logic engine for computational recipes - validation, scaling, parsing, and Schema.org conversion",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
   "scripts": {
+    "build": "tsup",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run build && npm test",
     "test": "jest",
     "sync:spec": "node bin/sync-spec.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/RichardHerold/soustack-core.git"
+    "url": "https://github.com/RichardHerold/soustack-core.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "bin": {
+    "soustack": "./dist/cli/index.js",
+    "soustack-convert": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "src/schema.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "recipe",
+    "cooking",
+    "schema",
+    "json",
+    "parser",
+    "ingredient",
+    "scaling",
+    "schema-org",
+    "scraper",
+    "food"
+  ],
+  "author": "Richard Herold",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/RichardHerold/soustack-core/issues"
   },
-  "homepage": "https://github.com/RichardHerold/soustack-core#readme",
+  "homepage": "https://soustack.org",
+  "engines": {
+    "node": ">=18"
+  },
+  "sideEffects": false,
   "dependencies": {
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
@@ -29,12 +65,10 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "jest": "^30.2.0",
+    "tsup": "^8.3.5",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
-  },
-  "bin": {
-    "soustack-convert": "./bin/cli.ts"
   }
 }
