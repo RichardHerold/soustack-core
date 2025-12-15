@@ -2,6 +2,7 @@
 
 > **The Logic Engine for Computational Recipes.**
 
+[![npm version](https://img.shields.io/npm/v/soustack.svg)](https://www.npmjs.com/package/soustack)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 
@@ -31,7 +32,7 @@ Soustack is **computational**—it understands _how_ a recipe behaves.
 ## 📦 Installation
 
 ```bash
-npm install soustack-core
+npm install soustack
 ```
 
 ## What’s Included
@@ -58,7 +59,7 @@ import {
   toSchemaOrg,
   validateRecipe,
   scaleRecipe
-} from 'soustack-core';
+} from 'soustack';
 
 // Validate a Soustack recipe JSON object
 validateRecipe(recipe);
@@ -81,7 +82,7 @@ const jsonLd = toSchemaOrg(recipe);
 Use the new helpers to move between Schema.org JSON-LD and Soustack's structured recipe format.
 
 ```ts
-import { fromSchemaOrg, toSchemaOrg } from 'soustack-core';
+import { fromSchemaOrg, toSchemaOrg } from 'soustack';
 
 const soustackRecipe = fromSchemaOrg(schemaOrgJsonLd);
 const schemaOrgRecipe = toSchemaOrg(soustackRecipe);
@@ -96,7 +97,7 @@ const schemaOrgRecipe = toSchemaOrg(soustackRecipe);
 - `maxRetries` (default `2`, retries on non-4xx failures)
 
 ```ts
-import { scrapeRecipe } from 'soustack-core';
+import { scrapeRecipe } from 'soustack';
 
 const recipe = await scrapeRecipe('https://example.com/recipe', {
   timeout: 15000,
@@ -108,13 +109,13 @@ const recipe = await scrapeRecipe('https://example.com/recipe', {
 
 ```bash
 # Validate & Scale (existing commands)
-npx soustack-convert validate recipe.soustack.json
-npx soustack-convert scale recipe.soustack.json 2
+npx soustack validate recipe.soustack.json
+npx soustack scale recipe.soustack.json 2
 
 # Schema.org ↔ Soustack
-npx soustack-convert import recipe.jsonld -o recipe.soustack.json
-npx soustack-convert export recipe.soustack.json -o recipe.jsonld
-npx soustack-convert scrape "https://example.com/recipe" -o recipe.soustack.json
+npx soustack import recipe.jsonld -o recipe.soustack.json
+npx soustack export recipe.soustack.json -o recipe.jsonld
+npx soustack scrape "https://example.com/recipe" -o recipe.soustack.json
 ```
 
 ## 🔄 Keeping the Schema in Sync
