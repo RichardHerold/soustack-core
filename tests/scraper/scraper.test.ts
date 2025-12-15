@@ -11,11 +11,6 @@ type MockResponse = {
 
 const mockFetch = jest.fn();
 
-jest.mock('node-fetch', () => ({
-  __esModule: true,
-  default: (...args: unknown[]) => mockFetch(...args)
-}));
-
 function createResponse(html: string, overrides: Partial<MockResponse> = {}): MockResponse {
   return {
     ok: true,
@@ -34,7 +29,7 @@ describe('fetchPage', () => {
   it('fetches page successfully', async () => {
     mockFetch.mockResolvedValueOnce(createResponse('<!DOCTYPE html><html></html>'));
 
-    const result = await fetchPage('https://example.com', { timeout: 50 });
+    const result = await fetchPage('https://example.com', { timeout: 50, fetchFn: mockFetch });
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(result).toContain('<!DOCTYPE html>');
@@ -45,7 +40,11 @@ describe('fetchPage', () => {
       .mockRejectedValueOnce(new Error('network error'))
       .mockResolvedValueOnce(createResponse('<html>OK</html>'));
 
-    const result = await fetchPage('https://retry.example', { maxRetries: 1, timeout: 50 });
+    const result = await fetchPage('https://retry.example', {
+      maxRetries: 1,
+      timeout: 50,
+      fetchFn: mockFetch
+    });
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(result).toContain('OK');
@@ -56,9 +55,9 @@ describe('fetchPage', () => {
       createResponse('', { ok: false, status: 404, statusText: 'Not Found' })
     );
 
-    await expect(fetchPage('https://example.com/404', { timeout: 50 })).rejects.toThrow(
-      'HTTP 404: Not Found'
-    );
+    await expect(
+      fetchPage('https://example.com/404', { timeout: 50, fetchFn: mockFetch })
+    ).rejects.toThrow('HTTP 404: Not Found');
   });
 });
 

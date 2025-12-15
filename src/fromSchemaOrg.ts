@@ -93,6 +93,9 @@ function extractRecipeNode(input: unknown): SchemaOrgRecipe | null {
 function hasRecipeType(value: SchemaOrgRecipe['@type']): boolean {
   if (!value) return false;
   const types = Array.isArray(value) ? value : [value];
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/7225c3b5-9ac2-4c94-b561-807ca9003b66',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'fromSchemaOrg.ts:95',message:'hasRecipeType check',data:{types,typesLower:types.map(t=>typeof t==='string'?t.toLowerCase():t),isMatch:types.some(e=>typeof e==='string'&&e.toLowerCase()==='recipe')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
   return types.some(
     entry => typeof entry === 'string' && entry.toLowerCase() === 'recipe'
   );
