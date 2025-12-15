@@ -9,13 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Image normalization utility that aligns Schema.org inputs with the Soustack format.
-- Soustack recipe and instruction image schema (recipe-level arrays, instruction-level URLs).
-- Comprehensive tests covering image normalization, converters, and round-trip guarantees.
+- **Image normalization utility** (`normalizeImage`) that converts Schema.org image formats (strings, arrays, ImageObjects) to Soustack format.
+- **Recipe-level image support**: Recipes can now have single image URLs (`string`) or multiple images (`string[]`).
+- **Instruction-level image support**: Individual instructions can include an optional `image` property with a URL.
+- **Automatic image extraction**: `fromSchemaOrg` automatically extracts and normalizes images from Schema.org ImageObjects using `url` or `contentUrl` properties.
+- **Image preservation in exports**: `toSchemaOrg` includes recipe and instruction images when converting to Schema.org JSON-LD format.
+- Comprehensive tests covering image normalization, converters, and round-trip conversion guarantees.
 
 ### Changed
 
-- `fromSchemaOrg` now extracts recipe and step images using the normalizer.
+- `Recipe.image` type changed from `string | undefined` to `string | string[] | undefined` to support multiple recipe images.
+- `Instruction` interface now includes optional `image?: string` property for step-level images.
+- `fromSchemaOrg` now extracts recipe and step images using the `normalizeImage` utility.
 - `toSchemaOrg` includes recipe/step images when exporting to Schema.org JSON-LD.
 
 ## [0.1.0] - 2025-12-14

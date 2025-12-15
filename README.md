@@ -35,10 +35,10 @@ Soustack is **computational**—it understands _how_ a recipe behaves.
 npm install soustack
 ```
 
-## What’s Included
+## What's Included
 
 - **Validation**: `validateRecipe()` validates Soustack JSON against the bundled schema.
-- **Scaling & Computation**: `scaleRecipe()` produces a flat, UI-ready “computed recipe” (scaled ingredients + aggregated timing).
+- **Scaling & Computation**: `scaleRecipe()` produces a flat, UI-ready "computed recipe" (scaled ingredients + aggregated timing).
 - **Parsers**:
   - Ingredient parsing (`parseIngredient`, `parseIngredientLine`)
   - Duration parsing (`smartParseDuration`)
@@ -46,6 +46,11 @@ npm install soustack
 - **Schema.org Conversion**:
   - `fromSchemaOrg()` (Schema.org JSON-LD → Soustack)
   - `toSchemaOrg()` (Soustack → Schema.org JSON-LD)
+  - `normalizeImage()` utility for converting Schema.org image formats to Soustack format
+- **Image Support**:
+  - Recipe-level images: single URL or array of URLs
+  - Instruction-level images: optional image URL per step
+  - Automatic normalization from Schema.org ImageObject formats
 - **Web Scraping**: 
   - `scrapeRecipe()` fetches a recipe page and extracts Schema.org recipe data (Node.js only)
   - `extractRecipeFromHTML()` extracts recipe data from HTML string, returns Soustack format (browser & Node.js compatible)
@@ -63,6 +68,7 @@ import {
   toSchemaOrg,
   validateRecipe,
   scaleRecipe,
+  normalizeImage,
 } from 'soustack';
 
 // Validate a Soustack recipe JSON object
@@ -90,17 +96,52 @@ const soustack = fromSchemaOrg(schemaOrgJsonLd);
 
 // Convert Soustack → Schema.org
 const jsonLd = toSchemaOrg(recipe);
+
+// Normalize Schema.org image formats (strings, arrays, ImageObjects)
+const normalized = normalizeImage(schemaOrgRecipe.image);
+// Returns: string | string[] | undefined
 ```
 
 ## 🔁 Schema.org Conversion
 
-Use the new helpers to move between Schema.org JSON-LD and Soustack's structured recipe format.
+Use the helpers to move between Schema.org JSON-LD and Soustack's structured recipe format. The conversion automatically handles image normalization, supporting multiple image formats from Schema.org.
 
 ```ts
-import { fromSchemaOrg, toSchemaOrg } from 'soustack';
+import { fromSchemaOrg, toSchemaOrg, normalizeImage } from 'soustack';
 
+// Convert Schema.org → Soustack (automatically normalizes images)
 const soustackRecipe = fromSchemaOrg(schemaOrgJsonLd);
+// Recipe images: string | string[] | undefined
+// Instruction images: optional image URL per step
+
+// Convert Soustack → Schema.org (preserves images)
 const schemaOrgRecipe = toSchemaOrg(soustackRecipe);
+
+// Manual image normalization (if needed)
+const normalized = normalizeImage(schemaOrgImage);
+// Handles: strings, arrays, ImageObjects with url/contentUrl
+```
+
+### Image Format Support
+
+Soustack supports flexible image formats:
+
+- **Recipe-level images**: Single URL (`string`) or multiple URLs (`string[]`)
+- **Instruction-level images**: Optional `image` property on instruction objects
+- **Automatic normalization**: Schema.org ImageObjects are automatically converted to URLs during import
+
+Example recipe with images:
+
+```ts
+const recipe = {
+  name: "Chocolate Cake",
+  image: ["https://example.com/hero.jpg", "https://example.com/gallery.jpg"],
+  instructions: [
+    "Mix dry ingredients",
+    { text: "Decorate the cake", image: "https://example.com/decorate.jpg" },
+    "Serve"
+  ]
+};
 ```
 
 ## 🧰 Web Scraping
