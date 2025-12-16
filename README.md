@@ -39,23 +39,12 @@ npm install soustack
 
 - **Validation**: `validateRecipe()` validates Soustack JSON against the bundled schema.
 - **Scaling & Computation**: `scaleRecipe()` scales a recipe while honoring per-ingredient scaling rules and instruction timing.
-- **Parsers**:
-  - Ingredient parsing (`parseIngredient`, `parseIngredientLine`)
-  - Duration parsing (`smartParseDuration`)
-  - Yield parsing (`parseYield`)
 - **Schema.org Conversion**:
   - `fromSchemaOrg()` (Schema.org JSON-LD → Soustack)
   - `toSchemaOrg()` (Soustack → Schema.org JSON-LD)
-  - `normalizeImage()` utility for converting Schema.org image formats to Soustack format
-- **Image Support**:
-  - Recipe-level images: single URL or array of URLs
-  - Instruction-level images: optional image URL per step
-  - Automatic normalization from Schema.org ImageObject formats
-- **Web Scraping**:
-  - `scrapeRecipe()` fetches a recipe page and extracts Schema.org recipe data (Node.js only)
-  - `extractRecipeFromHTML()` extracts recipe data from HTML string, returns Soustack format (browser & Node.js compatible)
-  - `extractSchemaOrgRecipeFromHTML()` extracts raw Schema.org recipe data from HTML string (browser & Node.js compatible)
-  - Supports JSON-LD (`<script type="application/ld+json">`) and Microdata (`itemscope/itemtype`)
+- **Web Extraction**:
+  - Browser-safe HTML parsing: `extractSchemaOrgRecipeFromHTML()` (convert to Soustack with `fromSchemaOrg()`)
+  - Node-only scraping entrypoint: `scrapeRecipe()` and helpers via `import { ... } from 'soustack/scrape'`
 
 ## Spec compatibility & bundled schemas
 
@@ -67,15 +56,17 @@ npm install soustack
 
 ```ts
 import {
-  scrapeRecipe,
-  extractRecipeFromHTML,
   extractSchemaOrgRecipeFromHTML,
   fromSchemaOrg,
   toSchemaOrg,
   validateRecipe,
   scaleRecipe,
-  normalizeImage,
 } from 'soustack';
+import {
+  scrapeRecipe,
+  extractRecipeFromHTML,
+  extractSchemaOrgRecipeFromHTML as extractSchemaOrgRecipeFromHTMLNode,
+} from 'soustack/scrape';
 
 // Validate a Soustack recipe JSON object
 const { valid, errors, warnings } = validateRecipe(recipe);
@@ -89,16 +80,14 @@ const scaled = scaleRecipe(recipe, { multiplier: 2 });
 // Scrape a URL into a Soustack recipe (Node.js only, throws if no recipe is found)
 const scraped = await scrapeRecipe('https://example.com/recipe');
 
-// Extract recipe from HTML string (browser & Node.js compatible)
-// Option 1: Get Soustack format directly
+// Browser: fetch your own HTML, then parse and convert
 const html = await fetch('https://example.com/recipe').then((r) => r.text());
-const recipe = extractRecipeFromHTML(html);
-
-// Option 2: Get Schema.org format first (for inspection/modification)
 const schemaOrgRecipe = extractSchemaOrgRecipeFromHTML(html);
-if (schemaOrgRecipe) {
-  const soustackRecipe = fromSchemaOrg(schemaOrgRecipe);
-}
+const recipe = schemaOrgRecipe ? fromSchemaOrg(schemaOrgRecipe) : null;
+
+// Node: parse raw HTML with cheerio-powered extractor
+const nodeSchemaOrg = extractSchemaOrgRecipeFromHTMLNode(html);
+const nodeRecipe = extractRecipeFromHTML(html);
 
 // Convert Schema.org → Soustack
 const soustack = fromSchemaOrg(schemaOrgJsonLd);
@@ -106,9 +95,6 @@ const soustack = fromSchemaOrg(schemaOrgJsonLd);
 // Convert Soustack → Schema.org
 const jsonLd = toSchemaOrg(recipe);
 
-// Normalize Schema.org image formats (strings, arrays, ImageObjects)
-const normalized = normalizeImage(schemaOrgRecipe.image);
-// Returns: string | string[] | undefined
 ```
 
 ## 🔁 Schema.org Conversion
@@ -174,24 +160,9 @@ const recipe = await scrapeRecipe('https://example.com/recipe', {
 });
 ```
 
-### Browser: `extractRecipeFromHTML()` and `extractSchemaOrgRecipeFromHTML()`
+### Browser: `extractSchemaOrgRecipeFromHTML()`
 
-#### `extractRecipeFromHTML()` - Returns Soustack Format
-
-`extractRecipeFromHTML(html)` extracts recipe data from an HTML string and returns it in Soustack format. **Works in both browser and Node.js**. Perfect for browser usage where you fetch HTML yourself (with cookies/session for authenticated content).
-
-```ts
-import { extractRecipeFromHTML } from 'soustack';
-
-// In browser: fetch HTML yourself (bypasses CORS, uses your cookies/session)
-const response = await fetch('https://example.com/recipe');
-const html = await response.text();
-const recipe = extractRecipeFromHTML(html); // Already in Soustack format
-```
-
-#### `extractSchemaOrgRecipeFromHTML()` - Returns Schema.org Format
-
-`extractSchemaOrgRecipeFromHTML(html)` extracts the raw Schema.org recipe data from HTML. Returns `null` if no recipe is found. Use this when you need to inspect, debug, or modify the Schema.org data before converting to Soustack format.
+`extractSchemaOrgRecipeFromHTML(html)` extracts the raw Schema.org recipe data from HTML. Returns `null` if no recipe is found. Use this when you need to inspect, debug, or convert Schema.org data in browser builds without dragging in Node dependencies.
 
 ```ts
 import { extractSchemaOrgRecipeFromHTML, fromSchemaOrg } from 'soustack';
@@ -206,19 +177,26 @@ const schemaOrgRecipe = extractSchemaOrgRecipeFromHTML(html);
 if (schemaOrgRecipe) {
   // Inspect or modify Schema.org data before converting
   console.log('Found recipe:', schemaOrgRecipe.name);
-  
+
   // Convert to Soustack format when ready
   const soustackRecipe = fromSchemaOrg(schemaOrgRecipe);
 }
 ```
 
-**Why use these functions in browsers?**
+### Node-only scraping: `soustack/scrape`
 
-- ✅ No CORS issues — you fetch HTML yourself
-- ✅ Works with authenticated/paywalled content — uses browser cookies
-- ✅ Smaller bundle — no Node.js dependencies
-- ✅ Universal — works in both browser and Node.js environments
-- ✅ Flexible — choose Schema.org format for inspection/modification, or Soustack format for direct use
+For server-side scraping with built-in fetching and cheerio-based parsing, use the dedicated entrypoint:
+
+```ts
+import { scrapeRecipe, extractRecipeFromHTML, fetchPage } from 'soustack/scrape';
+
+// Fetch and parse a URL directly
+const recipe = await scrapeRecipe('https://example.com/recipe');
+
+// Or work with already-downloaded HTML
+const html = await fetchPage('https://example.com/recipe');
+const parsed = extractRecipeFromHTML(html);
+```
 
 ### CLI
 

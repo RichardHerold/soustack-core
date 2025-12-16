@@ -1,24 +1,35 @@
 import { defineConfig } from 'tsup';
 
 const shared = {
-  target: 'node18',
   sourcemap: true,
   minify: false,
   treeshake: true,
   skipNodeModulesBundle: true,
-  clean: false,
-  platform: 'node' as const
+  clean: false
 };
 
 export default defineConfig([
   {
     ...shared,
-    entry: ['src/index.ts'],
+    entry: { index: 'src/index.ts' },
     format: ['cjs', 'esm'],
-    dts: true,
+    dts: { entry: { index: 'src/index.ts' } },
     clean: true,
     splitting: false,
     outDir: 'dist',
+    platform: 'browser',
+    target: 'es2019',
+    external: ['ajv', 'ajv-formats', 'zod']
+  },
+  {
+    ...shared,
+    entry: { scrape: 'src/scrape.ts' },
+    format: ['cjs', 'esm'],
+    dts: { entry: { scrape: 'src/scrape.ts' } },
+    splitting: false,
+    outDir: 'dist',
+    platform: 'node',
+    target: 'node18',
     external: ['ajv', 'ajv-formats', 'cheerio', 'zod']
   },
   {
@@ -28,6 +39,8 @@ export default defineConfig([
     dts: false,
     splitting: false,
     outDir: 'dist',
+    platform: 'node',
+    target: 'node18',
     banner: {
       js: '#!/usr/bin/env node'
     },
