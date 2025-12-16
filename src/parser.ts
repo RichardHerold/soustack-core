@@ -3,226 +3,188 @@ import {
   Ingredient,
   IngredientItem,
   Instruction,
-  InstructionItem,
-  Scaling
+  InstructionItem
 } from './types';
 import { parseDuration } from './parsers/duration';
 
 // --- Output Types ---
 
-/**
- * A "Computed Recipe" is the result of running the parser.
- * It is flat, strict, and ready for the UI to render.
- */
-export interface ComputedRecipe {
-  metadata: {
-    targetYield: number;
-    baseYield: number;
-    multiplier: number;
+export interface ScaleRecipeOptions {
+  multiplier?: number;
+  targetYield?: {
+    amount: number;
+    unit?: string;
   };
-  ingredients: ComputedIngredient[];
-  instructions: ComputedInstruction[];
-  timing: {
-    active: number;
-    passive: number;
-    total: number;
-  };
-}
-
-export interface ComputedIngredient {
-  id: string;
-  name: string;
-  amount: number;
-  unit: string | null;
-  text: string; // "500g Bread Flour"
-  notes?: string;
-}
-
-export interface ComputedInstruction {
-  id: string;
-  text: string;
-  durationMinutes: number;
-  type: 'active' | 'passive';
 }
 
 // --- Main Logic ---
 
-export function scaleRecipe(recipe: Recipe, targetYieldAmount: number): ComputedRecipe {
-  // 1. Calculate Multiplier
-  const baseYield = recipe.yield?.amount || 1;
-  const multiplier = targetYieldAmount / baseYield;
+export function scaleRecipe(recipe: Recipe, options: ScaleRecipeOptions = {}): Recipe {
+  const multiplier = resolveMultiplier(recipe, options);
+  const scaled: Recipe = deepClone(recipe);
 
-  // 2. Flatten Ingredients (handle subsections)
-  const flatIngredients = flattenIngredients(recipe.ingredients);
+  applyYieldScaling(scaled, options, multiplier);
 
-  // 3. Two-Pass Ingredient Scaling
-  // Pass 1: Scale Independent items (Linear, Fixed, Discrete)
-  // Pass 2: Scale Dependent items (Baker's %, Proportional)
-  const scaledIngredientsMap = new Map<string, ComputedIngredient>();
+  const baseAmounts = collectBaseIngredientAmounts(scaled.ingredients || []);
+  const scaledAmounts = new Map<string, number>();
+  const orderedIngredients: Ingredient[] = [];
 
-  // --- PASS 1 ---
-  flatIngredients.forEach(ing => {
-    if (isIndependent(ing.scaling?.type)) {
-      const computed = calculateIngredient(ing, multiplier, 0, 0); // Reference unused here
-      scaledIngredientsMap.set(ing.id || ing.item, computed);
-    }
-  });
+  collectIngredients(scaled.ingredients || [], orderedIngredients);
 
-  // --- PASS 2 ---
-  flatIngredients.forEach(ing => {
-    if (!isIndependent(ing.scaling?.type)) {
-      // Find the reference ingredient's NEW weight
-      let referenceValue = 0;
-      let referenceBaseAmount = 0;
-      if (ing.scaling?.type === 'bakers_percentage') {
-        const bakersScaling = ing.scaling as { referenceId: string; factor?: number };
-        if (bakersScaling.referenceId) {
-          const refIng = scaledIngredientsMap.get(bakersScaling.referenceId);
-          if (refIng) referenceValue = refIng.amount;
-          // Also get the original reference ingredient's base amount for ratio calculation
-          const originalRefIng = flatIngredients.find(i => (i.id || i.item) === bakersScaling.referenceId);
-          if (originalRefIng) referenceBaseAmount = originalRefIng.quantity?.amount || 0;
-        }
-      } else {
-        // Fallback for Proportional: Use generic multiplier if no ref logic defined
-        referenceValue = multiplier; 
+  orderedIngredients
+    .filter(ing => (ing.scaling?.type || 'linear') !== 'bakers_percentage')
+    .forEach(ing => {
+      const key = getIngredientKey(ing);
+      scaledAmounts.set(key, calculateIndependentIngredient(ing, multiplier));
+    });
+
+  orderedIngredients
+    .filter(ing => ing.scaling?.type === 'bakers_percentage')
+    .forEach(ing => {
+      const key = getIngredientKey(ing);
+      const scaling = ing.scaling as { referenceId?: string; factor?: number } | undefined;
+
+      if (!scaling?.referenceId) {
+        throw new Error(`Baker's percentage ingredient "${key}" is missing a referenceId`);
       }
-      
-      const computed = calculateIngredient(ing, multiplier, referenceValue, referenceBaseAmount);
-      scaledIngredientsMap.set(ing.id || ing.item, computed);
+
+      const referenceAmount = scaledAmounts.get(scaling.referenceId);
+      if (referenceAmount === undefined) {
+        throw new Error(`Reference ingredient "${scaling.referenceId}" not found for baker's percentage item "${key}"`);
+      }
+
+      const baseAmount = ing.quantity?.amount || 0;
+      const referenceBase = baseAmounts.get(scaling.referenceId);
+      const factor = scaling.factor ?? (referenceBase ? baseAmount / referenceBase : undefined);
+      if (factor === undefined) {
+        throw new Error(`Unable to determine factor for baker's percentage ingredient "${key}"`);
+      }
+
+      scaledAmounts.set(key, referenceAmount * factor);
+    });
+
+  orderedIngredients.forEach(ing => {
+    const key = getIngredientKey(ing);
+    const amount = scaledAmounts.get(key);
+    if (amount === undefined) return;
+
+    if (!ing.quantity) {
+      ing.quantity = { amount, unit: null };
+    } else {
+      ing.quantity.amount = amount;
     }
   });
 
-  // 4. Scale Instructions (Timing)
-  const flatInstructions = flattenInstructions(recipe.instructions);
-  const computedInstructions = flatInstructions.map(inst => 
-    calculateInstruction(inst, multiplier)
-  );
+  scaleInstructionItems(scaled.instructions || [], multiplier);
 
-  // 5. Aggregate Time
-  const timing = computedInstructions.reduce(
-    (acc, step) => {
-      if (step.type === 'active') acc.active += step.durationMinutes;
-      else acc.passive += step.durationMinutes;
-      acc.total += step.durationMinutes;
-      return acc;
-    },
-    { active: 0, passive: 0, total: 0 }
-  );
-
-  return {
-    metadata: {
-      targetYield: targetYieldAmount,
-      baseYield,
-      multiplier
-    },
-    ingredients: Array.from(scaledIngredientsMap.values()),
-    instructions: computedInstructions,
-    timing
-  };
+  return scaled;
 }
 
 // --- Helper Functions ---
 
-function isIndependent(type?: string): boolean {
-  return !type || type === 'linear' || type === 'fixed' || type === 'discrete';
+function resolveMultiplier(recipe: Recipe, options: ScaleRecipeOptions): number {
+  if (options.multiplier && options.multiplier > 0) {
+    return options.multiplier;
+  }
+
+  if (options.targetYield?.amount) {
+    const base = recipe.yield?.amount || 1;
+    return options.targetYield.amount / base;
+  }
+
+  return 1;
 }
 
-function calculateIngredient(
-  ing: Ingredient, 
-  multiplier: number, 
-  referenceValue: number,
-  referenceBaseAmount: number = 0
-): ComputedIngredient {
+function applyYieldScaling(recipe: Recipe, options: ScaleRecipeOptions, multiplier: number) {
+  const baseAmount = recipe.yield?.amount ?? 1;
+  const targetAmount = options.targetYield?.amount ?? baseAmount * multiplier;
+  const unit = options.targetYield?.unit ?? recipe.yield?.unit;
+
+  if (!recipe.yield && !options.targetYield) return;
+
+  recipe.yield = {
+    amount: targetAmount,
+    unit: unit ?? ''
+  } as any;
+}
+
+function getIngredientKey(ing: Ingredient): string {
+  return ing.id || ing.item;
+}
+
+function calculateIndependentIngredient(ing: Ingredient, multiplier: number): number {
   const baseAmount = ing.quantity?.amount || 0;
   const type = ing.scaling?.type || 'linear';
-  let newAmount = baseAmount;
 
   switch (type) {
-    case 'linear':
-      newAmount = baseAmount * multiplier;
-      break;
-    
     case 'fixed':
-      newAmount = baseAmount;
-      break;
-
-    case 'discrete':
-      // e.g., Eggs. Round to nearest step (default 1)
-      const raw = baseAmount * multiplier;
-      const step = (ing.scaling as any).roundTo || 1; 
-      newAmount = Math.round(raw / step) * step;
-      // Handle min/max constraints
-      break;
-
-    case 'bakers_percentage':
-      // Formula: NewAmount = ReferenceNewAmount * Ratio
-      // If explicit factor provided (e.g. 0.02 for 2% salt):
-      //   NewAmount = ReferenceNewAmount * Factor
-      // If factor not provided, calculate from original amounts:
-      //   Ratio = BaseAmount / BaseRefAmount
-      //   NewAmount = ReferenceNewAmount * Ratio
-      const scaling = ing.scaling as any;
-      if (scaling.factor !== undefined && scaling.factor !== null) {
-        // Use explicit factor (e.g., 0.02 for 2%)
-        newAmount = referenceValue * scaling.factor;
-      } else if (referenceBaseAmount > 0) {
-        // Calculate ratio from original amounts
-        const ratio = baseAmount / referenceBaseAmount;
-        newAmount = referenceValue * ratio;
-      } else {
-        // Fallback: if we can't determine the ratio, use linear scaling
-        // This shouldn't happen in normal operation
-        newAmount = baseAmount * multiplier;
-      }
-      break;
+      return baseAmount;
+    case 'discrete': {
+      const scaled = baseAmount * multiplier;
+      const step = (ing.scaling as any)?.roundTo ?? 1;
+      const rounded = Math.round(scaled / step) * step;
+      return Math.round(rounded);
+    }
+    case 'proportional': {
+      const factor = (ing.scaling as any)?.factor ?? 1;
+      return baseAmount * multiplier * factor;
+    }
+    default:
+      return baseAmount * multiplier;
   }
-
-  // Apply formatted text
-  const unit = ing.quantity?.unit || '';
-  // Extract ingredient name: use ing.name if available, otherwise strip quantity from ing.item
-  const ingredientName = ing.name || extractNameFromItem(ing.item);
-  const text = `${parseFloat(newAmount.toFixed(2))}${unit ? ' ' + unit : ''} ${ingredientName}`;
-
-  return {
-    id: ing.id || ing.item,
-    name: ingredientName,
-    amount: newAmount,
-    unit: ing.quantity?.unit || null,
-    text,
-    notes: ing.notes
-  };
 }
 
-/**
- * Extracts the ingredient name from an item string by removing the leading quantity.
- * Example: "900g Bread Flour" -> "Bread Flour"
- */
-function extractNameFromItem(item: string): string {
-  // Match pattern: optional number, optional decimal, optional unit, then the name
-  // Examples: "900g Bread Flour", "2 cups flour", "100g Whole Wheat Flour"
-  const match = item.match(/^\s*\d+(?:\.\d+)?\s*\w*\s*(.+)$/);
-  return match ? match[1].trim() : item;
+function collectIngredients(items: IngredientItem[], bucket: Ingredient[]) {
+  items.forEach(item => {
+    if (typeof item === 'string') return;
+    if ('subsection' in item) {
+      collectIngredients(item.items, bucket);
+    } else {
+      bucket.push(item);
+    }
+  });
 }
 
-function calculateInstruction(inst: Instruction, multiplier: number): ComputedInstruction {
-  const baseDuration = toDurationMinutes(inst.timing?.duration);
-  const scalingType = inst.timing?.scaling || 'fixed'; // Default steps to fixed (baking time doesn't usually double)
-  let newDuration = baseDuration;
+function collectBaseIngredientAmounts(items: IngredientItem[], map = new Map<string, number>()) {
+  items.forEach(item => {
+    if (typeof item === 'string') return;
+    if ('subsection' in item) {
+      collectBaseIngredientAmounts(item.items, map);
+    } else {
+      map.set(getIngredientKey(item), item.quantity?.amount ?? 0);
+    }
+  });
+  return map;
+}
 
-  if (scalingType === 'linear') {
-    newDuration = baseDuration * multiplier;
-  } else if (scalingType === 'sqrt') {
-    // Physics approximation for heating larger volumes
-    newDuration = baseDuration * Math.sqrt(multiplier);
-  }
+function scaleInstructionItems(items: InstructionItem[], multiplier: number) {
+  items.forEach(item => {
+    if (typeof item === 'string') return;
 
-  return {
-    id: inst.id || 'step',
-    text: inst.text,
-    durationMinutes: Math.ceil(newDuration),
-    type: inst.timing?.type || 'active'
-  };
+    if ('subsection' in item) {
+      scaleInstructionItems(item.items, multiplier);
+      return;
+    }
+
+    const timing = item.timing;
+    if (!timing) return;
+
+    const baseDuration = toDurationMinutes(timing.duration);
+    const scalingType = timing.scaling || 'fixed';
+    let newDuration = baseDuration;
+
+    if (scalingType === 'linear') {
+      newDuration = baseDuration * multiplier;
+    } else if (scalingType === 'sqrt') {
+      newDuration = baseDuration * Math.sqrt(multiplier);
+    }
+
+    timing.duration = Math.ceil(newDuration);
+  });
+}
+
+function deepClone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value));
 }
 
 function toDurationMinutes(duration?: number | string): number {
@@ -238,35 +200,4 @@ function toDurationMinutes(duration?: number | string): number {
   }
 
   return 0;
-}
-
-// --- Flattening Helpers ---
-
-function flattenIngredients(items: IngredientItem[]): Ingredient[] {
-  const result: Ingredient[] = [];
-  items.forEach(item => {
-    if (typeof item === 'string') {
-      // Basic string support (no scaling possible)
-      result.push({ item, quantity: { amount: 0, unit: null }, scaling: { type: 'fixed' } });
-    } else if ('subsection' in item) {
-      result.push(...flattenIngredients(item.items));
-    } else {
-      result.push(item);
-    }
-  });
-  return result;
-}
-
-function flattenInstructions(items: InstructionItem[]): Instruction[] {
-  const result: Instruction[] = [];
-  items.forEach(item => {
-    if (typeof item === 'string') {
-      result.push({ text: item, timing: { duration: 0, type: 'active' } as any });
-    } else if ('subsection' in item) {
-      result.push(...flattenInstructions(item.items));
-    } else {
-      result.push(item);
-    }
-  });
-  return result;
 }

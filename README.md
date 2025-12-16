@@ -38,7 +38,7 @@ npm install soustack
 ## What's Included
 
 - **Validation**: `validateRecipe()` validates Soustack JSON against the bundled schema.
-- **Scaling & Computation**: `scaleRecipe()` produces a flat, UI-ready "computed recipe" (scaled ingredients + aggregated timing).
+- **Scaling & Computation**: `scaleRecipe()` scales a recipe while honoring per-ingredient scaling rules and instruction timing.
 - **Parsers**:
   - Ingredient parsing (`parseIngredient`, `parseIngredientLine`)
   - Duration parsing (`smartParseDuration`)
@@ -84,7 +84,7 @@ if (!valid) {
 }
 
 // Scale a recipe to a target yield amount (returns a "computed recipe")
-const computed = scaleRecipe(recipe, 2);
+const scaled = scaleRecipe(recipe, { multiplier: 2 });
 
 // Scrape a URL into a Soustack recipe (Node.js only, throws if no recipe is found)
 const scraped = await scrapeRecipe('https://example.com/recipe');

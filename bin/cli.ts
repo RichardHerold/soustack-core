@@ -62,18 +62,9 @@ async function handleScale(args: string[]) {
 
   const recipe = readJsonFile(filePath);
   console.log(`\n⚖️  Scaling "${recipe.name}" by ${multiplier}x...\n`);
-  const baseYield = recipe.yield?.amount || 1;
-  const targetYield = baseYield * multiplier;
-  const result = scaleRecipe(recipe, targetYield);
+  const result = scaleRecipe(recipe, { multiplier });
 
-  console.log('--- INGREDIENTS ---');
-  result.ingredients.forEach(ing => {
-    console.log(`• ${ing.text}`);
-  });
-
-  console.log('\n--- TIMING ---');
-  console.log(`Total Time: ${result.timing.total} minutes`);
-  console.log(`(Active: ${result.timing.active}m | Passive: ${result.timing.passive}m)`);
+  console.log(JSON.stringify(result, null, 2));
 }
 
 async function handleImport(args: string[]) {
