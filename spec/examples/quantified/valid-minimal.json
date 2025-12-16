@@ -3,11 +3,21 @@
   "name": "Minimal Quantified Recipe",
   "ingredients": [
     {
-      "item": "Flour",
+      "item": "All-purpose flour",
       "quantity": {
         "amount": 2,
         "unit": "cup"
-      }
+      },
+      "form": "packed"
+    },
+    {
+      "item": "Carrot",
+      "quantity": {
+        "amount": 1,
+        "unit": "each"
+      },
+      "prep": "peeled and diced",
+      "prepActions": ["peel", "dice"]
     }
   ],
   "instructions": [
