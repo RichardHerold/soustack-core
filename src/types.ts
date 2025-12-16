@@ -10,6 +10,14 @@ export interface SoustackRecipe {
   profile?: string;
   /** Enabled module identifiers (e.g., "nutrition@1") */
   modules?: string[];
+  /** Attribution module payload */
+  attribution?: AttributionModule;
+  /** Taxonomy module payload */
+  taxonomy?: TaxonomyModule;
+  /** Media module payload */
+  media?: MediaModule;
+  /** Times module payload */
+  times?: TimesModule;
   /** Unique identifier (slug or UUID) */
   id?: string;
   /** Optional display title */
@@ -266,4 +274,29 @@ export interface NutritionFacts {
   sodiumContent?: string;
   servingSize?: string;
   [key: string]: string | number | null | string[] | undefined;
+}
+
+// --- Modules ---
+
+export interface AttributionModule {
+  url?: string;
+  author?: string;
+  datePublished?: string;
+}
+
+export interface TaxonomyModule {
+  keywords?: string[];
+  category?: string;
+  cuisine?: string;
+}
+
+export interface MediaModule {
+  images?: string[];
+  videos?: string[];
+}
+
+export interface TimesModule {
+  prep?: number;
+  cook?: number;
+  total?: number;
 }
