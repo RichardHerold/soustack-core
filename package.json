@@ -24,6 +24,8 @@
     "type": "git",
     "url": "git+https://github.com/RichardHerold/soustack-core.git"
   },
+  "soustackSpecVersion": "0.2",
+  "soustackSpecTag": "v0.2.0",
   "bin": {
     "soustack": "dist/cli/index.js",
     "soustack-convert": "dist/cli/index.js"
