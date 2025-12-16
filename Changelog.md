@@ -12,14 +12,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Validator now uses base+profile+modules composition**: The validator has been refactored to use a composed validation model where recipes are validated using `allOf: [base, profile overlay, ...module overlays]`. The base schema, profile schemas, and module schemas are now loaded from the new layout: `schemas/recipe/base.schema.json`, `schemas/recipe/profiles/*`, and `schemas/recipe/modules/*`.
 - **Profile defaults to "core" if missing**: If a recipe doesn't specify a `profile`, it now defaults to `"core"` instead of requiring explicit specification.
 - **Modules defaults to []**: If a recipe doesn't specify a `modules` array, it now defaults to an empty array.
+- **Module contract enforcement**: The validator now enforces a symmetric contract between module declarations and payloads:
+  - If a module is declared in `modules`, the corresponding payload must exist (e.g., `modules: ['nutrition@1']` requires `nutrition` payload)
+  - If a payload exists (e.g., `nutrition`, `times`), the module must be declared in `modules`
+  - The validator automatically infers modules from payloads and enforces this contract
+- **TimesModule field names changed**: The `TimesModule` interface now uses `prepMinutes`, `cookMinutes`, and `totalMinutes` instead of `prep`, `cook`, and `total`. This matches the v0.3 schema specification.
+- **NutritionFacts simplified**: The `NutritionFacts` interface has been simplified to only include `calories` and `protein_g` as numbers. All Schema.org-specific fields (`fatContent`, `carbohydrateContent`, `proteinContent`, `fiberContent`, `sugarContent`, `sodiumContent`, `servingSize`) have been removed.
+- **fromSchemaOrg output changes**: 
+  - `fromSchemaOrg()` now emits `times` module with `prepMinutes`/`cookMinutes`/`totalMinutes` fields
+  - `fromSchemaOrg()` now parses nutrition values as numbers (e.g., `'200 cal'` → `200`)
+  - Modules are only declared if the corresponding payload exists
 - **Schema.org conversion targets profile minimal + allowed modules**: `toSchemaOrg()` now targets the minimal profile and only includes modules that are marked as `schemaOrgMappable` in the modules registry. Non-mappable modules (e.g., `nutrition@1`, `schedule@1`) are excluded from the conversion.
 - **Removed legacy profiles**: The validator no longer supports the legacy profiles (`base`, `cookable`, `scalable`, `quantified`, `illustrated`, `schedulable`). Only `minimal` and `core` profiles are supported in v0.3.0.
+- **Removed legacy module schemas**: The `src/modules/**` directory has been removed. All module schemas are now in `src/schemas/recipe/modules/**`.
 
 ### Added
 
 - Support for Soustack spec v0.3.0 with new schema layout
 - Module registry integration for resolving module schemas
 - Composed validation with caching by `${profile}::${sortedModules.join(",")}`
+- Module contract enforcement (automatic inference and validation)
+- Comprehensive module contract unit tests
+- Spec fixture contract tests that validate all example fixtures
+- Legacy guardrail tests to prevent reintroduction of legacy artifacts
 - Documentation for composed validation model and module resolution
 
 ### Changed
@@ -27,6 +42,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated spec sync logic to pull schemas from the new layout structure
 - Validator now uses schema IDs from actual schema files instead of hardcoded IDs
 - Module resolution uses the module registry to determine schema references
+- `fromSchemaOrg()` now properly converts Schema.org nutrition data to v0.3 format (numeric values only)
+- `fromSchemaOrg()` now converts times to v0.3 format (`prepMinutes`/`cookMinutes`/`totalMinutes`)
+- Defaults (profile and modules) are now applied to normalized recipe before validation
+- Updated test suite to reflect v0.3 behavior (removed brittle legacy tests)
 
 ## [0.2.2] - 2025-12-16
 
