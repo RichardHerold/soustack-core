@@ -148,8 +148,8 @@ export function miseEnPlace(ingredients: Ingredient[]): MiseEnPlacePlan {
 
 function deriveIngredientLabel(ingredient: Ingredient): string {
   return (
-    toDisplayString(ingredient.item) ??
     toDisplayString(ingredient.name) ??
+    toDisplayString(ingredient.item) ??
     toDisplayString(ingredient.id) ??
     'ingredient'
   );
