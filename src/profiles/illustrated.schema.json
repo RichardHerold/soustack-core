@@ -1,10 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "http://soustack.org/schema/v0.2.1/profiles/illustrated",
+  "$id": "http://soustack.org/schema/v0.3.0/profiles/illustrated",
   "title": "Soustack Illustrated Profile Schema",
   "description": "Extends the base schema to guarantee at least one illustrative image.",
   "allOf": [
-    { "$ref": "http://soustack.org/schema/v0.2.1" },
+    { "$ref": "http://soustack.org/schema/v0.3.0" },
     {
       "anyOf": [
         { "required": ["image"] },
@@ -27,13 +27,13 @@
   "definitions": {
     "imageInstruction": {
       "allOf": [
-        { "$ref": "http://soustack.org/schema/v0.2.1#/definitions/instruction" },
+        { "$ref": "http://soustack.org/schema/v0.3.0#/definitions/instruction" },
         { "required": ["image"] }
       ]
     },
     "instructionSubsectionWithImage": {
       "allOf": [
-        { "$ref": "http://soustack.org/schema/v0.2.1#/definitions/instructionSubsection" },
+        { "$ref": "http://soustack.org/schema/v0.3.0#/definitions/instructionSubsection" },
         {
           "properties": {
             "items": {

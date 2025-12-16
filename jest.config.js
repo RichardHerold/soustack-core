@@ -8,4 +8,7 @@ module.exports = {
   transform: {
     ...tsJestTransformCfg,
   },
+  // Run tests that build in sequence to avoid file system conflicts
+  maxWorkers: process.env.CI ? 2 : '50%',
+  testSequencer: undefined, // Use default sequencer
 };

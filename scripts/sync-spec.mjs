@@ -50,7 +50,8 @@ function cloneSpecRepository(ref) {
       execSync(`git -C ${tempDir} fetch --depth 1 origin ${ref}`, { stdio: 'inherit' });
       execSync(`git -C ${tempDir} checkout --detach FETCH_HEAD`, { stdio: 'inherit' });
     } else {
-      execSync(`git clone --depth 1 --branch ${ref} ${SPEC_REPO} ${tempDir}`, { stdio: 'inherit' });
+      // Use 'pipe' to suppress error output - we'll handle it gracefully
+      execSync(`git clone --depth 1 --branch ${ref} ${SPEC_REPO} ${tempDir}`, { stdio: 'pipe' });
     }
   } catch (error) {
     fs.rmSync(tempDir, { recursive: true, force: true });
@@ -186,15 +187,45 @@ async function main() {
   const pkg = readPackageJson();
   const tag = determineSpecTag(pkg);
   const usingLocalSpec = Boolean(LOCAL_SPEC_PATH);
-  let sourceDir = usingLocalSpec
-    ? path.resolve(ROOT_DIR, LOCAL_SPEC_PATH)
-    : cloneSpecRepository(tag);
+  let sourceDir;
   let tempLocalCopy;
+  let usingLocalSchemas = false;
+
+  if (usingLocalSpec) {
+    sourceDir = path.resolve(ROOT_DIR, LOCAL_SPEC_PATH);
+  } else {
+    try {
+      sourceDir = cloneSpecRepository(tag);
+    } catch (cloneError) {
+      // If clone fails, check if we have local schemas that match the version
+      const specVersionFile = path.join(SPEC_DIR, 'SOUSTACK_SPEC_VERSION');
+      if (fs.existsSync(specVersionFile)) {
+        const currentVersion = fs.readFileSync(specVersionFile, 'utf8').trim();
+        const expectedVersion = tag.replace(/^v/, ''); // Remove 'v' prefix if present
+        if (currentVersion === expectedVersion) {
+          sourceDir = SPEC_DIR;
+          usingLocalSchemas = true;
+        } else {
+          throw cloneError;
+        }
+      } else {
+        throw cloneError;
+      }
+    }
+  }
 
   if (usingLocalSpec && sourceDir === SPEC_DIR) {
     tempLocalCopy = fs.mkdtempSync(path.join(os.tmpdir(), 'soustack-spec-local-'));
     fs.cpSync(sourceDir, tempLocalCopy, { recursive: true });
     sourceDir = tempLocalCopy;
+  }
+
+  // If using local schemas (tag not found but version matches), still copy schemas to src/
+  if (usingLocalSchemas) {
+    console.warn(`Warning: Tag ${tag} not found in upstream, but local schemas match version ${tag.replace(/^v/, '')}. Using local schemas.`);
+    // Still copy schema files to src/ to keep them in sync
+    copySchemaIntoSrc();
+    return;
   }
 
   console.log(
