@@ -10,6 +10,11 @@ function loadFixture(profile: ProfileName, type: 'valid' | 'invalid', file: stri
   return JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
 }
 
+function loadModuleFixture(mod: string, file: string): Recipe {
+  const fixturePath = path.join(__dirname, '..', 'spec', 'fixtures', 'modules', mod, file);
+  return JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
+}
+
 describe('Soustack validation', () => {
   const baseValid = loadFixture('base', 'valid', 'quick-salsa.json');
 
@@ -156,6 +161,30 @@ describe('Soustack validation', () => {
 
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
+    });
+  });
+
+  describe('module overlays', () => {
+    it('fails when schedule module is declared without schedulable instructions', () => {
+      const recipe = loadModuleFixture('schedule', 'minimal-with-module.json');
+      const result = validateRecipe(recipe);
+
+      expect(result.valid).toBe(false);
+    });
+
+    it('passes when schedule module is declared with schedulable instructions', () => {
+      const recipe = loadModuleFixture('schedule', 'core-with-module.json');
+      const result = validateRecipe(recipe);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('rejects nutrition blocks when the nutrition module is missing', () => {
+      const recipe = loadModuleFixture('nutrition', 'nutrition-without-module.json');
+      const result = validateRecipe(recipe);
+
+      expect(result.valid).toBe(false);
     });
   });
 });

@@ -1,0 +1,10 @@
+{
+  "profile": "core",
+  "name": "Protein Shake",
+  "ingredients": ["Milk", "Protein Powder"],
+  "instructions": ["Blend"],
+  "nutrition": {
+    "calories": 250,
+    "proteinContent": 30
+  }
+}

@@ -43,6 +43,7 @@
     "src/schema.json",
     "src/soustack.schema.json",
     "src/profiles",
+    "src/modules",
     "README.md",
     "LICENSE"
   ],
