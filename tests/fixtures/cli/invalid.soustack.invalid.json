@@ -1,0 +1,7 @@
+{
+  "$schema": "https://raw.githubusercontent.com/RichardHerold/soustack-spec/v0.2.1/profiles/base.schema.json",
+  "name": "Incomplete Recipe",
+  "ingredients": [
+    { "item": "Flour", "quantity": 2, "unit": "cups" }
+  ]
+}
