@@ -1,5 +1,5 @@
 {
-  "$schema": "http://soustack.org/schema/v0.2.1/profiles/scalable",
+  "$schema": "http://soustack.org/schema/v0.3.0/profiles/scalable",
   "id": "scalable-missing-quantity",
   "name": "Scalable Missing Quantity",
   "title": "Scalable Missing Quantity",

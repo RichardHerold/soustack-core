@@ -50,7 +50,23 @@ function cloneSpecRepository(ref) {
       execSync(`git -C ${tempDir} fetch --depth 1 origin ${ref}`, { stdio: 'inherit' });
       execSync(`git -C ${tempDir} checkout --detach FETCH_HEAD`, { stdio: 'inherit' });
     } else {
-      execSync(`git clone --depth 1 --branch ${ref} ${SPEC_REPO} ${tempDir}`, { stdio: 'inherit' });
+      // Try to clone the branch/tag
+      try {
+        execSync(`git clone --depth 1 --branch ${ref} ${SPEC_REPO} ${tempDir}`, { stdio: 'inherit' });
+      } catch (cloneError) {
+        // If tag doesn't exist, check if we have local schemas that match
+        const specVersionFile = path.join(SPEC_DIR, 'SOUSTACK_SPEC_VERSION');
+        if (fs.existsSync(specVersionFile)) {
+          const currentVersion = fs.readFileSync(specVersionFile, 'utf8').trim();
+          const expectedVersion = ref.replace(/^v/, ''); // Remove 'v' prefix if present
+          if (currentVersion === expectedVersion) {
+            // Return the local spec directory instead - warning will be printed in main()
+            return SPEC_DIR;
+          }
+        }
+        // Re-throw if we can't use local schemas
+        throw cloneError;
+      }
     }
   } catch (error) {
     fs.rmSync(tempDir, { recursive: true, force: true });
@@ -95,6 +111,7 @@ function copyIntoSpecDirectory(sourceDir) {
 
   const entries = [
     'soustack.schema.json',
+    'schemas',
     'profiles',
     'fixtures',
     'examples',
@@ -120,6 +137,20 @@ function copySchemaIntoSrc() {
   schemaTargetPaths.forEach((target) => {
     fs.copyFileSync(schemaSource, target);
   });
+
+  const recipeSchemasSource = path.join(SPEC_DIR, 'schemas', 'recipe');
+  if (fs.existsSync(recipeSchemasSource)) {
+    fs.rmSync(path.join(srcDir, 'schemas', 'recipe'), { recursive: true, force: true });
+    fs.mkdirSync(path.join(srcDir, 'schemas'), { recursive: true });
+    fs.cpSync(recipeSchemasSource, path.join(srcDir, 'schemas', 'recipe'), { recursive: true });
+  }
+
+  const registrySource = path.join(SPEC_DIR, 'schemas', 'registry');
+  if (fs.existsSync(registrySource)) {
+    fs.rmSync(path.join(srcDir, 'schemas', 'registry'), { recursive: true, force: true });
+    fs.mkdirSync(path.join(srcDir, 'schemas'), { recursive: true });
+    fs.cpSync(registrySource, path.join(srcDir, 'schemas', 'registry'), { recursive: true });
+  }
 
   const profilesSource = path.join(SPEC_DIR, 'profiles');
   if (fs.existsSync(profilesSource)) {
@@ -190,11 +221,18 @@ async function main() {
     ? path.resolve(ROOT_DIR, LOCAL_SPEC_PATH)
     : cloneSpecRepository(tag);
   let tempLocalCopy;
+  const usingLocalSchemas = !usingLocalSpec && sourceDir === SPEC_DIR;
 
-  if (usingLocalSpec && sourceDir === SPEC_DIR) {
+  if (usingLocalSpec && sourceDir === SPEC_DIR && !usingLocalSchemas) {
     tempLocalCopy = fs.mkdtempSync(path.join(os.tmpdir(), 'soustack-spec-local-'));
     fs.cpSync(sourceDir, tempLocalCopy, { recursive: true });
     sourceDir = tempLocalCopy;
+  }
+  
+  // If using local schemas (tag not found but version matches), skip sync
+  if (usingLocalSchemas) {
+    console.log(`Using existing local schemas for version ${tag.replace(/^v/, '')}`);
+    return;
   }
 
   console.log(

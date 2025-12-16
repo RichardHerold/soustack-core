@@ -1,0 +1,70 @@
+{
+  "modules": [
+    {
+      "id": "attribution",
+      "versions": [1],
+      "latest": 1,
+      "namespace": "http://soustack.org/schema/v0.3.0/modules/attribution",
+      "schema": "http://soustack.org/schema/v0.3.0/modules/attribution",
+      "schemaOrgMappable": true,
+      "schemaOrgConfidence": "medium",
+      "minProfile": "minimal",
+      "allowedOnMinimal": true
+    },
+    {
+      "id": "taxonomy",
+      "versions": [1],
+      "latest": 1,
+      "namespace": "http://soustack.org/schema/v0.3.0/modules/taxonomy",
+      "schema": "http://soustack.org/schema/v0.3.0/modules/taxonomy",
+      "schemaOrgMappable": true,
+      "schemaOrgConfidence": "high",
+      "minProfile": "minimal",
+      "allowedOnMinimal": true
+    },
+    {
+      "id": "media",
+      "versions": [1],
+      "latest": 1,
+      "namespace": "http://soustack.org/schema/v0.3.0/modules/media",
+      "schema": "http://soustack.org/schema/v0.3.0/modules/media",
+      "schemaOrgMappable": true,
+      "schemaOrgConfidence": "medium",
+      "minProfile": "minimal",
+      "allowedOnMinimal": true
+    },
+    {
+      "id": "nutrition",
+      "versions": [1],
+      "latest": 1,
+      "namespace": "http://soustack.org/schema/v0.3.0/modules/nutrition",
+      "schema": "http://soustack.org/schema/v0.3.0/modules/nutrition",
+      "schemaOrgMappable": false,
+      "schemaOrgConfidence": "low",
+      "minProfile": "minimal",
+      "allowedOnMinimal": true
+    },
+    {
+      "id": "times",
+      "versions": [1],
+      "latest": 1,
+      "namespace": "http://soustack.org/schema/v0.3.0/modules/times",
+      "schema": "http://soustack.org/schema/v0.3.0/modules/times",
+      "schemaOrgMappable": true,
+      "schemaOrgConfidence": "medium",
+      "minProfile": "minimal",
+      "allowedOnMinimal": true
+    },
+    {
+      "id": "schedule",
+      "versions": [1],
+      "latest": 1,
+      "namespace": "http://soustack.org/schema/v0.3.0/modules/schedule",
+      "schema": "http://soustack.org/schema/v0.3.0/modules/schedule",
+      "schemaOrgMappable": false,
+      "schemaOrgConfidence": "low",
+      "minProfile": "core",
+      "allowedOnMinimal": false
+    }
+  ]
+}

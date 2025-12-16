@@ -14,7 +14,7 @@ export default defineConfig([
     entry: { index: 'src/index.ts' },
     format: ['cjs', 'esm'],
     dts: { entry: { index: 'src/index.ts' } },
-    clean: true,
+    clean: true, // Only clean on first entry
     splitting: false,
     outDir: 'dist',
     platform: 'browser',
@@ -26,6 +26,7 @@ export default defineConfig([
     entry: { scrape: 'src/scrape.ts' },
     format: ['cjs', 'esm'],
     dts: { entry: { scrape: 'src/scrape.ts' } },
+    clean: false, // Explicitly don't clean on subsequent entries
     splitting: false,
     outDir: 'dist',
     platform: 'node',
@@ -37,6 +38,7 @@ export default defineConfig([
     entry: { 'cli/index': 'bin/cli.ts' },
     format: ['cjs'],
     dts: false,
+    clean: false, // Explicitly don't clean on subsequent entries
     splitting: false,
     outDir: 'dist',
     platform: 'node',

@@ -106,9 +106,20 @@ describe('Schema.org <-> Soustack', () => {
     const soustack = fromSchemaOrg(schemaOrgFixture);
     expect(soustack).not.toBeNull();
 
-    // Remove properties that aren't in the base profile
-    const { dateModified, nutrition, ...baseCompatible } = soustack as any;
-    const validation = validateRecipe(baseCompatible, { profile: 'base' });
+    // Remove properties that aren't in the core profile or require modules
+    const { dateModified, nutrition, times, ...baseCompatible } = soustack as any;
+    // Ensure @type and profile are present
+    if (!baseCompatible['@type']) {
+      baseCompatible['@type'] = 'Recipe';
+    }
+    // Remove modules that require fields we removed
+    if (baseCompatible.modules) {
+      baseCompatible.modules = baseCompatible.modules.filter((m: string) => 
+        m !== 'times@1' && m !== 'nutrition@1'
+      );
+    }
+    baseCompatible.profile = 'core';
+    const validation = validateRecipe(baseCompatible, { profile: 'core' });
     expect(validation.valid).toBe(true);
 
     const schema = toSchemaOrg(validation.normalized!);
@@ -120,6 +131,9 @@ describe('Schema.org <-> Soustack', () => {
 
   it('exports Soustack recipes to Schema.org JSON-LD', () => {
     const soustackRecipe: Recipe = {
+      '@type': 'Recipe',
+      profile: 'minimal',
+      modules: ['taxonomy@1', 'times@1'], // Declare modules for category/tags and time
       name: 'Test Bread',
       description: 'A demo loaf.',
       image: 'https://example.com/bread.jpg',

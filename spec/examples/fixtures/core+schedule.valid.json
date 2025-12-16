@@ -1,0 +1,20 @@
+{
+  "@type": "Recipe",
+  "profile": "core",
+  "modules": ["schedule@1"],
+  "name": "Core with Schedule",
+  "ingredients": [
+    { "item": "Flour", "quantity": "1 cup" },
+    { "item": "Water", "quantity": "0.5 cup" }
+  ],
+  "instructions": [
+    { "id": "step-1", "text": "Combine dry ingredients." },
+    { "id": "step-2", "text": "Add water and mix.", "dependsOn": ["step-1"] }
+  ],
+  "schedule": {
+    "tasks": [
+      { "id": "task-1", "description": "Prep ingredients" },
+      { "id": "task-2", "description": "Mix batter", "dependsOn": ["task-1"] }
+    ]
+  }
+}
