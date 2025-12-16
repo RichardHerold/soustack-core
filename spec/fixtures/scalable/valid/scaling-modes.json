@@ -1,0 +1,27 @@
+{
+  "name": "Scaling Modes Fixture",
+  "yield": { "amount": 1, "unit": "loaf" },
+  "ingredients": [
+    { "id": "linear", "item": "100g Linear", "quantity": { "amount": 100, "unit": "g" }, "scaling": { "type": "linear" } },
+    { "id": "fixed", "item": "5g Fixed", "quantity": { "amount": 5, "unit": "g" }, "scaling": { "type": "fixed" } },
+    { "id": "discrete", "item": "1 whole egg", "quantity": { "amount": 1, "unit": null }, "scaling": { "type": "discrete" } },
+    { "id": "discrete_step", "item": "2 egg whites", "quantity": { "amount": 2, "unit": null }, "scaling": { "type": "discrete", "roundTo": 2 } },
+    { "id": "proportional", "item": "10g Proportional", "quantity": { "amount": 10, "unit": "g" }, "scaling": { "type": "proportional", "factor": 0.5 } },
+    {
+      "subsection": "Starter",
+      "items": [
+        { "id": "starter", "item": "50g Starter", "quantity": { "amount": 50, "unit": "g" }, "scaling": { "type": "linear" } }
+      ]
+    },
+    { "id": "salt", "item": "2g Salt", "quantity": { "amount": 2, "unit": "g" }, "scaling": { "type": "bakers_percentage", "referenceId": "linear", "factor": 0.02 } }
+  ],
+  "instructions": [
+    { "id": "rest", "text": "Rest the dough", "timing": { "duration": 30, "type": "passive", "scaling": "linear" } },
+    {
+      "subsection": "Bake",
+      "items": [
+        { "id": "bake", "text": "Bake the loaf", "timing": { "duration": 20, "type": "active", "scaling": "sqrt" } }
+      ]
+    }
+  ]
+}
