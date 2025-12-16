@@ -68,6 +68,7 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
     ingredients,
     instructions,
     ...(dateModified ? { dateModified } : {}),
+    ...(nutrition ? { nutrition } : {}),
     ...(attribution ? { attribution } : {}),
     ...(taxonomy ? { taxonomy } : {}),
     ...(media ? { media } : {}),
