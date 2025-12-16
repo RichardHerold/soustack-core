@@ -1,0 +1,8 @@
+{
+  "name": "Graph Missing Node",
+  "ingredients": ["1 cup water"],
+  "instructions": [
+    { "id": "start", "text": "Begin" },
+    { "id": "finish", "text": "Finish", "dependsOn": ["start", "unknown-step"] }
+  ]
+}

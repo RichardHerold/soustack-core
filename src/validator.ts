@@ -176,6 +176,99 @@ function runAjvValidation(
   return !isValid && validateFn.errors ? validateFn.errors.map(formatAjvError) : [];
 }
 
+function isInstruction(item: any): item is { id?: string; dependsOn?: string[] } {
+  return item && typeof item === "object" && !Array.isArray(item) && "text" in item;
+}
+
+function isInstructionSubsection(item: any): item is { items: any[] } {
+  return item && typeof item === "object" && !Array.isArray(item) && "items" in item && "subsection" in item;
+}
+
+export function checkInstructionGraph(recipe: Recipe): NormalizedError[] {
+  const instructions = (recipe as any)?.instructions;
+  if (!Array.isArray(instructions)) return [];
+
+  const instructionIds = new Set<string>();
+  const dependencyRefs: { fromId?: string; toId: string; path: string }[] = [];
+
+  const collect = (items: any[], basePath: string) => {
+    items.forEach((item, index) => {
+      const currentPath = `${basePath}/${index}`;
+
+      if (isInstructionSubsection(item) && Array.isArray(item.items)) {
+        collect(item.items, `${currentPath}/items`);
+        return;
+      }
+
+      if (isInstruction(item)) {
+        const id = typeof item.id === "string" ? item.id : undefined;
+        if (id) instructionIds.add(id);
+
+        if (Array.isArray(item.dependsOn)) {
+          item.dependsOn.forEach((depId, depIndex) => {
+            if (typeof depId === "string") {
+              dependencyRefs.push({
+                fromId: id,
+                toId: depId,
+                path: `${currentPath}/dependsOn/${depIndex}`,
+              });
+            }
+          });
+        }
+      }
+    });
+  };
+
+  collect(instructions, "/instructions");
+
+  const errors: NormalizedError[] = [];
+
+  dependencyRefs.forEach((ref) => {
+    if (!instructionIds.has(ref.toId)) {
+      errors.push({
+        path: ref.path,
+        message: `Instruction dependency references missing id '${ref.toId}'.`,
+      });
+    }
+  });
+
+  const adjacency = new Map<string, { toId: string; path: string }[]>();
+  dependencyRefs.forEach((ref) => {
+    if (ref.fromId && instructionIds.has(ref.fromId) && instructionIds.has(ref.toId)) {
+      const list = adjacency.get(ref.fromId) ?? [];
+      list.push({ toId: ref.toId, path: ref.path });
+      adjacency.set(ref.fromId, list);
+    }
+  });
+
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+
+  const detectCycles = (nodeId: string) => {
+    if (visiting.has(nodeId)) return;
+    if (visited.has(nodeId)) return;
+
+    visiting.add(nodeId);
+    const neighbors = adjacency.get(nodeId) ?? [];
+    neighbors.forEach((edge) => {
+      if (visiting.has(edge.toId)) {
+        errors.push({
+          path: edge.path,
+          message: `Circular dependency detected involving instruction id '${edge.toId}'.`,
+        });
+        return;
+      }
+      detectCycles(edge.toId);
+    });
+    visiting.delete(nodeId);
+    visited.add(nodeId);
+  };
+
+  instructionIds.forEach((id) => detectCycles(id));
+
+  return errors;
+}
+
 export function validateRecipe(input: any, options: ValidateOptions = {}): ValidationResult {
   const collectAllErrors = options.collectAllErrors ?? true;
   const context = getContext(collectAllErrors);
@@ -187,7 +280,9 @@ export function validateRecipe(input: any, options: ValidateOptions = {}): Valid
 
   const unknownKeyErrors = detectUnknownTopLevelKeys(normalized);
   const validationErrors = runAjvValidation(normalized, profile, context, schemaRef);
-  const errors = [...unknownKeyErrors, ...validationErrors];
+  const graphErrors =
+    profile === "schedulable" && validationErrors.length === 0 ? checkInstructionGraph(normalized) : [];
+  const errors = [...unknownKeyErrors, ...validationErrors, ...graphErrors];
 
   return {
     valid: errors.length === 0,

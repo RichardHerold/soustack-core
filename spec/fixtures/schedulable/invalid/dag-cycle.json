@@ -1,0 +1,9 @@
+{
+  "name": "Graph Cycle",
+  "ingredients": ["1 cup sugar"],
+  "instructions": [
+    { "id": "step-a", "text": "Step A", "dependsOn": ["step-c"] },
+    { "id": "step-b", "text": "Step B", "dependsOn": ["step-a"] },
+    { "id": "step-c", "text": "Step C", "dependsOn": ["step-b"] }
+  ]
+}

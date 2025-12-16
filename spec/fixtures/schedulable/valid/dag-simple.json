@@ -1,0 +1,9 @@
+{
+  "name": "Graph Simple",
+  "ingredients": ["1 cup flour"],
+  "instructions": [
+    { "id": "prep", "text": "Prepare ingredients" },
+    { "id": "mix", "text": "Mix together", "dependsOn": ["prep"] },
+    { "id": "bake", "text": "Bake", "dependsOn": ["mix"] }
+  ]
+}
