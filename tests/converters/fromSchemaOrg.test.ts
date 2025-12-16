@@ -89,9 +89,15 @@ describe('metadata mapping', () => {
   it('passes through nutrition objects only', () => {
     const withNutrition = getRecipe({ nutrition: { calories: '200' } });
     const withoutNutrition = getRecipe({ nutrition: 'invalid' });
+    const missingNutrition = getRecipe();
 
     expect(withNutrition.nutrition).toEqual({ calories: '200' });
+    expect(withNutrition.modules).toContain('nutrition@1');
     expect(withoutNutrition.nutrition).toBeUndefined();
+    expect(withoutNutrition).not.toHaveProperty('nutrition');
+    expect(withoutNutrition.modules).not.toContain('nutrition@1');
+    expect(missingNutrition).not.toHaveProperty('nutrition');
+    expect(missingNutrition.modules).not.toContain('nutrition@1');
   });
 });
 
