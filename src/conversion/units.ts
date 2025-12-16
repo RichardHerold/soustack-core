@@ -1,4 +1,4 @@
-export type UnitDimension = 'mass' | 'volume';
+export type UnitDimension = 'mass' | 'volume' | 'count';
 
 export type MassUnit = 'g' | 'kg' | 'oz' | 'lb';
 export type VolumeUnit =
@@ -11,12 +11,14 @@ export type VolumeUnit =
   | 'pint'
   | 'quart'
   | 'gallon';
+export type CountUnit = 'clove' | 'sprig' | 'leaf' | 'pinch' | 'bottle' | 'count';
 
-export type Unit = MassUnit | VolumeUnit;
+export type Unit = MassUnit | VolumeUnit | CountUnit;
 
 export type MetricMassUnit = 'g' | 'kg';
 export type MetricVolumeUnit = 'ml' | 'l';
-export type MetricUnit = MetricMassUnit | MetricVolumeUnit;
+export type MetricCountUnit = 'count';
+export type MetricUnit = MetricMassUnit | MetricVolumeUnit | MetricCountUnit;
 
 export interface UnitDefinition {
   dimension: UnitDimension;
@@ -24,7 +26,7 @@ export interface UnitDefinition {
    * Multiplier that converts from the unit into metric base units (g or ml).
    */
   toMetricBase: number;
-  metricBaseUnit: MetricMassUnit | MetricVolumeUnit;
+  metricBaseUnit: MetricUnit;
   isMetric: boolean;
 }
 
@@ -112,9 +114,49 @@ const VOLUME_UNITS: Record<VolumeUnit, UnitDefinition> = {
   }
 };
 
+const COUNT_UNITS: Record<CountUnit, UnitDefinition> = {
+  clove: {
+    dimension: 'count',
+    toMetricBase: 1,
+    metricBaseUnit: 'count',
+    isMetric: true
+  },
+  sprig: {
+    dimension: 'count',
+    toMetricBase: 1,
+    metricBaseUnit: 'count',
+    isMetric: true
+  },
+  leaf: {
+    dimension: 'count',
+    toMetricBase: 1,
+    metricBaseUnit: 'count',
+    isMetric: true
+  },
+  pinch: {
+    dimension: 'count',
+    toMetricBase: 1,
+    metricBaseUnit: 'count',
+    isMetric: true
+  },
+  bottle: {
+    dimension: 'count',
+    toMetricBase: 1,
+    metricBaseUnit: 'count',
+    isMetric: true
+  },
+  count: {
+    dimension: 'count',
+    toMetricBase: 1,
+    metricBaseUnit: 'count',
+    isMetric: true
+  }
+};
+
 export const UNIT_DEFINITIONS: Record<Unit, UnitDefinition> = {
   ...MASS_UNITS,
-  ...VOLUME_UNITS
+  ...VOLUME_UNITS,
+  ...COUNT_UNITS
 };
 
 export type NormalizedUnit = keyof typeof UNIT_DEFINITIONS;
@@ -127,10 +169,73 @@ export function normalizeUnitToken(
   }
 
   const token = unit.trim().toLowerCase().replace(/[\s-]+/g, '_');
-  return (token as NormalizedUnit) in UNIT_DEFINITIONS
-    ? (token as NormalizedUnit)
+  const canonical = UNIT_SYNONYMS[token] ?? token;
+
+  return (canonical as NormalizedUnit) in UNIT_DEFINITIONS
+    ? (canonical as NormalizedUnit)
     : null;
 }
+
+const UNIT_SYNONYMS: Partial<Record<string, NormalizedUnit>> = {
+  teaspoons: 'tsp',
+  teaspoon: 'tsp',
+  tsps: 'tsp',
+  tbsp: 'tbsp',
+  tbsps: 'tbsp',
+  tablespoon: 'tbsp',
+  tablespoons: 'tbsp',
+  cup: 'cup',
+  cups: 'cup',
+  pint: 'pint',
+  pints: 'pint',
+  quart: 'quart',
+  quarts: 'quart',
+  gallon: 'gallon',
+  gallons: 'gallon',
+  ml: 'ml',
+  milliliter: 'ml',
+  milliliters: 'ml',
+  millilitre: 'ml',
+  millilitres: 'ml',
+  l: 'l',
+  liter: 'l',
+  liters: 'l',
+  litre: 'l',
+  litres: 'l',
+  fl_oz: 'fl_oz',
+  'fl.oz': 'fl_oz',
+  'fl.oz.': 'fl_oz',
+  'fl_oz.': 'fl_oz',
+  'fl oz': 'fl_oz',
+  'fl oz.': 'fl_oz',
+  fluid_ounce: 'fl_oz',
+  fluid_ounces: 'fl_oz',
+  oz: 'oz',
+  ounce: 'oz',
+  ounces: 'oz',
+  lb: 'lb',
+  lbs: 'lb',
+  pound: 'lb',
+  pounds: 'lb',
+  g: 'g',
+  gram: 'g',
+  grams: 'g',
+  kg: 'kg',
+  kilogram: 'kg',
+  kilograms: 'kg',
+  clove: 'clove',
+  cloves: 'clove',
+  sprig: 'sprig',
+  sprigs: 'sprig',
+  leaf: 'leaf',
+  leaves: 'leaf',
+  pinch: 'pinch',
+  pinches: 'pinch',
+  bottle: 'bottle',
+  bottles: 'bottle',
+  count: 'count',
+  counts: 'count'
+};
 
 export function convertToMetricBase(
   quantity: number,
