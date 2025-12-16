@@ -8,9 +8,12 @@ import {
 } from '../types';
 import { formatDuration } from '../parsers/duration';
 import { formatYield } from './yield';
-import { HowToSection, HowToStep, SchemaOrgRecipe } from '../types/schemaOrg';
-
-type SchemaOrgInstruction = HowToStep | HowToSection;
+import {
+  HowToSection,
+  HowToStep,
+  SchemaOrgInstruction,
+  SchemaOrgRecipe
+} from '../types/schemaOrg';
 
 export function convertBasicMetadata(recipe: Recipe): Partial<SchemaOrgRecipe> {
   return cleanOutput({
@@ -84,13 +87,14 @@ function convertInstruction(entry: InstructionItem): SchemaOrgInstruction | null
   }
 
   if (typeof entry === 'string') {
-    return createHowToStep(entry);
+    const value = entry.trim();
+    return value || null;
   }
 
   if ('subsection' in entry) {
     const steps = entry.items
-      .map(item => createHowToStep(item))
-      .filter((step): step is HowToStep => Boolean(step));
+      .map(item => convertInstruction(item))
+      .filter((step): step is SchemaOrgInstruction => Boolean(step));
 
     if (!steps.length) {
       return null;
@@ -110,18 +114,14 @@ function convertInstruction(entry: InstructionItem): SchemaOrgInstruction | null
   return createHowToStep(String(entry));
 }
 
-function createHowToStep(entry: string | Instruction | undefined): HowToStep | null {
+function createHowToStep(
+  entry: string | Instruction | undefined
+): SchemaOrgInstruction | null {
   if (!entry) return null;
 
   if (typeof entry === 'string') {
     const trimmed = entry.trim();
-    if (!trimmed) {
-      return null;
-    }
-    return {
-      '@type': 'HowToStep',
-      text: trimmed
-    };
+    return trimmed || null;
   }
 
   const trimmed = entry.text?.trim();
@@ -134,11 +134,27 @@ function createHowToStep(entry: string | Instruction | undefined): HowToStep | n
     text: trimmed
   };
 
+  if (entry.id) {
+    step['@id'] = entry.id;
+  }
+
+  if (entry.timing) {
+    if (typeof entry.timing.duration === 'number') {
+      step.performTime = formatDuration(entry.timing.duration);
+    } else if (entry.timing.duration) {
+      step.performTime = entry.timing.duration;
+    }
+  }
+
   if (entry.image) {
     step.image = entry.image;
   }
 
-  return step;
+  if (step['@id'] || step.performTime || step.image) {
+    return step;
+  }
+
+  return trimmed;
 }
 
 export function convertTime(time?: Time): Partial<SchemaOrgRecipe> {
