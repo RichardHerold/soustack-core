@@ -192,6 +192,13 @@ function detectProfileFromSchema(schemaRef?: string): ProfileName | undefined {
   return undefined;
 }
 
+function resolveSchemaRef(inputSchema: unknown, requestedSchema?: string): string | undefined {
+  if (typeof requestedSchema === "string") return requestedSchema;
+  if (typeof inputSchema !== "string") return undefined;
+
+  return detectProfileFromSchema(inputSchema) ? inputSchema : undefined;
+}
+
 function getCombinedValidator(
   profile: ProfileName,
   modules: string[],
@@ -409,7 +416,7 @@ export function checkInstructionGraph(recipe: Recipe): NormalizedError[] {
 export function validateRecipe(input: any, options: ValidateOptions = {}): ValidationResult {
   const collectAllErrors = options.collectAllErrors ?? true;
   const context = getContext(collectAllErrors);
-  const schemaRef = options.schema ?? (typeof input?.$schema === "string" ? input.$schema : undefined);
+  const schemaRef = resolveSchemaRef(input?.$schema, options.schema);
   const profileFromDocument = typeof input?.profile === "string" ? (input.profile as ProfileName) : undefined;
   const profile: ProfileName =
     options.profile ?? profileFromDocument ?? detectProfileFromSchema(schemaRef) ?? "core";
