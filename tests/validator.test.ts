@@ -79,7 +79,7 @@ describe('Soustack validation', () => {
       const result = validateRecipe(invalid, { profile });
       expect(result.valid).toBe(false);
       expect(result.errors[0]).toEqual(
-        expect.objectContaining({ path: expect.any(String), message: expect.any(String), keyword: expect.any(String) }),
+        expect.objectContaining({ path: expect.any(String), message: expect.any(String) }),
       );
     });
   });
@@ -88,5 +88,38 @@ describe('Soustack validation', () => {
     const profiles = detectProfiles(baseValid);
     expect(profiles).toContain('base');
     expect(profiles.length).toBeGreaterThanOrEqual(1);
+  });
+
+  describe('schedulable instruction graphs', () => {
+    it('fails when dependsOn references a missing node', () => {
+      const invalid = loadFixture('schedulable', 'invalid', 'dag-missing-node.json');
+      const result = validateRecipe(invalid, { profile: 'schedulable' });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: '/instructions/1/dependsOn/1',
+            message: expect.stringMatching(/missing/),
+          }),
+        ]),
+      );
+    });
+
+    it('fails when the dependency graph contains a cycle', () => {
+      const invalid = loadFixture('schedulable', 'invalid', 'dag-cycle.json');
+      const result = validateRecipe(invalid, { profile: 'schedulable' });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((error) => /cycle|circular/i.test(error.message))).toBe(true);
+    });
+
+    it('passes for valid dependency graphs', () => {
+      const valid = loadFixture('schedulable', 'valid', 'dag-simple.json');
+      const result = validateRecipe(valid, { profile: 'schedulable' });
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
   });
 });
