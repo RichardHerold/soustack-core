@@ -1,5 +1,5 @@
 /**
- * Soustack Recipe Schema v0.1
+ * Soustack Recipe Schema v0.2
  * A portable, scalable, interoperable recipe format.
  */
 
