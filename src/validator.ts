@@ -7,12 +7,18 @@ import cookableProfileSchema from "./profiles/cookable.schema.json";
 import quantifiedProfileSchema from "./profiles/quantified.schema.json";
 import illustratedProfileSchema from "./profiles/illustrated.schema.json";
 import schedulableProfileSchema from "./profiles/schedulable.schema.json";
+import minimalProfileSchema from "./profiles/minimal.schema.json";
 import scheduleModuleV1 from "./modules/schedule/1.schema.json";
 import nutritionModuleV1 from "./modules/nutrition/1.schema.json";
+import attributionModuleV1 from "./modules/attribution/1.schema.json";
+import taxonomyModuleV1 from "./modules/taxonomy/1.schema.json";
+import mediaModuleV1 from "./modules/media/1.schema.json";
+import timesModuleV1 from "./modules/times/1.schema.json";
 import { Recipe } from "./types";
 import { parseDuration } from "./parsers/duration";
 
 type ProfileName =
+  | "minimal"
   | "core"
   | "base"
   | "cookable"
@@ -69,6 +75,7 @@ function deepClone<T>(value: T): T {
 }
 
 const profileSchemas: Record<ProfileName, any> = {
+  minimal: minimalProfileSchema,
   core: coreProfileSchema,
   base: baseProfileSchema,
   cookable: cookableProfileSchema,
@@ -81,6 +88,10 @@ const profileSchemas: Record<ProfileName, any> = {
 const moduleSchemas: Record<string, any> = {
   "schedule@1": scheduleModuleV1,
   "nutrition@1": nutritionModuleV1,
+  "attribution@1": attributionModuleV1,
+  "taxonomy@1": taxonomyModuleV1,
+  "media@1": mediaModuleV1,
+  "times@1": timesModuleV1,
 };
 
 function createBaseSchemaWithModules(): any {
@@ -94,26 +105,36 @@ function createBaseSchemaWithModules(): any {
       uniqueItems: true,
       default: [],
     },
+    attribution: { type: "object", additionalProperties: true },
+    taxonomy: { type: "object", additionalProperties: true },
+    media: { type: "object", additionalProperties: true },
+    times: { type: "object", additionalProperties: true },
     nutrition: {
       type: "object",
       additionalProperties: true,
     },
   };
 
-  const nutritionGuard = {
-    if: { required: ["nutrition"] },
+  const moduleGuards = [
+    { field: "nutrition", module: "nutrition@1" },
+    { field: "attribution", module: "attribution@1" },
+    { field: "taxonomy", module: "taxonomy@1" },
+    { field: "media", module: "media@1" },
+    { field: "times", module: "times@1" },
+  ].map(({ field, module }) => ({
+    if: { required: [field] },
     then: {
       required: ["modules"],
       properties: {
         modules: {
           type: "array",
-          contains: { const: "nutrition@1" },
+          contains: { const: module },
         },
       },
     },
-  };
+  }));
 
-  cloned.allOf = [...(cloned.allOf ?? []), nutritionGuard];
+  cloned.allOf = [...(cloned.allOf ?? []), ...moduleGuards];
   return cloned;
 }
 

@@ -1,5 +1,6 @@
 import { fromSchemaOrg } from '../../src/fromSchemaOrg';
 import { Recipe } from '../../src/types';
+import { validateRecipe } from '../../src/validator';
 
 const baseSchemaOrg = {
   '@type': 'Recipe',
@@ -357,5 +358,67 @@ describe('time and yield parsing', () => {
   it('omits time when no values parse', () => {
     const recipe = getRecipe({ prepTime: 'invalid', cookTime: undefined, totalTime: undefined });
     expect(recipe.time).toBeUndefined();
+  });
+});
+
+describe('minimal profile and module emission', () => {
+  const schemaOrgSample = {
+    '@context': 'https://schema.org',
+    '@type': 'Recipe',
+    name: 'Minimal Profile Lasagna',
+    description: 'A hearty lasagna.',
+    url: 'https://example.com/lasagna',
+    author: { '@type': 'Person', name: 'Chef Example' },
+    datePublished: '2024-04-20T12:00:00Z',
+    recipeCategory: 'Dinner',
+    recipeCuisine: 'Italian',
+    keywords: 'pasta, cheese, baked',
+    image: ['https://example.com/lasagna.jpg'],
+    video: 'https://example.com/lasagna.mp4',
+    recipeIngredient: ['2 cups sauce', '1 lb noodles'],
+    recipeInstructions: ['Layer ingredients', 'Bake until done'],
+    prepTime: 'PT20M',
+    cookTime: 'PT40M',
+    totalTime: 'PT1H',
+    nutrition: {
+      calories: '400 kcal',
+      proteinContent: '20 g'
+    }
+  } as const;
+
+  it('defaults to minimal profile with selective modules and validates', () => {
+    const soustack = fromSchemaOrg(schemaOrgSample);
+    expect(soustack).not.toBeNull();
+    const recipe = soustack as Recipe;
+
+    expect(recipe.profile).toBe('minimal');
+    expect(recipe.modules).toEqual(
+      expect.arrayContaining(['attribution@1', 'taxonomy@1', 'media@1', 'nutrition@1', 'times@1'])
+    );
+
+    expect(recipe.attribution).toEqual(
+      expect.objectContaining({
+        url: 'https://example.com/lasagna',
+        author: 'Chef Example',
+        datePublished: '2024-04-20T12:00:00Z'
+      })
+    );
+    expect(recipe.taxonomy).toEqual(
+      expect.objectContaining({
+        category: 'Dinner',
+        cuisine: 'Italian',
+        keywords: expect.arrayContaining(['pasta', 'cheese', 'baked'])
+      })
+    );
+    expect(recipe.media).toEqual(
+      expect.objectContaining({
+        images: ['https://example.com/lasagna.jpg'],
+        videos: ['https://example.com/lasagna.mp4']
+      })
+    );
+    expect(recipe.times).toEqual({ prep: 20, cook: 40, total: 60 });
+
+    const validation = validateRecipe(recipe);
+    expect(validation.valid).toBe(true);
   });
 });

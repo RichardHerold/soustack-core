@@ -23,6 +23,7 @@ export interface SchemaOrgRecipe {
   datePublished?: string;
   dateModified?: string;
   nutrition?: NutritionInformation;
+  video?: SchemaOrgImage;
   '@graph'?: unknown;
 }
 

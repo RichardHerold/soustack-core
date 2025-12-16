@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://soustack.org/schemas/recipe/modules/times/1.schema.json",
+  "title": "Soustack Times Module v1",
+  "description": "Structured prep/cook/total duration fields for minimal profiles.",
+  "type": "object",
+  "properties": {
+    "times": {
+      "type": "object",
+      "properties": {
+        "prep": { "type": "number" },
+        "cook": { "type": "number" },
+        "total": { "type": "number" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

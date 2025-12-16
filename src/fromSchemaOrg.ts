@@ -4,6 +4,10 @@ import {
   InstructionItem,
   Recipe,
   Source,
+  AttributionModule,
+  TaxonomyModule,
+  MediaModule,
+  TimesModule,
   StepTiming,
   StructuredTime
 } from './types';
@@ -13,7 +17,8 @@ import {
   HowToSection,
   HowToStep,
   SchemaOrgPersonOrOrganization,
-  SchemaOrgRecipe
+  SchemaOrgRecipe,
+  SchemaOrgImage
 } from './types/schemaOrg';
 import { normalizeImage } from './utils/image';
 
@@ -30,12 +35,27 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
   const tags = collectTags(recipeNode.recipeCuisine, recipeNode.keywords);
   const category = extractFirst(recipeNode.recipeCategory);
   const source = convertSource(recipeNode);
+  const dateModified = recipeNode.dateModified || undefined;
   const nutrition =
     recipeNode.nutrition && typeof recipeNode.nutrition === 'object'
       ? recipeNode.nutrition
       : undefined;
 
+  const attribution = convertAttribution(recipeNode);
+  const taxonomy = convertTaxonomy(tags, category, extractFirst(recipeNode.recipeCuisine));
+  const media = convertMedia(recipeNode.image, recipeNode.video);
+  const times = convertTimes(time);
+
+  const modules: string[] = [];
+  if (attribution) modules.push('attribution@1');
+  if (taxonomy) modules.push('taxonomy@1');
+  if (media) modules.push('media@1');
+  if (nutrition) modules.push('nutrition@1');
+  if (times) modules.push('times@1');
+
   return {
+    profile: 'minimal',
+    modules: modules.sort(),
     name: recipeNode.name.trim(),
     description: recipeNode.description?.trim() || undefined,
     image: normalizeImage(recipeNode.image),
@@ -43,12 +63,16 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
     tags: tags.length ? tags : undefined,
     source,
     dateAdded: recipeNode.datePublished || undefined,
-    dateModified: recipeNode.dateModified || undefined,
     yield: recipeYield,
     time,
     ingredients,
     instructions,
-    nutrition
+    nutrition,
+    ...(dateModified ? { dateModified } : {}),
+    ...(attribution ? { attribution } : {}),
+    ...(taxonomy ? { taxonomy } : {}),
+    ...(media ? { media } : {}),
+    ...(times ? { times } : {})
   };
 }
 
@@ -342,4 +366,81 @@ function extractEntityName(
   }
 
   return undefined;
+}
+
+function convertAttribution(recipe: SchemaOrgRecipe): AttributionModule | undefined {
+  const attribution: AttributionModule = {};
+  const url = (recipe.url || recipe.mainEntityOfPage)?.trim();
+  const author = extractEntityName(recipe.author);
+  const datePublished = recipe.datePublished?.trim();
+
+  if (url) attribution.url = url;
+  if (author) attribution.author = author;
+  if (datePublished) attribution.datePublished = datePublished;
+
+  return Object.keys(attribution).length ? attribution : undefined;
+}
+
+function convertTaxonomy(
+  keywords: string[],
+  category?: string,
+  cuisine?: string
+): TaxonomyModule | undefined {
+  const taxonomy: TaxonomyModule = {};
+  if (keywords.length) taxonomy.keywords = keywords;
+  if (category) taxonomy.category = category;
+  if (cuisine) taxonomy.cuisine = cuisine;
+
+  return Object.keys(taxonomy).length ? taxonomy : undefined;
+}
+
+function normalizeMediaList(value: SchemaOrgImage | undefined): string[] {
+  if (!value) return [];
+  if (typeof value === 'string') return [value.trim()].filter(Boolean);
+  if (Array.isArray(value)) {
+    return value
+      .map(item => (typeof item === 'string' ? item.trim() : extractMediaUrl(item)))
+      .filter((entry): entry is string => Boolean(entry?.length));
+  }
+
+  const url = extractMediaUrl(value);
+  return url ? [url] : [];
+}
+
+function extractMediaUrl(value: unknown): string | undefined {
+  if (value && typeof value === 'object' && 'url' in value && typeof (value as any).url === 'string') {
+    const trimmed = (value as any).url.trim();
+    return trimmed || undefined;
+  }
+  return undefined;
+}
+
+function convertMedia(
+  image: SchemaOrgImage | undefined,
+  video: SchemaOrgImage | undefined
+): MediaModule | undefined {
+  const normalizedImage = normalizeImage(image);
+  const images = normalizedImage
+    ? Array.isArray(normalizedImage)
+      ? normalizedImage
+      : [normalizedImage]
+    : [];
+  const videos = normalizeMediaList(video);
+
+  const media: MediaModule = {};
+  if (images.length) media.images = images;
+  if (videos.length) media.videos = videos;
+
+  return Object.keys(media).length ? media : undefined;
+}
+
+function convertTimes(time?: StructuredTime): TimesModule | undefined {
+  if (!time) return undefined;
+  const times: TimesModule = {};
+
+  if (typeof time.prep === 'number') times.prep = time.prep;
+  if (typeof time.active === 'number') times.cook = time.active;
+  if (typeof time.total === 'number') times.total = time.total;
+
+  return Object.keys(times).length ? times : undefined;
 }
