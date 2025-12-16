@@ -78,7 +78,10 @@ import {
 } from 'soustack';
 
 // Validate a Soustack recipe JSON object
-validateRecipe(recipe);
+const { valid, errors, warnings } = validateRecipe(recipe);
+if (!valid) {
+  console.error(errors);
+}
 
 // Scale a recipe to a target yield amount (returns a "computed recipe")
 const computed = scaleRecipe(recipe, 2);
