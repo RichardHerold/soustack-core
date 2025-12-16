@@ -86,12 +86,13 @@ describe('metadata mapping', () => {
     expect(recipe.tags).toEqual(expect.arrayContaining(['Italian', 'pasta', 'vegetarian', 'easy']));
   });
 
-  it('passes through nutrition objects only', () => {
-    const withNutrition = getRecipe({ nutrition: { calories: '200' } });
+  it('converts nutrition to v0.3 format (numbers only)', () => {
+    const withNutrition = getRecipe({ nutrition: { calories: '200 cal' } });
     const withoutNutrition = getRecipe({ nutrition: 'invalid' });
     const missingNutrition = getRecipe();
 
-    expect(withNutrition.nutrition).toEqual({ calories: '200' });
+    // v0.3: nutrition values are parsed as numbers
+    expect(withNutrition.nutrition).toEqual({ calories: 200 });
     expect(withNutrition.modules).toContain('nutrition@1');
     expect(withoutNutrition.nutrition).toBeUndefined();
     expect(withoutNutrition).not.toHaveProperty('nutrition');
@@ -422,18 +423,15 @@ describe('minimal profile and module emission', () => {
         videos: ['https://example.com/lasagna.mp4']
       })
     );
-    expect(recipe.times).toEqual({ prep: 20, cook: 40, total: 60 });
+    // v0.3: times module uses prepMinutes/cookMinutes/totalMinutes
+    expect(recipe.times).toEqual({ prepMinutes: 20, cookMinutes: 40, totalMinutes: 60 });
 
     // Remove top-level fields that should be in modules (fromSchemaOrg puts them at top level for compatibility)
     // Also remove nutrition since Schema.org format doesn't match Soustack nutrition module format exactly
     const { description, image, category, tags, nutrition, ...recipeForValidation } = recipe as any;
-    // Remove times if it doesn't match the expected format
-    if (recipeForValidation.times && typeof recipeForValidation.times.prep !== 'number') {
-      delete recipeForValidation.times;
-      // Remove times@1 from modules if times is removed
-      if (recipeForValidation.modules) {
-        recipeForValidation.modules = recipeForValidation.modules.filter((m: string) => m !== 'times@1');
-      }
+    // Remove nutrition@1 from modules if nutrition was removed (module contract requires payload if declared)
+    if (recipeForValidation.modules) {
+      recipeForValidation.modules = recipeForValidation.modules.filter((m: string) => m !== 'nutrition@1');
     }
     const validation = validateRecipe(recipeForValidation);
     expect(validation.valid).toBe(true);

@@ -26,7 +26,7 @@ function buildRecipe(overrides: Partial<Recipe> = {}): Recipe {
     source: { author: 'Test Author', name: 'Test Kitchen', url: 'https://example.com' },
     yield: { amount: 8, unit: 'servings' },
     time: { prep: 15, active: 30, total: 45 },
-    nutrition: { calories: '200 cal' },
+    nutrition: { calories: 200 },
     ingredients: ['1 cup sugar'],
     instructions: ['Mix everything']
   };
