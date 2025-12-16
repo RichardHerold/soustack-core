@@ -54,6 +54,7 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
   if (times) modules.push('times@1');
 
   return {
+    '@type': 'Recipe',
     profile: 'minimal',
     modules: modules.sort(),
     name: recipeNode.name.trim(),

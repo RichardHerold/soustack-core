@@ -1,5 +1,5 @@
 {
-  "$schema": "http://soustack.org/schema/v0.2.1/profiles/schedulable",
+  "$schema": "http://soustack.org/schema/v0.3.0/profiles/schedulable",
   "name": "Minimal Schedulable Recipe",
   "ingredients": [
     "Tea bag"

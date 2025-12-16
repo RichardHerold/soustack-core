@@ -14,6 +14,7 @@ import {
   SchemaOrgInstruction,
   SchemaOrgRecipe
 } from '../types/schemaOrg';
+import modulesRegistry from '../schemas/registry/modules.json';
 
 export function convertBasicMetadata(recipe: Recipe): Partial<SchemaOrgRecipe> {
   return cleanOutput({
@@ -259,20 +260,60 @@ export function cleanOutput<T extends Record<string, unknown>>(obj: T): T {
   ) as T;
 }
 
+/**
+ * Get schemaOrgMappable modules from the recipe's modules list.
+ * Only modules that are marked as schemaOrgMappable in the registry are included.
+ */
+function getSchemaOrgMappableModules(modules: string[] = []): string[] {
+  const mappableModules = modulesRegistry.modules
+    .filter((m) => m.schemaOrgMappable)
+    .map((m) => `${m.id}@${m.latest}`);
+  
+  return modules.filter((moduleId) => mappableModules.includes(moduleId));
+}
+
+/**
+ * Convert a Soustack recipe to Schema.org JSON-LD format.
+ * 
+ * BREAKING CHANGE in v0.3.0: This function now targets the "minimal" profile
+ * and only includes modules that are schemaOrgMappable (as defined in the
+ * modules registry). Non-mappable modules (e.g., nutrition@1, schedule@1)
+ * are excluded from the conversion.
+ */
 export function toSchemaOrg(recipe: Recipe): SchemaOrgRecipe {
   const base = convertBasicMetadata(recipe);
   const ingredients = convertIngredients(recipe.ingredients);
   const instructions = convertInstructions(recipe.instructions);
-  const nutrition = convertNutrition(recipe.nutrition);
+  
+  // Only include nutrition if the nutrition module is schemaOrgMappable
+  // (Currently nutrition@1 is NOT mappable, so this will be undefined)
+  const recipeModules = Array.isArray(recipe.modules) ? recipe.modules : [];
+  const mappableModules = getSchemaOrgMappableModules(recipeModules);
+  const hasMappableNutrition = mappableModules.includes('nutrition@1');
+  const nutrition = hasMappableNutrition ? convertNutrition(recipe.nutrition) : undefined;
+
+  // Convert time if times module is mappable (times@1 is mappable)
+  const hasMappableTimes = mappableModules.includes('times@1');
+  const timeData = hasMappableTimes ? convertTime(recipe.time) : {};
+
+  // Convert attribution if attribution module is mappable (attribution@1 is mappable)
+  const hasMappableAttribution = mappableModules.includes('attribution@1');
+  const attributionData = hasMappableAttribution ? convertAuthor(recipe.source) : {};
+
+  // Convert taxonomy if taxonomy module is mappable (taxonomy@1 is mappable)
+  const hasMappableTaxonomy = mappableModules.includes('taxonomy@1');
+  const taxonomyData = hasMappableTaxonomy
+    ? convertCategoryTags(recipe.category, recipe.tags)
+    : {};
 
   return cleanOutput({
     ...base,
     recipeIngredient: ingredients.length ? ingredients : undefined,
     recipeInstructions: instructions.length ? instructions : undefined,
     recipeYield: convertYield(recipe.yield),
-    ...convertTime(recipe.time),
-    ...convertAuthor(recipe.source),
-    ...convertCategoryTags(recipe.category, recipe.tags),
+    ...timeData,
+    ...attributionData,
+    ...taxonomyData,
     nutrition
   }) as SchemaOrgRecipe;
 }

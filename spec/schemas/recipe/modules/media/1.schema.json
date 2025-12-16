@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://soustack.org/schemas/recipe/modules/media/1.schema.json",
+  "title": "Soustack Recipe Module: media v1",
+  "description": "Schema for the media module. Guards media blocks based on module activation and ensures declarations accompany payloads.",
+  "type": "object",
+  "properties": {
+    "modules": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "media": {
+      "type": "object",
+      "properties": {
+        "images": { "type": "array", "items": { "type": "string" } },
+        "videos": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "modules": {
+            "type": "array",
+            "contains": { "const": "media@1" }
+          }
+        }
+      },
+      "then": {
+        "required": ["media"]
+      }
+    },
+    {
+      "if": {
+        "required": ["media"]
+      },
+      "then": {
+        "required": ["modules"],
+        "properties": {
+          "modules": {
+            "type": "array",
+            "items": { "type": "string" },
+            "contains": { "const": "media@1" }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true
+}

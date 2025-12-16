@@ -1,0 +1,12 @@
+{
+  "@type": "Recipe",
+  "profile": "minimal",
+  "modules": [],
+  "name": "Minimal Example",
+  "ingredients": [
+    "1 cup flour"
+  ],
+  "instructions": [
+    "Mix."
+  ]
+}

@@ -3,7 +3,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-import { REQUIRED_PROFILE_FILES } from './schema-artifacts.mjs';
+import {
+  REQUIRED_MODULE_FILES,
+  REQUIRED_RECIPE_PROFILE_FILES,
+} from './schema-artifacts.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,6 +15,10 @@ const SPEC_DIR = path.join(ROOT_DIR, 'spec');
 const SRC_DIR = path.join(ROOT_DIR, 'src');
 const SPEC_PROFILES_DIR = path.join(SPEC_DIR, 'profiles');
 const SRC_PROFILES_DIR = path.join(SRC_DIR, 'profiles');
+const SPEC_RECIPE_SCHEMAS_DIR = path.join(SPEC_DIR, 'schemas', 'recipe');
+const SRC_RECIPE_SCHEMAS_DIR = path.join(SRC_DIR, 'schemas', 'recipe');
+const SPEC_REGISTRY_DIR = path.join(SPEC_DIR, 'schemas', 'registry');
+const SRC_REGISTRY_DIR = path.join(SRC_DIR, 'schemas', 'registry');
 
 const SPEC_SCHEMA_PATH = path.join(SPEC_DIR, 'soustack.schema.json');
 const SRC_SCHEMA_COPIES = [
@@ -71,14 +78,41 @@ async function main() {
   ensureFileExists(SPEC_SCHEMA_PATH);
 
   const schemaTargets = [SPEC_SCHEMA_PATH];
-  REQUIRED_PROFILE_FILES.forEach((filename) => {
-    const specProfilePath = path.join(SPEC_PROFILES_DIR, filename);
+
+  const baseRecipeSchemaPath = path.join(SPEC_RECIPE_SCHEMAS_DIR, 'base.schema.json');
+  ensureFileExists(baseRecipeSchemaPath);
+  schemaTargets.push(baseRecipeSchemaPath);
+  ensureSameContents(
+    baseRecipeSchemaPath,
+    path.join(SRC_RECIPE_SCHEMAS_DIR, 'base.schema.json')
+  );
+
+  REQUIRED_RECIPE_PROFILE_FILES.forEach((filename) => {
+    const specProfilePath = path.join(SPEC_RECIPE_SCHEMAS_DIR, 'profiles', filename);
     ensureFileExists(specProfilePath);
     schemaTargets.push(specProfilePath);
 
-    const srcProfilePath = path.join(SRC_PROFILES_DIR, filename);
+    const srcProfilePath = path.join(SRC_RECIPE_SCHEMAS_DIR, 'profiles', filename);
     ensureFileExists(srcProfilePath);
     ensureSameContents(specProfilePath, srcProfilePath);
+  });
+
+  REQUIRED_MODULE_FILES.forEach((filename) => {
+    const specModulePath = path.join(SPEC_RECIPE_SCHEMAS_DIR, 'modules', filename);
+    ensureFileExists(specModulePath);
+    schemaTargets.push(specModulePath);
+
+    const srcModulePath = path.join(SRC_RECIPE_SCHEMAS_DIR, 'modules', filename);
+    ensureFileExists(srcModulePath);
+    ensureSameContents(specModulePath, srcModulePath);
+  });
+
+  ['modules.json', 'profiles.json'].forEach((registryFile) => {
+    const specRegistryPath = path.join(SPEC_REGISTRY_DIR, registryFile);
+    ensureFileExists(specRegistryPath);
+    const srcRegistryPath = path.join(SRC_REGISTRY_DIR, registryFile);
+    ensureFileExists(srcRegistryPath);
+    ensureSameContents(specRegistryPath, srcRegistryPath);
   });
 
   SRC_SCHEMA_COPIES.forEach((copyPath) => {

@@ -4,6 +4,8 @@
  */
 
 export interface SoustackRecipe {
+  /** Document marker for Soustack recipes */
+  '@type'?: 'Recipe';
   /** Optional $schema pointer for profile-aware validation */
   $schema?: string;
   /** Optional declared validation profile */

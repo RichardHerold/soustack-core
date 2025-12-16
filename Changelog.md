@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-12-16
+
+### BREAKING CHANGES
+
+- **Validator now uses base+profile+modules composition**: The validator has been refactored to use a composed validation model where recipes are validated using `allOf: [base, profile overlay, ...module overlays]`. The base schema, profile schemas, and module schemas are now loaded from the new layout: `schemas/recipe/base.schema.json`, `schemas/recipe/profiles/*`, and `schemas/recipe/modules/*`.
+- **Profile defaults to "core" if missing**: If a recipe doesn't specify a `profile`, it now defaults to `"core"` instead of requiring explicit specification.
+- **Modules defaults to []**: If a recipe doesn't specify a `modules` array, it now defaults to an empty array.
+- **Schema.org conversion targets profile minimal + allowed modules**: `toSchemaOrg()` now targets the minimal profile and only includes modules that are marked as `schemaOrgMappable` in the modules registry. Non-mappable modules (e.g., `nutrition@1`, `schedule@1`) are excluded from the conversion.
+- **Removed legacy profiles**: The validator no longer supports the legacy profiles (`base`, `cookable`, `scalable`, `quantified`, `illustrated`, `schedulable`). Only `minimal` and `core` profiles are supported in v0.3.0.
+
+### Added
+
+- Support for Soustack spec v0.3.0 with new schema layout
+- Module registry integration for resolving module schemas
+- Composed validation with caching by `${profile}::${sortedModules.join(",")}`
+- Documentation for composed validation model and module resolution
+
+### Changed
+
+- Updated spec sync logic to pull schemas from the new layout structure
+- Validator now uses schema IDs from actual schema files instead of hardcoded IDs
+- Module resolution uses the module registry to determine schema references
+
 ## [0.2.2] - 2025-12-16
 
 ### Added

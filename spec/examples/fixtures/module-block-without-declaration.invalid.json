@@ -1,0 +1,15 @@
+{
+  "@type": "Recipe",
+  "profile": "minimal",
+  "modules": [],
+  "name": "Nutrition Without Module",
+  "ingredients": [
+    "1 cup flour"
+  ],
+  "instructions": [
+    "Mix."
+  ],
+  "nutrition": {
+    "calories": 200
+  }
+}

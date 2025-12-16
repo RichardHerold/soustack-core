@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://soustack.org/schemas/recipe/modules/attribution/1.schema.json",
+  "title": "Soustack Recipe Module: attribution v1",
+  "description": "Schema for the attribution module. Ensures namespace data is present when the module is enabled and vice versa.",
+  "type": "object",
+  "properties": {
+    "modules": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "attribution": {
+      "type": "object",
+      "properties": {
+        "url": { "type": "string" },
+        "author": { "type": "string" },
+        "datePublished": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "modules": {
+            "type": "array",
+            "contains": { "const": "attribution@1" }
+          }
+        }
+      },
+      "then": {
+        "required": ["attribution"]
+      }
+    },
+    {
+      "if": {
+        "required": ["attribution"]
+      },
+      "then": {
+        "required": ["modules"],
+        "properties": {
+          "modules": {
+            "type": "array",
+            "items": { "type": "string" },
+            "contains": { "const": "attribution@1" }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true
+}

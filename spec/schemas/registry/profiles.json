@@ -1,0 +1,12 @@
+{
+  "profiles": [
+    {
+      "id": "minimal",
+      "schema": "http://soustack.org/schema/recipe/profiles/minimal.schema.json"
+    },
+    {
+      "id": "core",
+      "schema": "http://soustack.org/schema/recipe/profiles/core.schema.json"
+    }
+  ]
+}

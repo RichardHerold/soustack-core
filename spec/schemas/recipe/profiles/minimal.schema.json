@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://soustack.org/schema/recipe/profiles/minimal.schema.json",
+  "title": "Soustack Recipe Minimal Profile",
+  "description": "Minimal profile that ensures the basic Recipe structure is present while allowing modules to extend it.",
+  "allOf": [
+    {
+      "$ref": "http://soustack.org/schema/recipe/base.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "const": "minimal"
+        },
+        "modules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "attribution@1",
+              "taxonomy@1",
+              "media@1",
+              "nutrition@1",
+              "times@1"
+            ]
+          },
+          "default": []
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ingredients": {
+          "type": "array",
+          "minItems": 1
+        },
+        "instructions": {
+          "type": "array",
+          "minItems": 1
+        }
+      },
+      "required": [
+        "profile",
+        "name",
+        "ingredients",
+        "instructions"
+      ],
+      "additionalProperties": true
+    }
+  ]
+}

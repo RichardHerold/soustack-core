@@ -1,36 +1,32 @@
 import Ajv, { ErrorObject, ValidateFunction } from "ajv";
 import addFormats from "ajv-formats";
-import baseSchema from "./schema.json";
-import coreProfileSchema from "./profiles/core.schema.json";
-import baseProfileSchema from "./profiles/base.schema.json";
-import cookableProfileSchema from "./profiles/cookable.schema.json";
-import quantifiedProfileSchema from "./profiles/quantified.schema.json";
-import illustratedProfileSchema from "./profiles/illustrated.schema.json";
-import schedulableProfileSchema from "./profiles/schedulable.schema.json";
-import minimalProfileSchema from "./profiles/minimal.schema.json";
-import scheduleModuleV1 from "./modules/schedule/1.schema.json";
-import nutritionModuleV1 from "./modules/nutrition/1.schema.json";
-import attributionModuleV1 from "./modules/attribution/1.schema.json";
-import taxonomyModuleV1 from "./modules/taxonomy/1.schema.json";
-import mediaModuleV1 from "./modules/media/1.schema.json";
-import timesModuleV1 from "./modules/times/1.schema.json";
+import baseSchema from "./schemas/recipe/base.schema.json";
+import coreProfileSchema from "./schemas/recipe/profiles/core.schema.json";
+import minimalProfileSchema from "./schemas/recipe/profiles/minimal.schema.json";
+import scheduleModuleV1 from "./schemas/recipe/modules/schedule/1.schema.json";
+import nutritionModuleV1 from "./schemas/recipe/modules/nutrition/1.schema.json";
+import attributionModuleV1 from "./schemas/recipe/modules/attribution/1.schema.json";
+import taxonomyModuleV1 from "./schemas/recipe/modules/taxonomy/1.schema.json";
+import mediaModuleV1 from "./schemas/recipe/modules/media/1.schema.json";
+import timesModuleV1 from "./schemas/recipe/modules/times/1.schema.json";
 import { Recipe } from "./types";
 import { parseDuration } from "./parsers/duration";
 
-type ProfileName =
-  | "minimal"
-  | "core"
-  | "base"
-  | "cookable"
-  | "scalable"
-  | "quantified"
-  | "illustrated"
-  | "schedulable";
+type ProfileName = "minimal" | "core";
 
-const CANONICAL_BASE_SCHEMA_ID =
-  "https://soustack.org/schemas/recipe/base.schema.json";
-const canonicalProfileId = (profile: string) =>
-  `https://soustack.org/schemas/recipe/profiles/${profile}.schema.json`;
+// Use the actual schema IDs from the schema files
+const CANONICAL_BASE_SCHEMA_ID = (baseSchema as any).$id || "http://soustack.org/schema/recipe/base.schema.json";
+
+const canonicalProfileId = (profile: string): string => {
+  if (profile === "minimal") {
+    return (minimalProfileSchema as any).$id || "http://soustack.org/schema/recipe/profiles/minimal.schema.json";
+  }
+  if (profile === "core") {
+    return (coreProfileSchema as any).$id || "http://soustack.org/schema/recipe/profiles/core.schema.json";
+  }
+  throw new Error(`Unknown profile: ${profile}`);
+};
+
 const moduleIdToSchemaRef = (moduleId: string): string => {
   const match = moduleId.match(/^([a-z0-9_-]+)@(\d+(?:\.\d+)*)$/i);
   if (!match) {
@@ -38,6 +34,20 @@ const moduleIdToSchemaRef = (moduleId: string): string => {
   }
 
   const [, name, version] = match;
+  // Use the actual schema ID from the module schema file
+  const moduleSchemas: Record<string, any> = {
+    "schedule@1": scheduleModuleV1,
+    "nutrition@1": nutritionModuleV1,
+    "attribution@1": attributionModuleV1,
+    "taxonomy@1": taxonomyModuleV1,
+    "media@1": mediaModuleV1,
+    "times@1": timesModuleV1,
+  };
+  const schema = moduleSchemas[moduleId];
+  if (schema && (schema as any).$id) {
+    return (schema as any).$id;
+  }
+  // Fallback to constructed ID
   return `https://soustack.org/schemas/recipe/modules/${name}/${version}.schema.json`;
 };
 
@@ -77,12 +87,6 @@ function deepClone<T>(value: T): T {
 const profileSchemas: Record<ProfileName, any> = {
   minimal: minimalProfileSchema,
   core: coreProfileSchema,
-  base: baseProfileSchema,
-  cookable: cookableProfileSchema,
-  scalable: baseProfileSchema,
-  quantified: quantifiedProfileSchema,
-  illustrated: illustratedProfileSchema,
-  schedulable: schedulableProfileSchema,
 };
 
 const moduleSchemas: Record<string, any> = {
@@ -94,52 +98,6 @@ const moduleSchemas: Record<string, any> = {
   "times@1": timesModuleV1,
 };
 
-function createBaseSchemaWithModules(): any {
-  const cloned = deepClone(baseSchema as any);
-  cloned.properties = {
-    ...(cloned.properties ?? {}),
-    profile: { type: "string" },
-    modules: {
-      type: "array",
-      items: { type: "string" },
-      uniqueItems: true,
-      default: [],
-    },
-    attribution: { type: "object", additionalProperties: true },
-    taxonomy: { type: "object", additionalProperties: true },
-    media: { type: "object", additionalProperties: true },
-    times: { type: "object", additionalProperties: true },
-    nutrition: {
-      type: "object",
-      additionalProperties: true,
-    },
-  };
-
-  const moduleGuards = [
-    { field: "nutrition", module: "nutrition@1" },
-    { field: "attribution", module: "attribution@1" },
-    { field: "taxonomy", module: "taxonomy@1" },
-    { field: "media", module: "media@1" },
-    { field: "times", module: "times@1" },
-  ].map(({ field, module }) => ({
-    if: { required: [field] },
-    then: {
-      required: ["modules"],
-      properties: {
-        modules: {
-          type: "array",
-          contains: { const: module },
-        },
-      },
-    },
-  }));
-
-  cloned.allOf = [...(cloned.allOf ?? []), ...moduleGuards];
-  return cloned;
-}
-
-const baseSchemaWithModules = createBaseSchemaWithModules();
-
 const validationContexts: Map<boolean, ValidationContext> = new Map();
 
 function createContext(collectAllErrors: boolean): ValidationContext {
@@ -148,19 +106,24 @@ function createContext(collectAllErrors: boolean): ValidationContext {
 
   const addSchemaWithAlias = (schema: any, alias?: string) => {
     if (!schema) return;
-    if (alias) {
-      ajv.addSchema(schema, alias);
+    // Use the schema's $id if available, otherwise use the provided alias
+    const schemaId = (schema as any).$id || alias;
+    if (schemaId) {
+      ajv.addSchema(schema, schemaId);
     } else {
       ajv.addSchema(schema);
     }
   };
 
-  addSchemaWithAlias(baseSchemaWithModules, CANONICAL_BASE_SCHEMA_ID);
+  // Add base schema
+  addSchemaWithAlias(baseSchema, CANONICAL_BASE_SCHEMA_ID);
 
+  // Add profile schemas
   Object.entries(profileSchemas).forEach(([name, schema]) => {
     addSchemaWithAlias(schema, canonicalProfileId(name));
   });
 
+  // Add module schemas
   Object.entries(moduleSchemas).forEach(([moduleId, schema]) => {
     addSchemaWithAlias(schema, moduleIdToSchemaRef(moduleId));
   });
@@ -204,7 +167,9 @@ function getCombinedValidator(
   modules: string[],
   context: ValidationContext,
 ): ValidateFunction {
-  const cacheKey = `${profile}::${modules.join(",")}`;
+  // Sort modules for consistent caching
+  const sortedModules = [...modules].sort();
+  const cacheKey = `${profile}::${sortedModules.join(",")}`;
   const cached = context.validators.get(cacheKey);
   if (cached) return cached;
 
@@ -212,12 +177,13 @@ function getCombinedValidator(
     throw new Error(`Unknown Soustack profile: ${profile}`);
   }
 
+  // Composed validation: allOf: [base, profile overlay, ...module overlays]
   const schema = {
-    $id: `urn:soustack:recipe:${cacheKey || "base"}`,
+    $id: `urn:soustack:recipe:${cacheKey}`,
     allOf: [
       { $ref: CANONICAL_BASE_SCHEMA_ID },
       { $ref: canonicalProfileId(profile) },
-      ...modules.map((moduleId) => ({ $ref: moduleIdToSchemaRef(moduleId) })),
+      ...sortedModules.map((moduleId) => ({ $ref: moduleIdToSchemaRef(moduleId) })),
     ],
   };
 
@@ -268,9 +234,35 @@ function normalizeTime(recipe: Recipe): void {
   });
 }
 
+// Allowed top-level properties from base schema plus common extensions
+// Note: base schema has additionalProperties: true, so we only reject truly unknown fields
 const allowedTopLevelProps = new Set<string>([
-  ...Object.keys((baseSchemaWithModules as any)?.properties ?? {}),
+  ...Object.keys((baseSchema as any)?.properties ?? {}),
   "$schema",
+  // Module fields (validated by module schemas)
+  "attribution",
+  "taxonomy",
+  "media",
+  "times",
+  "nutrition",
+  "schedule",
+  // Common recipe fields (allowed by base schema's additionalProperties: true)
+  "description",
+  "image",
+  "category",
+  "tags",
+  "source",
+  "dateAdded",
+  "dateModified",
+  "yield",
+  "time",
+  "id",
+  "title",
+  "recipeVersion",
+  "version", // deprecated but allowed
+  "equipment",
+  "storage",
+  "substitutions",
 ]);
 
 function detectUnknownTopLevelKeys(recipe: any): NormalizedError[] {
@@ -420,10 +412,11 @@ export function validateRecipe(input: any, options: ValidateOptions = {}): Valid
   const profileFromDocument = typeof input?.profile === "string" ? (input.profile as ProfileName) : undefined;
   const profile: ProfileName =
     options.profile ?? profileFromDocument ?? detectProfileFromSchema(schemaRef) ?? "core";
+  // Modules default to [] if missing
   const modulesFromDocument = Array.isArray(input?.modules)
     ? (input.modules as string[]).filter((value) => typeof value === "string")
     : [];
-  const modules = [...modulesFromDocument].sort();
+  const modules = modulesFromDocument.length > 0 ? [...modulesFromDocument].sort() : [];
 
   const { normalized, warnings } = normalizeRecipe(input as Recipe);
 
@@ -436,8 +429,9 @@ export function validateRecipe(input: any, options: ValidateOptions = {}): Valid
 
   const unknownKeyErrors = detectUnknownTopLevelKeys(normalized);
   const validationErrors = runAjvValidation(normalized, profile, modules, context);
+  // Check instruction graph if schedule module is present
   const graphErrors =
-    (profile === "schedulable" || modules.includes("schedule@1")) && validationErrors.length === 0
+    modules.includes("schedule@1") && validationErrors.length === 0
       ? checkInstructionGraph(normalized)
       : [];
   const errors = [...unknownKeyErrors, ...validationErrors, ...graphErrors];
@@ -459,11 +453,11 @@ export function detectProfiles(recipe: any): ProfileName[] {
   if (!result.valid) return [];
 
   const normalizedRecipe = result.normalized ?? recipe;
-  const profiles: ProfileName[] = ["core"];
+  const profiles: ProfileName[] = [];
   const context = getContext(false);
 
+  // Check which profiles the recipe satisfies
   (Object.keys(profileSchemas) as ProfileName[]).forEach((profile) => {
-    if (profile === "core") return;
     if (!profileSchemas[profile]) return;
     const errors = runAjvValidation(normalizedRecipe, profile, [], context);
     if (errors.length === 0) {

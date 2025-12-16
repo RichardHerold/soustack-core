@@ -69,19 +69,30 @@ const scaled = scaleRecipe(recipe, { multiplier: 2 });
 
 ### Profile-aware validation
 
-Use profiles to enforce integration contracts (e.g., **Block** vs **Integrator** payloads).
+Use profiles to enforce integration contracts. Available profiles:
+- **minimal**: Basic recipe structure with minimal requirements
+- **core**: Enhanced profile with structured ingredients and instructions
 
 ```ts
 import { detectProfiles, validateRecipe } from 'soustack';
 
 // Discover which profiles a recipe already satisfies
-const profiles = detectProfiles(recipe); // e.g. ['block']
+const profiles = detectProfiles(recipe); // e.g. ['minimal', 'core']
 
-// Validate while requiring specific profiles
-const result = validateRecipe(recipe, { profiles: ['block', 'integrator'] });
+// Validate with a specific profile (defaults to 'core' if not specified)
+const result = validateRecipe(recipe, { profile: 'minimal' });
 if (!result.valid) {
   console.error('Profile validation failed', result.errors);
 }
+
+// Validate with modules
+const recipeWithModules = {
+  profile: 'minimal',
+  modules: ['nutrition@1', 'times@1'],
+  // ... recipe data
+};
+const result2 = validateRecipe(recipeWithModules);
+// Validates using: base + minimal profile + nutrition@1 module + times@1 module
 ```
 
 ### Imperial → metric ingredient conversion
@@ -117,9 +128,46 @@ The converter rounds using “sane” defaults (1 g/ml under 1 kg/1 L, the
 
 ## Spec compatibility & bundled schemas
 
-- Targets Soustack spec **v0.2.1** (`spec/SOUSTACK_SPEC_VERSION`, exported as `SOUSTACK_SPEC_VERSION`).
-- Ships the base schema plus profile schemas in `spec/` and mirrors them into `src/` for consumers.
+- Targets Soustack spec **v0.3.0** (`spec/SOUSTACK_SPEC_VERSION`, exported as `SOUSTACK_SPEC_VERSION`).
+- Ships the base schema, profile schemas, and module schemas in `spec/schemas/recipe/` and mirrors them into `src/schemas/recipe/` for consumers.
 - Vendored fixtures live in `spec/fixtures` so tests can run offline, and version drift can be checked via `npm run validate:version`.
+
+### Composed Validation Model
+
+Soustack v0.3.0 uses a **composed validation model** where recipes are validated using JSON Schema's `allOf` composition:
+
+```json
+{
+  "allOf": [
+    { "$ref": "base.schema.json" },
+    { "$ref": "profiles/{profile}.schema.json" },
+    { "$ref": "modules/{module1}/{version}.schema.json" },
+    { "$ref": "modules/{module2}/{version}.schema.json" }
+  ]
+}
+```
+
+The validator:
+- **Base schema**: Defines the core recipe structure (`@type`, `name`, `ingredients`, `instructions`, `profile`, `modules`)
+- **Profile overlay**: Adds profile-specific requirements (e.g., `minimal` or `core`)
+- **Module overlays**: Each declared module adds its own validation rules
+
+**Defaults:**
+- If `profile` is missing, it defaults to `"core"`
+- If `modules` is missing, it defaults to `[]`
+
+**Caching:** Validators are cached by `${profile}::${sortedModules.join(",")}` for performance.
+
+### Module Resolution
+
+Modules are resolved to schema references using the pattern:
+- Module identifier format: `<name>@<version>` (e.g., `nutrition@1`, `schedule@1`)
+- Schema reference: `https://soustack.org/schemas/recipe/modules/<name>/<version>.schema.json`
+
+The module registry (`schemas/registry/modules.json`) defines which modules are available and their properties, including:
+- `schemaOrgMappable`: Whether the module can be converted to Schema.org format
+- `minProfile`: Minimum profile required to use the module
+- `allowedOnMinimal`: Whether the module can be used with the minimal profile
 
 ## Programmatic Usage
 
@@ -191,6 +239,8 @@ async function convert(url: string) {
 ## 🔁 Schema.org Conversion
 
 Use the helpers to move between Schema.org JSON-LD and Soustack's structured recipe format. The conversion automatically handles image normalization, supporting multiple image formats from Schema.org.
+
+**BREAKING CHANGE in v0.3.0:** `toSchemaOrg()` now targets the **minimal profile** and only includes modules that are marked as `schemaOrgMappable` in the modules registry. Non-mappable modules (e.g., `nutrition@1`, `schedule@1`) are excluded from the conversion.
 
 ```ts
 import { fromSchemaOrg, toSchemaOrg, normalizeImage } from 'soustack';
