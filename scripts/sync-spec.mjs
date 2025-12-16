@@ -42,7 +42,17 @@ function cloneSpecRepository(tag) {
   try {
     execSync(`git clone --depth 1 --branch ${tag} ${SPEC_REPO} ${tempDir}`, { stdio: 'inherit' });
   } catch (error) {
-    throw new Error(`Failed to clone soustack-spec@${tag}: ${error.message}`);
+    // If the specified tag/branch doesn't exist, try falling back to 'main'
+    if (tag !== 'main') {
+      console.warn(`Warning: Branch/tag '${tag}' not found, falling back to 'main'`);
+      try {
+        execSync(`git clone --depth 1 --branch main ${SPEC_REPO} ${tempDir}`, { stdio: 'inherit' });
+      } catch (fallbackError) {
+        throw new Error(`Failed to clone soustack-spec@${tag} and fallback to main: ${fallbackError.message}`);
+      }
+    } else {
+      throw new Error(`Failed to clone soustack-spec@${tag}: ${error.message}`);
+    }
   }
 
   return tempDir;

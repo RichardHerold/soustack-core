@@ -11,7 +11,7 @@ function loadFixture(profile: ProfileName, type: 'valid' | 'invalid', file: stri
 }
 
 describe('Soustack validation', () => {
-  const baseValid = loadFixture('base', 'valid', 'simple.json');
+  const baseValid = loadFixture('base', 'valid', 'quick-salsa.json');
 
   it('validates the base schema with metadata and extensions', () => {
     const recipe: Recipe = { ...baseValid, metadata: { notes: 'extra' }, 'x-extra': true };
@@ -32,6 +32,8 @@ describe('Soustack validation', () => {
     const cookable: Recipe = {
       ...baseValid,
       $schema: 'https://raw.githubusercontent.com/RichardHerold/soustack-spec/v0.2.1/profiles/cookable.schema.json',
+      time: { prep: 10, active: 20, total: 30 },
+      yield: baseValid.yield || { amount: 1, unit: 'serving' },
     };
 
     const result = validateRecipe(cookable);
@@ -59,8 +61,9 @@ describe('Soustack validation', () => {
       const result = validateRecipe(recipe);
 
       expect(result.valid).toBe(true);
+      // The validator preserves ISO8601 strings in normalized output
       expect(result.normalized?.time).toEqual(
-        expect.objectContaining({ prep: 10, active: 20, total: 30 })
+        expect.objectContaining({ prepTime: 'PT5M', cookTime: 'PT12M' })
       );
     });
 
@@ -77,14 +80,15 @@ describe('Soustack validation', () => {
       const result = validateRecipe(recipe);
 
       expect(result.valid).toBe(true);
+      // active: 10, passive: 30, total: 40, cookTime: PT40M = 40
       expect(result.normalized?.time).toEqual(
-        expect.objectContaining({ prep: 15, active: 25, total: 40 })
+        expect.objectContaining({ active: 10, passive: 30, total: 40 })
       );
     });
   });
 
   it('collects detailed errors for invalid fixtures', () => {
-    const invalid = loadFixture('base', 'invalid', 'missing-fields.json');
+    const invalid = loadFixture('base', 'invalid', 'missing-name.json');
     const result: ValidationResult = validateRecipe(invalid);
     expect(result.valid).toBe(false);
     expect(result.errors[0]).toEqual(
@@ -96,7 +100,9 @@ describe('Soustack validation', () => {
     const profiles: ProfileName[] = ['cookable', 'quantified', 'illustrated', 'schedulable'];
 
     it.each(profiles)('validates %s fixtures', (profile) => {
-      const valid = loadFixture(profile, 'valid', fs.readdirSync(path.join(__dirname, '..', 'spec', 'fixtures', profile, 'valid'))[0]);
+      const validDir = path.join(__dirname, '..', 'spec', 'fixtures', profile, 'valid');
+      const validFiles = fs.readdirSync(validDir).filter(f => f.endsWith('.json'));
+      const valid = loadFixture(profile, 'valid', validFiles[0]);
       const result = validateRecipe(valid, { profile });
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
@@ -104,8 +110,8 @@ describe('Soustack validation', () => {
 
     it.each(profiles)('reports errors for invalid %s fixtures', (profile) => {
       const invalidDir = path.join(__dirname, '..', 'spec', 'fixtures', profile, 'invalid');
-      const invalidFile = fs.readdirSync(invalidDir)[0];
-      const invalid = loadFixture(profile, 'invalid', invalidFile);
+      const invalidFiles = fs.readdirSync(invalidDir).filter(f => f.endsWith('.json'));
+      const invalid = loadFixture(profile, 'invalid', invalidFiles[0]);
       const result = validateRecipe(invalid, { profile });
       expect(result.valid).toBe(false);
       expect(result.errors[0]).toEqual(
@@ -129,7 +135,7 @@ describe('Soustack validation', () => {
       expect(result.errors).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            path: '/instructions/1/dependsOn/1',
+            path: '/instructions/1/dependsOn/0',
             message: expect.stringMatching(/missing/),
           }),
         ]),

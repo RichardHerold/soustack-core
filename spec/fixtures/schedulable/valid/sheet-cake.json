@@ -1,0 +1,33 @@
+{
+  "name": "Sheet Cake",
+  "ingredients": [
+    "Cake batter",
+    "Frosting"
+  ],
+  "instructions": [
+    {
+      "id": "mix",
+      "text": "Mix batter",
+      "timing": {
+        "duration": 10,
+        "type": "active"
+      }
+    },
+    {
+      "id": "bake",
+      "text": "Bake until set",
+      "timing": {
+        "duration": 30,
+        "type": "passive"
+      }
+    },
+    {
+      "id": "frost",
+      "text": "Frost the cake",
+      "timing": {
+        "duration": 5,
+        "type": "active"
+      }
+    }
+  ]
+}

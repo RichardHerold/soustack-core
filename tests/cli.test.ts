@@ -24,9 +24,8 @@ function expectNonZero(status: number | null) {
 
 describe('soustack CLI', () => {
   beforeAll(() => {
-    if (!existsSync(DIST_CLI_PATH)) {
-      execSync('npm run build -- --silent', { stdio: 'inherit' });
-    }
+    // Always rebuild to ensure we have the latest code
+    execSync('npm run build -- --silent', { stdio: 'inherit' });
   });
 
   it('validates a known good fixture successfully', () => {

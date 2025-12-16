@@ -398,5 +398,8 @@ function writeOutput(data: unknown, outputPath?: string) {
 }
 
 if (require.main === module) {
-  runCli(process.argv.slice(2));
+  runCli(process.argv.slice(2)).catch((error) => {
+    console.error(`❌ ${error?.message ?? error}`);
+    process.exit(1);
+  });
 }

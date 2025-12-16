@@ -1,0 +1,16 @@
+{
+  "name": "Bad Quantified Recipe",
+  "ingredients": [
+    "Loose salt",
+    {
+      "item": "Water",
+      "quantity": {
+        "amount": 1,
+        "unit": "cup"
+      }
+    }
+  ],
+  "instructions": [
+    "Stir everything"
+  ]
+}

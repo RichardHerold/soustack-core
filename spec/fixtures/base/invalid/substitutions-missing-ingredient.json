@@ -1,0 +1,11 @@
+{
+  "name": "Bad Substitution",
+  "ingredients": ["Water"],
+  "instructions": ["Stir"],
+  "substitutions": [
+    {
+      "notes": "No ingredient specified",
+      "alternatives": [{ "name": "Anything", "ratio": "1:1" }]
+    }
+  ]
+}

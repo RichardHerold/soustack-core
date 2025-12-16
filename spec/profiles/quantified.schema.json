@@ -1,8 +1,43 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/RichardHerold/soustack-spec/v0.2.1/profiles/quantified.schema.json",
-  "title": "Soustack Quantified Profile v0.2.1",
+  "$id": "http://soustack.org/schema/v0.2.1/profiles/quantified",
+  "title": "Soustack Quantified Profile Schema",
+  "description": "Extends the base schema to require quantified ingredient entries.",
   "allOf": [
-    { "$ref": "https://raw.githubusercontent.com/RichardHerold/soustack-spec/v0.2.1/soustack.schema.json" }
-  ]
+    { "$ref": "http://soustack.org/schema/v0.2.1" },
+    {
+      "properties": {
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              { "$ref": "#/definitions/quantifiedIngredient" },
+              { "$ref": "#/definitions/quantifiedIngredientSubsection" }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "quantifiedIngredient": {
+      "allOf": [
+        { "$ref": "http://soustack.org/schema/v0.2.1#/definitions/ingredient" },
+        { "required": ["item", "quantity"] }
+      ]
+    },
+    "quantifiedIngredientSubsection": {
+      "allOf": [
+        { "$ref": "http://soustack.org/schema/v0.2.1#/definitions/ingredientSubsection" },
+        {
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/quantifiedIngredient" }
+            }
+          }
+        }
+      ]
+    }
+  }
 }

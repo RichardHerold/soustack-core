@@ -1,10 +1,12 @@
 {
-  "name": "ISO Timed Salad",
+  "name": "ISO Duration Timing Example",
+  "ingredients": ["Coffee grounds", "Water"],
+  "instructions": [
+    "Combine the grounds and water",
+    "Steep"
+  ],
   "time": {
-    "prep": "PT10M",
-    "active": "PT20M",
-    "total": "PT30M"
-  },
-  "ingredients": ["1 tomato", "1 tbsp olive oil"],
-  "instructions": ["Slice the tomato", "Drizzle with olive oil"]
+    "prepTime": "PT5M",
+    "cookTime": "PT12M"
+  }
 }

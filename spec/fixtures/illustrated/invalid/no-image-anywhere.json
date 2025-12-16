@@ -1,0 +1,11 @@
+{
+  "name": "Unillustrated Recipe",
+  "ingredients": [
+    "Water"
+  ],
+  "instructions": [
+    {
+      "text": "Boil the water"
+    }
+  ]
+}

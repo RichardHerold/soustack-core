@@ -1,0 +1,16 @@
+{
+  "name": "Roast Chicken Gear",
+  "ingredients": [
+    { "item": "Whole chicken", "quantity": { "amount": 1, "unit": "each" } },
+    "Salt"
+  ],
+  "instructions": [
+    { "text": "Season the chicken" },
+    { "text": "Roast until browned" }
+  ],
+  "equipment": [
+    { "id": "oven", "name": "Oven", "required": true, "capacity": { "amount": 5, "unit": "quart" } },
+    { "id": "rack", "name": "Roasting rack", "required": false, "alternatives": ["Baking sheet"] },
+    { "id": "thermometer", "name": "Instant-read thermometer", "required": false, "label": "Optional temp check" }
+  ]
+}

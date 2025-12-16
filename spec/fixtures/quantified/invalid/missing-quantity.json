@@ -1,10 +1,18 @@
 {
-  "name": "No Quantity",
+  "name": "Quantity Missing",
   "ingredients": [
     {
-      "item": "flour",
-      "quantity": "a handful"
+      "item": "Flour"
+    },
+    {
+      "item": "Water",
+      "quantity": {
+        "amount": 1,
+        "unit": "cup"
+      }
     }
   ],
-  "instructions": ["Stir together"]
+  "instructions": [
+    "Combine ingredients"
+  ]
 }

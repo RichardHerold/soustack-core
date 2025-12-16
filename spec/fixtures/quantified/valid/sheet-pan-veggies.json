@@ -1,0 +1,34 @@
+{
+  "name": "Sheet Pan Veggies",
+  "ingredients": [
+    {
+      "item": "Broccoli florets",
+      "quantity": {
+        "amount": 2,
+        "unit": "cup"
+      }
+    },
+    {
+      "item": "Carrots",
+      "quantity": {
+        "amount": 2,
+        "unit": "cup"
+      }
+    },
+    {
+      "item": "Olive oil",
+      "quantity": {
+        "amount": 2,
+        "unit": "tablespoon"
+      }
+    }
+  ],
+  "instructions": [
+    {
+      "text": "Coat vegetables with oil"
+    },
+    {
+      "text": "Roast until tender"
+    }
+  ]
+}
