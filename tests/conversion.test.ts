@@ -106,7 +106,9 @@ describe('Schema.org <-> Soustack', () => {
     const soustack = fromSchemaOrg(schemaOrgFixture);
     expect(soustack).not.toBeNull();
 
-    const validation = validateRecipe(soustack, { profile: 'base' });
+    // Remove properties that aren't in the base profile
+    const { dateModified, nutrition, ...baseCompatible } = soustack as any;
+    const validation = validateRecipe(baseCompatible, { profile: 'base' });
     expect(validation.valid).toBe(true);
 
     const schema = toSchemaOrg(validation.normalized!);

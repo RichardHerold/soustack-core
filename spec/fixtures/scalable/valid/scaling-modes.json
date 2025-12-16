@@ -1,27 +1,18 @@
 {
-  "name": "Scaling Modes Fixture",
-  "yield": { "amount": 1, "unit": "loaf" },
+  "$schema": "http://soustack.org/schema/v0.2.1/profiles/scalable",
+  "id": "scaling-modes",
+  "name": "Scaling Modes Sampler",
   "ingredients": [
-    { "id": "linear", "item": "100g Linear", "quantity": { "amount": 100, "unit": "g" }, "scaling": { "type": "linear" } },
-    { "id": "fixed", "item": "5g Fixed", "quantity": { "amount": 5, "unit": "g" }, "scaling": { "type": "fixed" } },
-    { "id": "discrete", "item": "1 whole egg", "quantity": { "amount": 1, "unit": null }, "scaling": { "type": "discrete" } },
-    { "id": "discrete_step", "item": "2 egg whites", "quantity": { "amount": 2, "unit": null }, "scaling": { "type": "discrete", "roundTo": 2 } },
-    { "id": "proportional", "item": "10g Proportional", "quantity": { "amount": 10, "unit": "g" }, "scaling": { "type": "proportional", "factor": 0.5 } },
-    {
-      "subsection": "Starter",
-      "items": [
-        { "id": "starter", "item": "50g Starter", "quantity": { "amount": 50, "unit": "g" }, "scaling": { "type": "linear" } }
-      ]
-    },
-    { "id": "salt", "item": "2g Salt", "quantity": { "amount": 2, "unit": "g" }, "scaling": { "type": "bakers_percentage", "referenceId": "linear", "factor": 0.02 } }
+    { "id": "flour", "item": "Flour", "quantity": { "amount": 500, "unit": "g" }, "scaling": { "type": "linear" } },
+    { "item": "Eggs", "quantity": { "amount": 3, "unit": "each" }, "scaling": { "type": "discrete", "roundTo": 1 } },
+    { "item": "Salt", "quantity": { "amount": 10, "unit": "g" }, "scaling": { "type": "fixed" } },
+    { "item": "Chocolate Chips", "quantity": { "amount": 150, "unit": "g" }, "scaling": { "type": "proportional", "factor": 0.5 } },
+    { "id": "starter", "item": "Sourdough starter", "quantity": { "amount": 100, "unit": "g" }, "scaling": { "type": "bakers_percentage", "referenceId": "flour", "factor": 0.2 } }
   ],
   "instructions": [
-    { "id": "rest", "text": "Rest the dough", "timing": { "duration": 30, "type": "passive", "scaling": "linear" } },
-    {
-      "subsection": "Bake",
-      "items": [
-        { "id": "bake", "text": "Bake the loaf", "timing": { "duration": 20, "type": "active", "scaling": "sqrt" } }
-      ]
-    }
-  ]
+    { "text": "Mix dry ingredients" },
+    { "text": "Fold in chocolate chips" },
+    { "text": "Rest dough" }
+  ],
+  "yield": { "amount": 1, "unit": "batch" }
 }
