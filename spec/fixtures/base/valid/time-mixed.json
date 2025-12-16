@@ -1,0 +1,10 @@
+{
+  "name": "Mixed Timed Salad",
+  "time": {
+    "prep": "PT15M",
+    "active": 25,
+    "total": "PT40M"
+  },
+  "ingredients": ["1 pepper", "1 tbsp olive oil"],
+  "instructions": ["Slice the pepper", "Drizzle with olive oil"]
+}

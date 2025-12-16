@@ -7,9 +7,13 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
-export function parseDuration(iso: string): number | null;
-export function parseDuration(iso: string | null | undefined): number | null;
-export function parseDuration(iso: string | null | undefined): number | null {
+export function parseDuration(iso: string | number): number | null;
+export function parseDuration(iso: string | number | null | undefined): number | null;
+export function parseDuration(iso: string | number | null | undefined): number | null {
+  if (typeof iso === 'number' && Number.isFinite(iso)) {
+    return iso;
+  }
+
   if (!iso || typeof iso !== 'string') return null;
 
   const trimmed = iso.trim();

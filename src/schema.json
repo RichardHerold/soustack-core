@@ -141,6 +141,7 @@
       "oneOf": [
         {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "prep": { "type": "number" },
             "active": { "type": "number" },
@@ -150,6 +151,7 @@
         },
         {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "prepTime": { "type": "string" },
             "cookTime": { "type": "string" }
