@@ -1,0 +1,10 @@
+{
+  "$schema": "http://soustack.org/schema/v0.2.1",
+  "name": "Minimal Base Recipe",
+  "ingredients": [
+    "Salt"
+  ],
+  "instructions": [
+    "Mix and serve"
+  ]
+}

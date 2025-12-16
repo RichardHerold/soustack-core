@@ -1,0 +1,27 @@
+{
+  "name": "Herb Butter",
+  "ingredients": [
+    {
+      "item": "Unsalted butter",
+      "quantity": {
+        "amount": 0.5,
+        "unit": "cup"
+      }
+    },
+    {
+      "item": "Chopped parsley"
+    },
+    {
+      "item": "Lemon zest"
+    }
+  ],
+  "instructions": [
+    {
+      "text": "Soften the butter"
+    },
+    {
+      "text": "Fold in herbs and zest"
+    },
+    "Chill until firm"
+  ]
+}

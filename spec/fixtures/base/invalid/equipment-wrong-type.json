@@ -1,0 +1,6 @@
+{
+  "name": "Invalid Equipment",
+  "ingredients": ["Item"],
+  "instructions": ["Do something"],
+  "equipment": ["Saucepan", { "name": "Whisk" }]
+}

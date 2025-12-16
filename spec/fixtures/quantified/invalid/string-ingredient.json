@@ -1,9 +1,7 @@
 {
-  "name": "Quantity Missing",
+  "name": "Bad Quantified Recipe",
   "ingredients": [
-    {
-      "item": "Flour"
-    },
+    "Loose salt",
     {
       "item": "Water",
       "quantity": {
@@ -13,6 +11,6 @@
     }
   ],
   "instructions": [
-    "Combine ingredients"
+    "Stir everything"
   ]
 }

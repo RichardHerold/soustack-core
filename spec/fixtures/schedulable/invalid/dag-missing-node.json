@@ -1,8 +1,8 @@
 {
-  "name": "Graph Missing Node",
-  "ingredients": ["1 cup water"],
+  "name": "Broken DAG",
+  "ingredients": ["Item"],
   "instructions": [
-    { "id": "start", "text": "Begin" },
-    { "id": "finish", "text": "Finish", "dependsOn": ["start", "unknown-step"] }
+    { "id": "start", "text": "Start", "timing": { "duration": 1, "type": "active" } },
+    { "id": "finish", "text": "Finish", "dependsOn": ["missing"], "timing": { "duration": 1, "type": "active" } }
   ]
 }

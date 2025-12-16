@@ -1,0 +1,29 @@
+{
+  "name": "Overnight Oats",
+  "tags": ["breakfast"],
+  "ingredients": [
+    {
+      "item": "Rolled oats",
+      "quantity": {
+        "amount": 1,
+        "unit": "cup"
+      }
+    },
+    {
+      "item": "Milk",
+      "quantity": {
+        "amount": 1,
+        "unit": "cup"
+      }
+    },
+    "Honey to taste"
+  ],
+  "instructions": [
+    {
+      "text": "Combine oats and milk in a jar"
+    },
+    {
+      "text": "Refrigerate overnight"
+    }
+  ]
+}

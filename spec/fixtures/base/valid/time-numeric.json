@@ -1,10 +1,11 @@
 {
-  "name": "Numeric Timed Salad",
+  "name": "Numeric Timing Example",
+  "ingredients": ["Water"],
+  "instructions": ["Boil the water"],
   "time": {
     "prep": 5,
-    "active": 15,
-    "total": 20
-  },
-  "ingredients": ["1 cucumber", "1 tbsp olive oil"],
-  "instructions": ["Slice the cucumber", "Drizzle with olive oil"]
+    "active": 10,
+    "passive": 0,
+    "total": 15
+  }
 }

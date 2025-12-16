@@ -1,0 +1,22 @@
+{
+  "name": "Braised Beans with Storage",
+  "ingredients": ["Beans", "Aromatics"],
+  "instructions": [
+    { "text": "Simmer beans until tender" },
+    { "text": "Cool completely" }
+  ],
+  "storage": {
+    "roomTemp": { "duration": "PT4H", "method": "Cool and cover" },
+    "refrigerated": { "duration": "P4D", "method": "Store in airtight container", "notes": "Keeps broth clear" },
+    "frozen": { "duration": "P2M", "method": "Portion into freezer bags", "thawing": "Overnight in fridge" },
+    "reheating": "Reheat gently on the stove until steaming",
+    "makeAhead": [
+      {
+        "duration": "P1D",
+        "method": "Cook aromatics and chill",
+        "component": "Aromatics",
+        "storage": "refrigerated"
+      }
+    ]
+  }
+}

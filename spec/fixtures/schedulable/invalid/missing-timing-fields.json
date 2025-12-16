@@ -1,0 +1,22 @@
+{
+  "name": "Incomplete Schedule",
+  "ingredients": [
+    "Beans"
+  ],
+  "instructions": [
+    {
+      "text": "Rinse beans",
+      "timing": {
+        "duration": 5,
+        "type": "active"
+      }
+    },
+    {
+      "id": "cook",
+      "text": "Simmer beans",
+      "timing": {
+        "duration": 60
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "Pancake Stack",
+  "image": "https://example.com/pancakes.jpg",
+  "ingredients": [
+    "Batter",
+    "Butter"
+  ],
+  "instructions": [
+    "Cook on a griddle",
+    "Serve with butter"
+  ]
+}
