@@ -16,6 +16,23 @@
         "unit": "cup"
       }
     },
+    {
+      "item": "Brown sugar",
+      "quantity": {
+        "amount": 0.25,
+        "unit": "cup"
+      },
+      "form": "packed"
+    },
+    {
+      "item": "Bosc pear",
+      "quantity": {
+        "amount": 1,
+        "unit": "each"
+      },
+      "prep": "peeled and diced",
+      "prepActions": ["peel", "dice"]
+    },
     "Honey to taste"
   ],
   "instructions": [

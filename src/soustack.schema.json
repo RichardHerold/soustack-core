@@ -149,7 +149,10 @@
       "required": ["amount"],
       "properties": {
         "amount": { "type": "number" },
-        "unit": { "type": ["string", "null"] }
+        "unit": {
+          "type": ["string", "null"],
+          "description": "Display-friendly unit text; implementations may normalize or canonicalize units separately."
+        }
       }
     },
     "scaling": {
@@ -184,7 +187,16 @@
         "aisle": { "type": "string" },
         "prep": { "type": "string" },
         "prepAction": { "type": "string" },
+        "prepActions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Structured prep verbs (e.g., peel, dice) for mise en place workflows."
+        },
         "prepTime": { "type": "number" },
+        "form": {
+          "type": "string",
+          "description": "State of the ingredient as used (packed, sifted, melted, room_temperature, etc.)."
+        },
         "destination": { "type": "string" },
         "scaling": { "$ref": "#/definitions/scaling" },
         "critical": { "type": "boolean" },

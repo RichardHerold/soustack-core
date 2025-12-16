@@ -16,3 +16,10 @@ export {
   UnsupportedConversionError,
   MissingEquivalencyError
 } from './conversion/convertLineItem';
+export {
+  miseEnPlace,
+  type Ingredient as MiseEnPlaceIngredient,
+  type MiseEnPlacePlan,
+  type MiseEnPlaceTask,
+  type Quantity as MiseEnPlaceQuantity
+} from './mise-en-place';
