@@ -34,9 +34,27 @@ describe('Soustack Logic Engine', () => {
   test('scales bakers percentage (salt) correctly', () => {
     // Scale 1 loaf -> 2 loaves
     const result = scaleRecipe(sourdough, 2);
-    
+
     const salt = result.ingredients.find(i => i.id === 'salt');
     // Salt should be 20g (2% of the NEW flour weight, which is 1000g)
-    expect(salt?.amount).toBe(20); 
+    expect(salt?.amount).toBe(20);
+  });
+
+  test('handles ISO8601 timing strings during scaling', () => {
+    const isoRecipe: Recipe = {
+      name: 'ISO Timing',
+      yield: { amount: 1, unit: 'batch' },
+      ingredients: [],
+      instructions: [
+        {
+          text: 'Rest the dough',
+          timing: { duration: 'PT30M', type: 'passive', scaling: 'linear' },
+        },
+      ],
+    };
+
+    const scaled = scaleRecipe(isoRecipe, 2);
+    expect(scaled.instructions[0].durationMinutes).toBe(60);
+    expect(scaled.timing.passive).toBe(60);
   });
 });

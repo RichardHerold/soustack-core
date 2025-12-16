@@ -1,11 +1,12 @@
-import { 
-  Recipe, 
-  Ingredient, 
-  IngredientItem, 
-  Instruction, 
+import {
+  Recipe,
+  Ingredient,
+  IngredientItem,
+  Instruction,
   InstructionItem,
-  Scaling 
+  Scaling
 } from './types';
+import { parseDuration } from './parsers/duration';
 
 // --- Output Types ---
 
@@ -202,7 +203,7 @@ function extractNameFromItem(item: string): string {
 }
 
 function calculateInstruction(inst: Instruction, multiplier: number): ComputedInstruction {
-  const baseDuration = inst.timing?.duration || 0;
+  const baseDuration = toDurationMinutes(inst.timing?.duration);
   const scalingType = inst.timing?.scaling || 'fixed'; // Default steps to fixed (baking time doesn't usually double)
   let newDuration = baseDuration;
 
@@ -219,6 +220,21 @@ function calculateInstruction(inst: Instruction, multiplier: number): ComputedIn
     durationMinutes: Math.ceil(newDuration),
     type: inst.timing?.type || 'active'
   };
+}
+
+function toDurationMinutes(duration?: number | string): number {
+  if (typeof duration === 'number' && Number.isFinite(duration)) {
+    return duration;
+  }
+
+  if (typeof duration === 'string' && duration.trim().startsWith('P')) {
+    const parsed = parseDuration(duration.trim());
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+
+  return 0;
 }
 
 // --- Flattening Helpers ---

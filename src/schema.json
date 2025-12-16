@@ -1,23 +1,40 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "http://soustack.org/schema/v0.2",
-  "title": "Soustack Recipe Schema v0.2",
+  "$id": "https://raw.githubusercontent.com/RichardHerold/soustack-spec/v0.2.1/soustack.schema.json",
+  "title": "Soustack Recipe Schema v0.2.1",
   "description": "A portable, scalable, interoperable recipe format.",
   "type": "object",
   "required": ["name", "ingredients", "instructions"],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {}
+  },
   "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri"
+    },
     "id": {
       "type": "string",
       "description": "Unique identifier (slug or UUID)"
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-friendly recipe title"
     },
     "name": {
       "type": "string",
       "description": "The title of the recipe"
     },
+    "recipeVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+(?:\\.\\d+)?$",
+      "description": "Semantic versioning (e.g., 1.0.0)"
+    },
     "version": {
       "type": "string",
-      "pattern": "^\\d+\\.\\d+\\.\\d+$",
-      "description": "Semantic versioning (e.g., 1.0.0)"
+      "pattern": "^\\d+\\.\\d+(?:\\.\\d+)?$",
+      "description": "Deprecated: use recipeVersion"
     },
     "description": {
       "type": "string"
@@ -48,6 +65,10 @@
       ]
     },
     "dateAdded": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "dateModified": {
       "type": "string",
       "format": "date-time"
     },
@@ -96,6 +117,13 @@
     "substitutions": {
       "type": "array",
       "items": { "$ref": "#/definitions/substitution" }
+    },
+    "nutrition": {
+      "$ref": "#/definitions/nutrition"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
     }
   },
   "definitions": {
@@ -184,7 +212,12 @@
         "subsection": { "type": "string" },
         "items": {
           "type": "array",
-          "items": { "$ref": "#/definitions/ingredient" }
+          "items": {
+            "anyOf": [
+              { "type": "string" },
+              { "$ref": "#/definitions/ingredient" }
+            ]
+          }
         }
       }
     },
@@ -228,7 +261,12 @@
           "type": "object",
           "required": ["duration", "type"],
           "properties": {
-            "duration": { "type": "number" },
+            "duration": {
+              "anyOf": [
+                { "type": "number" },
+                { "type": "string", "pattern": "^P" }
+              ]
+            },
             "type": { "type": "string", "enum": ["active", "passive"] },
             "scaling": { "type": "string", "enum": ["linear", "fixed", "sqrt"] }
           }
@@ -317,6 +355,30 @@
             }
           }
         }
+      }
+    },
+    "nutrition": {
+      "type": "object",
+      "properties": {
+        "calories": { "type": "string" },
+        "fatContent": { "type": "string" },
+        "carbohydrateContent": { "type": "string" },
+        "proteinContent": { "type": "string" },
+        "fiberContent": { "type": "string" },
+        "sugarContent": { "type": "string" },
+        "sodiumContent": { "type": "string" },
+        "servingSize": { "type": "string" }
+      },
+      "additionalProperties": {
+        "anyOf": [
+          { "type": "string" },
+          { "type": "number" },
+          { "type": "null" },
+          {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        ]
       }
     }
   }

@@ -1,0 +1,8 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/RichardHerold/soustack-spec/v0.2.1/profiles/quantified.schema.json",
+  "title": "Soustack Quantified Profile v0.2.1",
+  "allOf": [
+    { "$ref": "https://raw.githubusercontent.com/RichardHerold/soustack-spec/v0.2.1/soustack.schema.json" }
+  ]
+}
