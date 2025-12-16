@@ -14,7 +14,7 @@ export type RoundMode = 'none' | 'sane';
 export interface LineItem {
   ingredient: string;
   quantity: number;
-  unit: string;
+  unit: string | null;
 }
 
 export interface ConvertedLineItem extends LineItem {
@@ -72,14 +72,22 @@ export function convertLineItemToMetric(
   const normalizedUnit = normalizeUnitToken(item.unit);
 
   if (!normalizedUnit) {
+    if (!item.unit || item.unit.trim() === '') {
+      return item;
+    }
+
     throw new UnknownUnitError(item.unit);
   }
 
   const definition = UNIT_DEFINITIONS[normalizedUnit];
 
+  if (definition.dimension === 'count') {
+    return item;
+  }
+
   if (mode === 'volume') {
     if (definition.dimension !== 'volume') {
-      throw new UnsupportedConversionError(item.unit, mode);
+      throw new UnsupportedConversionError(item.unit ?? '', mode);
     }
 
     const { quantity, unit } = finalizeMetricVolume(
@@ -109,7 +117,7 @@ export function convertLineItemToMetric(
   }
 
   if (definition.dimension !== 'volume') {
-    throw new UnsupportedConversionError(item.unit, mode);
+    throw new UnsupportedConversionError(item.unit ?? '', mode);
   }
 
   const gramsPerUnit = lookupEquivalency(
@@ -118,7 +126,7 @@ export function convertLineItemToMetric(
   );
 
   if (!gramsPerUnit) {
-    throw new MissingEquivalencyError(item.ingredient, item.unit);
+    throw new MissingEquivalencyError(item.ingredient, item.unit ?? '');
   }
 
   const grams = item.quantity * gramsPerUnit;

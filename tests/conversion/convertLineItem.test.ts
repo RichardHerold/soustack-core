@@ -29,7 +29,7 @@ describe('convertLineItemToMetric', () => {
   it('throws UnknownUnitError for unsupported unit tokens', () => {
     expect(() =>
       convertLineItemToMetric(
-        { ingredient: 'salt', quantity: 1, unit: 'pinch' },
+        { ingredient: 'salt', quantity: 1, unit: 'handful' },
         'volume'
       )
     ).toThrow(UnknownUnitError);
@@ -42,5 +42,22 @@ describe('convertLineItemToMetric', () => {
         'mass'
       )
     ).toThrow(MissingEquivalencyError);
+  });
+
+  it('returns items with null units unchanged', () => {
+    const onion = { ingredient: 'onion', quantity: 1, unit: null };
+
+    expect(convertLineItemToMetric(onion, 'volume')).toEqual(onion);
+    expect(convertLineItemToMetric(onion, 'mass')).toEqual(onion);
+  });
+
+  it('returns count-based units unchanged', () => {
+    const pinch = { ingredient: 'sugar', quantity: 1, unit: 'pinch' };
+    const clove = { ingredient: 'garlic', quantity: 2, unit: 'clove' };
+
+    expect(convertLineItemToMetric(pinch, 'volume')).toEqual(pinch);
+    expect(convertLineItemToMetric(pinch, 'mass')).toEqual(pinch);
+    expect(convertLineItemToMetric(clove, 'volume')).toEqual(clove);
+    expect(convertLineItemToMetric(clove, 'mass')).toEqual(clove);
   });
 });
