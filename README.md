@@ -46,6 +46,50 @@ npm install soustack
   - Browser-safe HTML parsing: `extractSchemaOrgRecipeFromHTML()` (convert to Soustack with `fromSchemaOrg()`)
   - Node-only scraping entrypoint: `scrapeRecipe()` and helpers via `import { ... } from 'soustack/scrape'`
 
+## 🚀 Quickstart
+
+Validate and scale a recipe in just a few lines:
+
+```ts
+import { validateRecipe, scaleRecipe } from 'soustack';
+
+// Validate against the bundled Soustack schema
+const { valid, errors, warnings } = validateRecipe(recipe);
+if (!valid) {
+  throw new Error(JSON.stringify(errors, null, 2));
+}
+if (warnings?.length) {
+  console.warn('Non-blocking warnings', warnings);
+}
+
+// Scale to a new yield (multiplier, target yield, or servings)
+const scaled = scaleRecipe(recipe, { multiplier: 2 });
+```
+
+### Profile-aware validation
+
+Use profiles to enforce integration contracts (e.g., **Block** vs **Integrator** payloads).
+
+```ts
+import { detectProfiles, validateRecipe } from 'soustack';
+
+// Discover which profiles a recipe already satisfies
+const profiles = detectProfiles(recipe); // e.g. ['block']
+
+// Validate while requiring specific profiles
+const result = validateRecipe(recipe, { profiles: ['block', 'integrator'] });
+if (!result.valid) {
+  console.error('Profile validation failed', result.errors);
+}
+```
+
+### Browser-safe vs. Node-only entrypoints
+
+- **Browser-safe:** `import { extractSchemaOrgRecipeFromHTML, fromSchemaOrg, validateRecipe, scaleRecipe } from 'soustack';`
+  - Ships without Node fetch/cheerio dependencies.
+- **Node-only scraping:** `import { scrapeRecipe, extractRecipeFromHTML, extractSchemaOrgRecipeFromHTML } from 'soustack/scrape';`
+  - Includes HTTP fetching, retries, and cheerio-based parsing for server environments.
+
 ## Spec compatibility & bundled schemas
 
 - Targets Soustack spec **v0.2.1** (`spec/SOUSTACK_SPEC_VERSION`, exported as `SOUSTACK_SPEC_VERSION`).
@@ -68,10 +112,10 @@ import {
   extractSchemaOrgRecipeFromHTML as extractSchemaOrgRecipeFromHTMLNode,
 } from 'soustack/scrape';
 
-// Validate a Soustack recipe JSON object
-const { valid, errors, warnings } = validateRecipe(recipe);
-if (!valid) {
-  console.error(errors);
+// Validate a Soustack recipe JSON object with profile enforcement
+const validation = validateRecipe(recipe, { profiles: ['block'] });
+if (!validation.valid) {
+  console.error(validation.errors);
 }
 
 // Scale a recipe to a target yield amount (returns a "computed recipe")
@@ -95,6 +139,28 @@ const soustack = fromSchemaOrg(schemaOrgJsonLd);
 // Convert Soustack → Schema.org
 const jsonLd = toSchemaOrg(recipe);
 
+```
+
+## 🪶 Core-lite (browser) Schema.org conversion
+
+Need to stay browser-only? Import the core bundle (no `fetch`, no cheerio) and perform Schema.org extraction and conversion entirely client-side:
+
+```ts
+import { extractSchemaOrgRecipeFromHTML, fromSchemaOrg, toSchemaOrg } from 'soustack';
+
+async function convert(url: string) {
+  const html = await fetch(url).then((r) => r.text());
+
+  // Pure DOMParser-based extraction (works in modern browsers)
+  const schemaOrg = extractSchemaOrgRecipeFromHTML(html);
+  if (!schemaOrg) throw new Error('No Schema.org recipe found');
+
+  // Convert to Soustack and back to Schema.org JSON-LD if needed
+  const soustackRecipe = fromSchemaOrg(schemaOrg);
+  const jsonLd = toSchemaOrg(soustackRecipe);
+
+  return { soustackRecipe, jsonLd };
+}
 ```
 
 ## 🔁 Schema.org Conversion
@@ -201,14 +267,19 @@ const parsed = extractRecipeFromHTML(html);
 ### CLI
 
 ```bash
-# Validate & Scale (existing commands)
-npx soustack validate recipe.soustack.json
-npx soustack scale recipe.soustack.json 2
+# Validate with profiles (JSON output for pipelines)
+npx soustack validate recipe.soustack.json --profile block --strict --json
 
-# Schema.org ↔ Soustack
-npx soustack import recipe.jsonld -o recipe.soustack.json
-npx soustack export recipe.soustack.json -o recipe.jsonld
-npx soustack scrape "https://example.com/recipe" -o recipe.soustack.json
+# Repo-wide test run (validates every *.soustack.json)
+npx soustack test --profile block
+
+# Convert Schema.org ↔ Soustack
+npx soustack convert --from schemaorg --to soustack recipe.jsonld -o recipe.soustack.json
+npx soustack convert --from soustack --to schemaorg recipe.soustack.json -o recipe.jsonld
+
+# Import (scrape) or scale from the CLI
+npx soustack import --url "https://example.com/recipe" -o recipe.soustack.json
+npx soustack scale recipe.soustack.json 2
 ```
 
 ## 🔄 Keeping the Schema in Sync
