@@ -63,7 +63,7 @@ export function scaleRecipe(recipe: Recipe, targetYieldAmount: number): Computed
   // --- PASS 1 ---
   flatIngredients.forEach(ing => {
     if (isIndependent(ing.scaling?.type)) {
-      const computed = calculateIngredient(ing, multiplier, 0); // Reference unused here
+      const computed = calculateIngredient(ing, multiplier, 0, 0); // Reference unused here
       scaledIngredientsMap.set(ing.id || ing.item, computed);
     }
   });
@@ -73,15 +73,22 @@ export function scaleRecipe(recipe: Recipe, targetYieldAmount: number): Computed
     if (!isIndependent(ing.scaling?.type)) {
       // Find the reference ingredient's NEW weight
       let referenceValue = 0;
-      if (ing.scaling?.type === 'bakers_percentage' && ing.scaling.referenceId) {
-        const refIng = scaledIngredientsMap.get(ing.scaling.referenceId);
-        if (refIng) referenceValue = refIng.amount;
+      let referenceBaseAmount = 0;
+      if (ing.scaling?.type === 'bakers_percentage') {
+        const bakersScaling = ing.scaling as { referenceId: string; factor?: number };
+        if (bakersScaling.referenceId) {
+          const refIng = scaledIngredientsMap.get(bakersScaling.referenceId);
+          if (refIng) referenceValue = refIng.amount;
+          // Also get the original reference ingredient's base amount for ratio calculation
+          const originalRefIng = flatIngredients.find(i => (i.id || i.item) === bakersScaling.referenceId);
+          if (originalRefIng) referenceBaseAmount = originalRefIng.quantity?.amount || 0;
+        }
       } else {
         // Fallback for Proportional: Use generic multiplier if no ref logic defined
         referenceValue = multiplier; 
       }
       
-      const computed = calculateIngredient(ing, multiplier, referenceValue);
+      const computed = calculateIngredient(ing, multiplier, referenceValue, referenceBaseAmount);
       scaledIngredientsMap.set(ing.id || ing.item, computed);
     }
   });
@@ -124,7 +131,8 @@ function isIndependent(type?: string): boolean {
 function calculateIngredient(
   ing: Ingredient, 
   multiplier: number, 
-  referenceValue: number
+  referenceValue: number,
+  referenceBaseAmount: number = 0
 ): ComputedIngredient {
   const baseAmount = ing.quantity?.amount || 0;
   const type = ing.scaling?.type || 'linear';
@@ -148,30 +156,25 @@ function calculateIngredient(
       break;
 
     case 'bakers_percentage':
-      // Formula: NewAmount = ReferenceNewAmount * OriginalRatio
+      // Formula: NewAmount = ReferenceNewAmount * Ratio
       // If explicit factor provided (e.g. 0.02 for 2% salt):
-      // NewAmount = ReferenceNewAmount * Factor
-      
-      // Calculate original ratio if not provided? 
-      // Ideally, factor is implicit: (OldAmount / OldRefAmount). 
-      // But for simplicity here, we assume the relationship holds true to the Ref.
-      
-      // If we used the Reference Value from Pass 1 (e.g., 1000g flour),
-      // We need the *Original* Ratio.
-      // NOTE: In a real app, you calculate the original ratio from the unscaled recipe first.
-      // For this snippet, let's assume 'factor' exists or we derive it.
-      
-      // Simpler approach for v0.1: Re-calculate the ratio dynamically
-      // But we passed in 'referenceValue' (The NEW amount of flour).
-      // We need the OLD amount of flour to get the ratio.
-      // *Simplification*: Just treat it like linear scaling relative to the ref? 
-      // Actually, Baker's % is linear to the flour.
-      // Ratio = BaseAmount / BaseRefAmount (need lookup).
-      // Let's rely on standard scaling: If flour doubled, salt doubles.
-      // Baker's % is mostly useful if you change the RATIO (e.g., "Make 75% hydration dough").
-      // If we are just scaling yield, Baker's % behaves exactly like Linear.
-      
-      newAmount = baseAmount * multiplier; 
+      //   NewAmount = ReferenceNewAmount * Factor
+      // If factor not provided, calculate from original amounts:
+      //   Ratio = BaseAmount / BaseRefAmount
+      //   NewAmount = ReferenceNewAmount * Ratio
+      const scaling = ing.scaling as any;
+      if (scaling.factor !== undefined && scaling.factor !== null) {
+        // Use explicit factor (e.g., 0.02 for 2%)
+        newAmount = referenceValue * scaling.factor;
+      } else if (referenceBaseAmount > 0) {
+        // Calculate ratio from original amounts
+        const ratio = baseAmount / referenceBaseAmount;
+        newAmount = referenceValue * ratio;
+      } else {
+        // Fallback: if we can't determine the ratio, use linear scaling
+        // This shouldn't happen in normal operation
+        newAmount = baseAmount * multiplier;
+      }
       break;
   }
 
