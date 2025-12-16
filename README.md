@@ -45,6 +45,7 @@ npm install soustack
 - **Web Extraction**:
   - Browser-safe HTML parsing: `extractSchemaOrgRecipeFromHTML()` (convert to Soustack with `fromSchemaOrg()`)
   - Node-only scraping entrypoint: `scrapeRecipe()` and helpers via `import { ... } from 'soustack/scrape'`
+- **Unit Conversion**: `convertLineItemToMetric()` converts ingredient line items from imperial volumes/masses into metric with deterministic rounding and ingredient-aware equivalencies.
 
 ## 🚀 Quickstart
 
@@ -82,6 +83,30 @@ if (!result.valid) {
   console.error('Profile validation failed', result.errors);
 }
 ```
+
+### Imperial → metric ingredient conversion
+
+```ts
+import { convertLineItemToMetric } from 'soustack';
+
+const flour = convertLineItemToMetric(
+  { ingredient: 'flour', quantity: 2, unit: 'cup' },
+  'mass'
+);
+// -> { ingredient: 'flour', quantity: 240, unit: 'g', notes: 'Converted using 120g per cup...' }
+
+const liquid = convertLineItemToMetric(
+  { ingredient: 'milk', quantity: 2, unit: 'cup' },
+  'volume'
+);
+// -> { ingredient: 'milk', quantity: 473, unit: 'ml' }
+```
+
+The converter rounds using “sane” defaults (1 g/ml under 1 kg/1 L, then 5 g/10 ml and 2 decimal places for kg/L) and surfaces typed errors:
+
+- `UnknownUnitError` for unsupported unit tokens
+- `UnsupportedConversionError` if you request a mismatched dimension
+- `MissingEquivalencyError` when no volume→mass density is registered for the ingredient/unit combo
 
 ### Browser-safe vs. Node-only entrypoints
 
