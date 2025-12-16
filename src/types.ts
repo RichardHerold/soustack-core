@@ -1,5 +1,5 @@
 /**
- * Soustack Recipe Schema v0.2.1
+ * Soustack Recipe Schema v0.3.0
  * A portable, scalable, interoperable recipe format.
  */
 
@@ -267,15 +267,8 @@ export interface Alternative {
 }
 
 export interface NutritionFacts {
-  calories?: string;
-  fatContent?: string;
-  carbohydrateContent?: string;
-  proteinContent?: string;
-  fiberContent?: string;
-  sugarContent?: string;
-  sodiumContent?: string;
-  servingSize?: string;
-  [key: string]: string | number | null | string[] | undefined;
+  calories?: number;
+  protein_g?: number;
 }
 
 // --- Modules ---
@@ -298,7 +291,7 @@ export interface MediaModule {
 }
 
 export interface TimesModule {
-  prep?: number;
-  cook?: number;
-  total?: number;
+  prepMinutes?: number;
+  cookMinutes?: number;
+  totalMinutes?: number;
 }

@@ -439,9 +439,9 @@ function convertTimes(time?: StructuredTime): TimesModule | undefined {
   if (!time) return undefined;
   const times: TimesModule = {};
 
-  if (typeof time.prep === 'number') times.prep = time.prep;
-  if (typeof time.active === 'number') times.cook = time.active;
-  if (typeof time.total === 'number') times.total = time.total;
+  if (typeof time.prep === 'number') times.prepMinutes = time.prep;
+  if (typeof time.active === 'number') times.cookMinutes = time.active;
+  if (typeof time.total === 'number') times.totalMinutes = time.total;
 
   return Object.keys(times).length ? times : undefined;
 }
