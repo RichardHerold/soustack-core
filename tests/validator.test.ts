@@ -270,17 +270,65 @@ describe('Soustack validation', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it('allows nutrition blocks even when the nutrition module is missing (base schema allows additionalProperties)', () => {
+    it('enforces module declaration when payload exists (module contract)', () => {
       const recipe = {
         ...minimalValid,
-        nutrition: { calories: 100 },
+        nutrition: { calories: 100, protein_g: 5 },
         // modules is missing or doesn't include nutrition@1
       };
       const result = validateRecipe(recipe);
 
-      // Base schema allows additionalProperties, so nutrition field is allowed
-      // Module schema only validates when the module is declared
+      // Module contract: if payload exists, module must be declared
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => 
+        e.message.includes('nutrition') || 
+        e.message.includes('modules') ||
+        e.path.includes('modules')
+      )).toBe(true);
+    });
+
+    it('enforces payload existence when module is declared (module contract)', () => {
+      const recipe = {
+        ...minimalValid,
+        modules: ['nutrition@1'],
+        // nutrition payload is missing
+      };
+      const result = validateRecipe(recipe);
+
+      // Module contract: if module is declared, payload must exist
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => 
+        e.message.includes('nutrition') || 
+        e.path.includes('nutrition')
+      )).toBe(true);
+    });
+
+    it('validates when both module declaration and payload exist', () => {
+      const recipe = {
+        ...minimalValid,
+        modules: ['nutrition@1'],
+        nutrition: { calories: 100, protein_g: 5 },
+      };
+      const result = validateRecipe(recipe);
       expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('infers modules from payload and enforces declaration requirement', () => {
+      const recipe = {
+        ...minimalValid,
+        times: { prepMinutes: 10, cookMinutes: 20, totalMinutes: 30 },
+        // modules doesn't include times@1
+      };
+      const result = validateRecipe(recipe);
+
+      // Should infer times@1 from payload and enforce that it's declared
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => 
+        e.message.includes('times') || 
+        e.message.includes('modules') ||
+        e.path.includes('modules')
+      )).toBe(true);
     });
 
     it('validates with multiple modules', () => {

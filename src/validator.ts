@@ -162,13 +162,57 @@ function resolveSchemaRef(inputSchema: unknown, requestedSchema?: string): strin
   return detectProfileFromSchema(inputSchema) ? inputSchema : undefined;
 }
 
+/**
+ * Infer module identifiers from payload fields in the recipe.
+ * Returns an array of module IDs (e.g., ["times@1", "nutrition@1"]).
+ */
+function inferModulesFromPayload(recipe: any): string[] {
+  const inferred: string[] = [];
+  
+  // Map payload field names to module IDs
+  const payloadToModule: Record<string, string> = {
+    attribution: "attribution@1",
+    taxonomy: "taxonomy@1",
+    media: "media@1",
+    times: "times@1",
+    nutrition: "nutrition@1",
+    schedule: "schedule@1",
+  };
+
+  for (const [field, moduleId] of Object.entries(payloadToModule)) {
+    if (recipe && typeof recipe === "object" && field in recipe && recipe[field] != null) {
+      // Check if the payload is a non-empty object/array
+      const payload = recipe[field];
+      if (typeof payload === "object" && !Array.isArray(payload)) {
+        // For objects, check if it has any properties
+        if (Object.keys(payload).length > 0) {
+          inferred.push(moduleId);
+        }
+      } else if (Array.isArray(payload) && payload.length > 0) {
+        inferred.push(moduleId);
+      } else if (payload !== null && payload !== undefined) {
+        // For primitive values, consider it present
+        inferred.push(moduleId);
+      }
+    }
+  }
+
+  return inferred;
+}
+
 function getCombinedValidator(
   profile: ProfileName,
   modules: string[],
+  recipe: any,
   context: ValidationContext,
 ): ValidateFunction {
-  // Sort modules for consistent caching
-  const sortedModules = [...modules].sort();
+  // Infer modules from payloads
+  const inferredModules = inferModulesFromPayload(recipe);
+  
+  // Union of declared and inferred modules
+  const allModules = new Set([...modules, ...inferredModules]);
+  const sortedModules = Array.from(allModules).sort();
+  
   const cacheKey = `${profile}::${sortedModules.join(",")}`;
   const cached = context.validators.get(cacheKey);
   if (cached) return cached;
@@ -178,6 +222,7 @@ function getCombinedValidator(
   }
 
   // Composed validation: allOf: [base, profile overlay, ...module overlays]
+  // Include schemas for both declared AND inferred modules to enforce contract
   const schema = {
     $id: `urn:soustack:recipe:${cacheKey}`,
     allOf: [
@@ -299,7 +344,7 @@ function runAjvValidation(
   context: ValidationContext,
 ): NormalizedError[] {
   try {
-    const validateFn = getCombinedValidator(profile, modules, context);
+    const validateFn = getCombinedValidator(profile, modules, data, context);
     const isValid = validateFn(data);
     return !isValid && validateFn.errors ? validateFn.errors.map(formatAjvError) : [];
   } catch (error) {
@@ -420,11 +465,15 @@ export function validateRecipe(input: any, options: ValidateOptions = {}): Valid
 
   const { normalized, warnings } = normalizeRecipe(input as Recipe);
 
+  // Ensure profile is set in normalized recipe (required by profile schemas)
+  if (!profileFromDocument) {
+    (normalized as any).profile = profile;
+  } else {
+    (normalized as any).profile = profileFromDocument;
+  }
+  
   if (modulesFromDocument.length > 0) {
     (normalized as any).modules = modules;
-  }
-  if (profileFromDocument) {
-    (normalized as any).profile = profileFromDocument;
   }
 
   const unknownKeyErrors = detectUnknownTopLevelKeys(normalized);
