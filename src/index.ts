@@ -7,3 +7,4 @@ export { scrapeRecipe, extractRecipeFromHTML, extractSchemaOrgRecipeFromHTML } f
 export type { SchemaOrgRecipe } from './scraper/types';
 export * from './parsers';
 export { normalizeImage } from './utils/image';
+export { SOUSTACK_SPEC_VERSION } from './specVersion';
