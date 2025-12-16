@@ -46,6 +46,14 @@ describe('Soustack validation', () => {
     expect(result.errors).toHaveLength(0);
   });
 
+  it('ignores non-Soustack $schema hints for profile detection', () => {
+    const recipe: Recipe = { ...baseValid, $schema: 'http://json-schema.org/draft-07/schema#' };
+
+    const result = validateRecipe(recipe);
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
   it('accepts an explicit profile selection', () => {
     const result = validateRecipe(baseValid, { profile: 'base' });
     expect(result.valid).toBe(true);
