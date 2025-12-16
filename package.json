@@ -10,6 +10,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./scrape": {
+      "types": "./dist/scrape.d.ts",
+      "import": "./dist/scrape.mjs",
+      "require": "./dist/scrape.js"
     }
   },
   "scripts": {
