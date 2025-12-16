@@ -1,0 +1,64 @@
+name: Sync Soustack Spec
+
+on:
+  workflow_dispatch:
+    inputs:
+      spec_ref:
+        description: Soustack spec tag, branch, or commit SHA to sync
+        required: false
+        default: ""
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync soustack spec
+        run: npm run sync:spec
+        env:
+          SOUSTACK_SPEC_TAG: ${{ inputs.spec_ref }}
+
+      - name: Verify sync metadata
+        run: npm run verify:sync
+
+      - name: Verify schemas
+        run: npm run verify:schema
+
+      - name: Collect sync details
+        id: sync-details
+        run: |
+          VERSION=$(tr -d '\n' < spec/SOUSTACK_SPEC_VERSION)
+          REF=$(jq -r '.ref' spec/.sync-meta.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: chore/spec-sync-${{ steps.sync-details.outputs.version }}
+          delete-branch: true
+          commit-message: chore: sync soustack spec ${{ steps.sync-details.outputs.version }}
+          title: chore: sync soustack spec ${{ steps.sync-details.outputs.version }}
+          body: |
+            ## Summary
+            - sync soustack-spec ref `${{ steps.sync-details.outputs.ref }}`
+            - regenerate spec artifacts, `.sync-meta.json`, and mirrored src copies
+
+            ## Verification
+            - npm run verify:sync
+            - npm run verify:schema

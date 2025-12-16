@@ -1,8 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import crypto from 'node:crypto';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { SPEC_REPO, REQUIRED_SPEC_FILES } from './schema-artifacts.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,8 +12,8 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 const SPEC_DIR = path.join(ROOT_DIR, 'spec');
 const PACKAGE_JSON_PATH = path.join(ROOT_DIR, 'package.json');
 
-const SPEC_REPO = 'https://github.com/RichardHerold/soustack-spec.git';
 const LOCAL_SPEC_PATH = process.env.SOUSTACK_SPEC_PATH;
+const SYNC_META_PATH = path.join(SPEC_DIR, '.sync-meta.json');
 
 function readPackageJson() {
   if (!fs.existsSync(PACKAGE_JSON_PATH)) {
@@ -37,25 +39,33 @@ function determineSpecTag(pkg) {
   return resolvedTag;
 }
 
-function cloneSpecRepository(tag) {
+function cloneSpecRepository(ref) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'soustack-spec-'));
+  const isCommitSha = /^[0-9a-f]{7,40}$/i.test(ref);
+
   try {
-    execSync(`git clone --depth 1 --branch ${tag} ${SPEC_REPO} ${tempDir}`, { stdio: 'inherit' });
-  } catch (error) {
-    // If the specified tag/branch doesn't exist, try falling back to 'main'
-    if (tag !== 'main') {
-      console.warn(`Warning: Branch/tag '${tag}' not found, falling back to 'main'`);
-      try {
-        execSync(`git clone --depth 1 --branch main ${SPEC_REPO} ${tempDir}`, { stdio: 'inherit' });
-      } catch (fallbackError) {
-        throw new Error(`Failed to clone soustack-spec@${tag} and fallback to main: ${fallbackError.message}`);
-      }
+    if (isCommitSha) {
+      execSync(`git init ${tempDir}`, { stdio: 'inherit' });
+      execSync(`git -C ${tempDir} remote add origin ${SPEC_REPO}`, { stdio: 'inherit' });
+      execSync(`git -C ${tempDir} fetch --depth 1 origin ${ref}`, { stdio: 'inherit' });
+      execSync(`git -C ${tempDir} checkout --detach FETCH_HEAD`, { stdio: 'inherit' });
     } else {
-      throw new Error(`Failed to clone soustack-spec@${tag}: ${error.message}`);
+      execSync(`git clone --depth 1 --branch ${ref} ${SPEC_REPO} ${tempDir}`, { stdio: 'inherit' });
     }
+  } catch (error) {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    throw new Error(`Failed to clone soustack-spec@${ref}: ${error.message}`);
   }
 
   return tempDir;
+}
+
+function getSourceCommit(sourceDir) {
+  try {
+    return execSync(`git -C ${sourceDir} rev-parse HEAD`, { stdio: 'pipe' }).toString().trim();
+  } catch {
+    return null;
+  }
 }
 
 function writeSpecVersion(version) {
@@ -111,11 +121,51 @@ function copySchemaIntoSrc() {
     fs.copyFileSync(schemaSource, target);
   });
 
-    const profilesSource = path.join(SPEC_DIR, 'profiles');
+  const profilesSource = path.join(SPEC_DIR, 'profiles');
   if (fs.existsSync(profilesSource)) {
     fs.rmSync(path.join(srcDir, 'profiles'), { recursive: true, force: true });
     fs.cpSync(profilesSource, path.join(srcDir, 'profiles'), { recursive: true });
   }
+}
+
+function ensureSpecFilesExist(files) {
+  files.forEach((relativePath) => {
+    const absolutePath = path.join(SPEC_DIR, relativePath);
+    if (!fs.existsSync(absolutePath)) {
+      throw new Error(
+        `Expected synced artifact missing: ${relativePath}. Check soustack-spec contents and rerun sync.`
+      );
+    }
+  });
+}
+
+function createSha256(filePath) {
+  const buffer = fs.readFileSync(filePath);
+  return crypto.createHash('sha256').update(buffer).digest('hex');
+}
+
+function writeSyncMetadata({ repo, ref, version, commit, files }) {
+  ensureSpecFilesExist(files);
+  const checksums = files.reduce((acc, relativePath) => {
+    const absolutePath = path.join(SPEC_DIR, relativePath);
+    acc[relativePath] = createSha256(absolutePath);
+    return acc;
+  }, {});
+
+  const payload = {
+    sourceRepo: repo,
+    ref,
+    specVersion: version,
+    syncedAt: new Date().toISOString(),
+    files,
+    checksums,
+  };
+
+  if (commit) {
+    payload.commit = commit;
+  }
+
+  fs.writeFileSync(SYNC_META_PATH, `${JSON.stringify(payload, null, 2)}\n`);
 }
 
 function readSpecVersion(specDir) {
@@ -157,14 +207,22 @@ async function main() {
     throw new Error(`Local spec path does not exist: ${sourceDir}`);
   }
 
-    const tempDir = sourceDir;
-    try {
-      const version = readSpecVersion(tempDir);
-      copyIntoSpecDirectory(tempDir);
+  const tempDir = sourceDir;
+  const sourceCommit = getSourceCommit(tempDir);
+  try {
+    const version = readSpecVersion(tempDir);
+    copyIntoSpecDirectory(tempDir);
     writeSpecVersion(version);
     updateSpecVersionModule(version);
     copySchemaIntoSrc();
     updatePackageJson(pkg, version, tag);
+    writeSyncMetadata({
+      repo: SPEC_REPO,
+      ref: tag,
+      version,
+      commit: sourceCommit,
+      files: REQUIRED_SPEC_FILES,
+    });
 
     console.log(`Soustack spec synced successfully (version ${version}).`);
   } finally {
