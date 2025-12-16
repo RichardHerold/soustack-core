@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/RichardHerold/soustack-spec/v0.2.1/profiles/base.schema.json",
+  "name": "CLI Valid Recipe",
+  "description": "A simple recipe fixture for CLI validation tests.",
+  "ingredients": [
+    { "item": "Flour", "quantity": { "amount": 2, "unit": "cup" } },
+    { "item": "Water", "quantity": { "amount": 1, "unit": "cup" } }
+  ],
+  "instructions": [
+    { "text": "Mix the ingredients." }
+  ]
+}
