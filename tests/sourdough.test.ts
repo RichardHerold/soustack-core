@@ -40,6 +40,41 @@ describe('Soustack Logic Engine', () => {
     expect(salt?.amount).toBe(20);
   });
 
+  test('scales bakers percentage without factor (calculates ratio)', () => {
+    // Test case where factor is not provided - should calculate from original amounts
+    const recipeWithRatio: Recipe = {
+      name: "Test Recipe",
+      yield: { amount: 1, unit: "loaf" },
+      ingredients: [
+        {
+          id: "flour",
+          item: "500g Bread Flour",
+          quantity: { amount: 500, unit: "g" },
+          scaling: { type: "linear" }
+        },
+        {
+          id: "water",
+          item: "375g Water (75% hydration)",
+          quantity: { amount: 375, unit: "g" },
+          scaling: { type: "bakers_percentage", referenceId: "flour" }
+          // No factor provided - should calculate ratio: 375/500 = 0.75
+        }
+      ],
+      instructions: []
+    };
+
+    // Scale 1 loaf -> 2 loaves (multiplier = 2)
+    const result = scaleRecipe(recipeWithRatio, 2);
+    
+    const flour = result.ingredients.find(i => i.id === 'flour');
+    const water = result.ingredients.find(i => i.id === 'water');
+    
+    expect(flour?.amount).toBe(1000); // 500 * 2
+    // Water should be 1000 * (375/500) = 1000 * 0.75 = 750g
+    // This maintains the 75% hydration ratio
+    expect(water?.amount).toBe(750);
+  });
+
   test('handles ISO8601 timing strings during scaling', () => {
     const isoRecipe: Recipe = {
       name: 'ISO Timing',
