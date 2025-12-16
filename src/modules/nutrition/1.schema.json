@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://soustack.org/schemas/recipe/modules/nutrition/1.schema.json",
+  "title": "Soustack Nutrition Module v1",
+  "description": "Adds support for optional nutrition facts when the module is declared.",
+  "type": "object",
+  "properties": {
+    "nutrition": {
+      "type": "object",
+      "properties": {
+        "calories": { "type": ["number", "string"] },
+        "fatContent": { "type": ["number", "string"] },
+        "carbohydrateContent": { "type": ["number", "string"] },
+        "proteinContent": { "type": ["number", "string"] }
+      },
+      "additionalProperties": true
+    }
+  }
+}

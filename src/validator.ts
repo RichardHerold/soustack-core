@@ -1,22 +1,39 @@
 import Ajv, { ErrorObject, ValidateFunction } from "ajv";
 import addFormats from "ajv-formats";
 import baseSchema from "./schema.json";
-import soustackSchema from "./soustack.schema.json";
+import coreProfileSchema from "./profiles/core.schema.json";
 import baseProfileSchema from "./profiles/base.schema.json";
 import cookableProfileSchema from "./profiles/cookable.schema.json";
 import quantifiedProfileSchema from "./profiles/quantified.schema.json";
 import illustratedProfileSchema from "./profiles/illustrated.schema.json";
 import schedulableProfileSchema from "./profiles/schedulable.schema.json";
+import scheduleModuleV1 from "./modules/schedule/1.schema.json";
+import nutritionModuleV1 from "./modules/nutrition/1.schema.json";
 import { Recipe } from "./types";
 import { parseDuration } from "./parsers/duration";
 
 type ProfileName =
+  | "core"
   | "base"
   | "cookable"
   | "scalable"
   | "quantified"
   | "illustrated"
   | "schedulable";
+
+const CANONICAL_BASE_SCHEMA_ID =
+  "https://soustack.org/schemas/recipe/base.schema.json";
+const canonicalProfileId = (profile: string) =>
+  `https://soustack.org/schemas/recipe/profiles/${profile}.schema.json`;
+const moduleIdToSchemaRef = (moduleId: string): string => {
+  const match = moduleId.match(/^([a-z0-9_-]+)@(\d+(?:\.\d+)*)$/i);
+  if (!match) {
+    throw new Error(`Invalid module identifier '${moduleId}'. Expected <name>@<version>.`);
+  }
+
+  const [, name, version] = match;
+  return `https://soustack.org/schemas/recipe/modules/${name}/${version}.schema.json`;
+};
 
 export interface NormalizedError {
   path: string;
@@ -44,10 +61,15 @@ export interface ValidationResult {
 
 interface ValidationContext {
   ajv: Ajv;
-  validators: Partial<Record<ProfileName, ValidateFunction>>;
+  validators: Map<string, ValidateFunction>;
 }
 
-const profileSchemas: Partial<Record<ProfileName, any>> = {
+function deepClone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value));
+}
+
+const profileSchemas: Record<ProfileName, any> = {
+  core: coreProfileSchema,
   base: baseProfileSchema,
   cookable: cookableProfileSchema,
   scalable: baseProfileSchema,
@@ -56,26 +78,73 @@ const profileSchemas: Partial<Record<ProfileName, any>> = {
   schedulable: schedulableProfileSchema,
 };
 
+const moduleSchemas: Record<string, any> = {
+  "schedule@1": scheduleModuleV1,
+  "nutrition@1": nutritionModuleV1,
+};
+
+function createBaseSchemaWithModules(): any {
+  const cloned = deepClone(baseSchema as any);
+  cloned.properties = {
+    ...(cloned.properties ?? {}),
+    profile: { type: "string" },
+    modules: {
+      type: "array",
+      items: { type: "string" },
+      uniqueItems: true,
+      default: [],
+    },
+    nutrition: {
+      type: "object",
+      additionalProperties: true,
+    },
+  };
+
+  const nutritionGuard = {
+    if: { required: ["nutrition"] },
+    then: {
+      required: ["modules"],
+      properties: {
+        modules: {
+          type: "array",
+          contains: { const: "nutrition@1" },
+        },
+      },
+    },
+  };
+
+  cloned.allOf = [...(cloned.allOf ?? []), nutritionGuard];
+  return cloned;
+}
+
+const baseSchemaWithModules = createBaseSchemaWithModules();
+
 const validationContexts: Map<boolean, ValidationContext> = new Map();
 
 function createContext(collectAllErrors: boolean): ValidationContext {
   const ajv = new Ajv({ strict: false, allErrors: collectAllErrors });
   addFormats(ajv);
 
-  const loadedIds = new Set<string>();
-  const addSchemaIfNew = (schema: any) => {
+  const addSchemaWithAlias = (schema: any, alias?: string) => {
     if (!schema) return;
-    const schemaId = (schema as any)?.$id;
-    if (schemaId && loadedIds.has(schemaId)) return;
-    ajv.addSchema(schema);
-    if (schemaId) loadedIds.add(schemaId);
+    if (alias) {
+      ajv.addSchema(schema, alias);
+    } else {
+      ajv.addSchema(schema);
+    }
   };
 
-  addSchemaIfNew(baseSchema);
-  addSchemaIfNew(soustackSchema);
-  Object.values(profileSchemas).forEach(addSchemaIfNew);
+  addSchemaWithAlias(baseSchemaWithModules, CANONICAL_BASE_SCHEMA_ID);
 
-  return { ajv, validators: {} };
+  Object.entries(profileSchemas).forEach(([name, schema]) => {
+    addSchemaWithAlias(schema, canonicalProfileId(name));
+  });
+
+  Object.entries(moduleSchemas).forEach(([moduleId, schema]) => {
+    addSchemaWithAlias(schema, moduleIdToSchemaRef(moduleId));
+  });
+
+  return { ajv, validators: new Map() };
 }
 
 function getContext(collectAllErrors: boolean): ValidationContext {
@@ -102,15 +171,31 @@ function detectProfileFromSchema(schemaRef?: string): ProfileName | undefined {
   return undefined;
 }
 
-function getValidator(profile: ProfileName, context: ValidationContext): ValidateFunction {
+function getCombinedValidator(
+  profile: ProfileName,
+  modules: string[],
+  context: ValidationContext,
+): ValidateFunction {
+  const cacheKey = `${profile}::${modules.join(",")}`;
+  const cached = context.validators.get(cacheKey);
+  if (cached) return cached;
+
   if (!profileSchemas[profile]) {
     throw new Error(`Unknown Soustack profile: ${profile}`);
   }
 
-  if (!context.validators[profile]) {
-    context.validators[profile] = context.ajv.compile(profileSchemas[profile]!);
-  }
-  return context.validators[profile]!;
+  const schema = {
+    $id: `urn:soustack:recipe:${cacheKey || "base"}`,
+    allOf: [
+      { $ref: CANONICAL_BASE_SCHEMA_ID },
+      { $ref: canonicalProfileId(profile) },
+      ...modules.map((moduleId) => ({ $ref: moduleIdToSchemaRef(moduleId) })),
+    ],
+  };
+
+  const validateFn = context.ajv.compile(schema);
+  context.validators.set(cacheKey, validateFn);
+  return validateFn;
 }
 
 function normalizeRecipe(recipe: Recipe): { normalized: Recipe; warnings: NormalizedWarning[] } {
@@ -156,8 +241,7 @@ function normalizeTime(recipe: Recipe): void {
 }
 
 const allowedTopLevelProps = new Set<string>([
-  ...Object.keys((soustackSchema as any)?.properties ?? {}),
-  "metadata",
+  ...Object.keys((baseSchemaWithModules as any)?.properties ?? {}),
   "$schema",
 ]);
 
@@ -191,14 +275,21 @@ function formatAjvError(error: ErrorObject): NormalizedError {
 function runAjvValidation(
   data: any,
   profile: ProfileName,
+  modules: string[],
   context: ValidationContext,
-  schemaRef?: string,
 ): NormalizedError[] {
-  const validator = schemaRef ? context.ajv.getSchema(schemaRef) : undefined;
-  const validateFn = (validator as ValidateFunction | undefined) ?? getValidator(profile, context);
-
-  const isValid = validateFn(data);
-  return !isValid && validateFn.errors ? validateFn.errors.map(formatAjvError) : [];
+  try {
+    const validateFn = getCombinedValidator(profile, modules, context);
+    const isValid = validateFn(data);
+    return !isValid && validateFn.errors ? validateFn.errors.map(formatAjvError) : [];
+  } catch (error) {
+    return [
+      {
+        path: "/",
+        message: error instanceof Error ? error.message : "Validation failed to initialize",
+      },
+    ];
+  }
 }
 
 function isInstruction(item: any): item is { id?: string; dependsOn?: string[] } {
@@ -298,15 +389,29 @@ export function validateRecipe(input: any, options: ValidateOptions = {}): Valid
   const collectAllErrors = options.collectAllErrors ?? true;
   const context = getContext(collectAllErrors);
   const schemaRef = options.schema ?? (typeof input?.$schema === "string" ? input.$schema : undefined);
+  const profileFromDocument = typeof input?.profile === "string" ? (input.profile as ProfileName) : undefined;
   const profile: ProfileName =
-    options.profile ?? detectProfileFromSchema(schemaRef) ?? "base";
+    options.profile ?? profileFromDocument ?? detectProfileFromSchema(schemaRef) ?? "core";
+  const modulesFromDocument = Array.isArray(input?.modules)
+    ? (input.modules as string[]).filter((value) => typeof value === "string")
+    : [];
+  const modules = [...modulesFromDocument].sort();
 
   const { normalized, warnings } = normalizeRecipe(input as Recipe);
 
+  if (modulesFromDocument.length > 0) {
+    (normalized as any).modules = modules;
+  }
+  if (profileFromDocument) {
+    (normalized as any).profile = profileFromDocument;
+  }
+
   const unknownKeyErrors = detectUnknownTopLevelKeys(normalized);
-  const validationErrors = runAjvValidation(normalized, profile, context, schemaRef);
+  const validationErrors = runAjvValidation(normalized, profile, modules, context);
   const graphErrors =
-    profile === "schedulable" && validationErrors.length === 0 ? checkInstructionGraph(normalized) : [];
+    (profile === "schedulable" || modules.includes("schedule@1")) && validationErrors.length === 0
+      ? checkInstructionGraph(normalized)
+      : [];
   const errors = [...unknownKeyErrors, ...validationErrors, ...graphErrors];
 
   return {
@@ -322,17 +427,17 @@ export function validateRecipeWithProfile(data: any, profile: ProfileName): data
 }
 
 export function detectProfiles(recipe: any): ProfileName[] {
-  const result = validateRecipe(recipe, { profile: "base", collectAllErrors: false });
+  const result = validateRecipe(recipe, { profile: "core", collectAllErrors: false });
   if (!result.valid) return [];
 
   const normalizedRecipe = result.normalized ?? recipe;
-  const profiles: ProfileName[] = ["base"];
+  const profiles: ProfileName[] = ["core"];
   const context = getContext(false);
 
   (Object.keys(profileSchemas) as ProfileName[]).forEach((profile) => {
-    if (profile === "base") return;
+    if (profile === "core") return;
     if (!profileSchemas[profile]) return;
-    const errors = runAjvValidation(normalizedRecipe, profile, context);
+    const errors = runAjvValidation(normalizedRecipe, profile, [], context);
     if (errors.length === 0) {
       profiles.push(profile);
     }

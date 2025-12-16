@@ -1,0 +1,9 @@
+{
+  "profile": "core",
+  "modules": ["schedule@1"],
+  "name": "Simple Salad",
+  "ingredients": ["Lettuce"],
+  "instructions": [
+    "Toss everything together"
+  ]
+}

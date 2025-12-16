@@ -6,6 +6,10 @@
 export interface SoustackRecipe {
   /** Optional $schema pointer for profile-aware validation */
   $schema?: string;
+  /** Optional declared validation profile */
+  profile?: string;
+  /** Enabled module identifiers (e.g., "nutrition@1") */
+  modules?: string[];
   /** Unique identifier (slug or UUID) */
   id?: string;
   /** Optional display title */
