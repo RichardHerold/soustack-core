@@ -15,3 +15,5 @@ jobs:
       - run: npm ci
       - run: npm run validate:version
       - run: npm test
+      - run: npm run verify:sync
+      - run: npm run verify:schema

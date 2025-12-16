@@ -20,9 +20,11 @@
   "scripts": {
     "build": "tsup",
     "prepack": "npm run build",
-    "prepublishOnly": "npm run sync:spec && npm run build && npm test",
+    "prepublishOnly": "npm run sync:spec && npm run verify:sync && npm run verify:schema && npm run build && npm test",
     "test": "jest",
     "sync:spec": "node scripts/sync-spec.mjs",
+    "verify:schema": "node scripts/verify-synced-schema.mjs",
+    "verify:sync": "node scripts/verify-sync-meta.mjs",
     "validate:version": "node scripts/check-version-drift.mjs",
     "prepare": "husky"
   },

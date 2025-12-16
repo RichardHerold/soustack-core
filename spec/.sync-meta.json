@@ -1,0 +1,27 @@
+{
+  "sourceRepo": "https://github.com/RichardHerold/soustack-spec.git",
+  "ref": "v0.2.1",
+  "specVersion": "0.2.1",
+  "syncedAt": "2025-12-16T16:27:04.734Z",
+  "files": [
+    "soustack.schema.json",
+    "SOUSTACK_SPEC_VERSION",
+    "profiles/base.schema.json",
+    "profiles/cookable.schema.json",
+    "profiles/illustrated.schema.json",
+    "profiles/quantified.schema.json",
+    "profiles/scalable.schema.json",
+    "profiles/schedulable.schema.json"
+  ],
+  "checksums": {
+    "soustack.schema.json": "05f1d484d8d0dd11b674c629e0c99b2a5d612d181f6598bd4a189d84f6e988b6",
+    "SOUSTACK_SPEC_VERSION": "71015c979ccb0fc8a0be7ca0ae83046ab045cdc2c8faa09fb2f0f7e440f9b4a6",
+    "profiles/base.schema.json": "7cac2c5c9f445b2a09f8e605a7129f234065f47c6e07da5c941ab9441d81f220",
+    "profiles/cookable.schema.json": "d592fcaa609ab6456f3aaf4ae478de5ded4319f2cbe6043b03fc302ce186a3a9",
+    "profiles/illustrated.schema.json": "141530705f5d49aabd1a3e25ebdebf99b8f1e824301123a5a965ec957914c6ea",
+    "profiles/quantified.schema.json": "c06e24144cc655cf10cae6d1886d79138d6d715a5b18117b6bc5697987c9a131",
+    "profiles/scalable.schema.json": "fa681f4d7ad417d072131635fc4cb1292e4eb8b0e4220f96e8ae4aa65c14e22f",
+    "profiles/schedulable.schema.json": "7442152454c562861fe006497d54b3d68665cda0e4d790586e022c30472566c3"
+  },
+  "commit": "91ee1fe711cdc734cb06a96180c4e5a7f38a3c40"
+}
