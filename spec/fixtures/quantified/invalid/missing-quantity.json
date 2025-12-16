@@ -1,0 +1,10 @@
+{
+  "name": "No Quantity",
+  "ingredients": [
+    {
+      "item": "flour",
+      "quantity": "a handful"
+    }
+  ],
+  "instructions": ["Stir together"]
+}

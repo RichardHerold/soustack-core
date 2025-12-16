@@ -59,9 +59,9 @@ npm install soustack
 
 ## Spec compatibility & bundled schemas
 
-- Targets Soustack spec **v0.2.1** (`package.json#soustackSpecVersion`).
-- Ships the base schema plus profile schemas: `src/schema.json`, `src/soustack.schema.json`, and `src/profiles/*.schema.json`.
-- All schema artifacts are included in the published package to enable offline validation.
+- Targets Soustack spec **v0.2.1** (`spec/SOUSTACK_SPEC_VERSION`, exported as `SOUSTACK_SPEC_VERSION`).
+- Ships the base schema plus profile schemas in `spec/` and mirrors them into `src/` for consumers.
+- Vendored fixtures live in `spec/fixtures` so tests can run offline, and version drift can be checked via `npm run validate:version`.
 
 ## Programmatic Usage
 

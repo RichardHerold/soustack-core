@@ -1,10 +1,9 @@
 import schema from '../src/schema.json';
-import pkg from '../package.json';
+import { SOUSTACK_SPEC_VERSION } from '../src/specVersion';
 
 describe('Soustack schema version', () => {
   it('matches the declared supported spec version', () => {
-    const supportedVersion = pkg.soustackSpecVersion;
-    expect(typeof supportedVersion).toBe('string');
+    const supportedVersion = SOUSTACK_SPEC_VERSION;
     const schemaId = (schema as any).$id as string | undefined;
     expect(schemaId).toBeDefined();
 

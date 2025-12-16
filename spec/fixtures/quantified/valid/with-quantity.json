@@ -1,0 +1,10 @@
+{
+  "name": "Measured Rice",
+  "ingredients": [
+    {
+      "item": "rice",
+      "quantity": {"amount": 1, "unit": "cup"}
+    }
+  ],
+  "instructions": ["Cook the rice"]
+}
