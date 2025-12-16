@@ -89,10 +89,15 @@ if (!result.valid) {
 const recipeWithModules = {
   profile: 'minimal',
   modules: ['nutrition@1', 'times@1'],
-  // ... recipe data
+  name: 'Test Recipe',
+  ingredients: ['1 cup flour'],
+  instructions: ['Mix'],
+  nutrition: { calories: 100, protein_g: 5 }, // Module payload required if declared
+  times: { prepMinutes: 10, cookMinutes: 20, totalMinutes: 30 }, // v0.3: uses *Minutes fields
 };
 const result2 = validateRecipe(recipeWithModules);
 // Validates using: base + minimal profile + nutrition@1 module + times@1 module
+// Module contract: if module is declared, payload must exist (and vice versa)
 ```
 
 ### Imperial → metric ingredient conversion
@@ -156,6 +161,11 @@ The validator:
 - If `profile` is missing, it defaults to `"core"`
 - If `modules` is missing, it defaults to `[]`
 
+**Module Contract:** Modules enforce a symmetric contract:
+- If a module is declared in `modules`, the corresponding payload must exist
+- If a payload exists (e.g., `nutrition`, `times`), the module must be declared
+- The validator automatically infers modules from payloads and enforces this contract
+
 **Caching:** Validators are cached by `${profile}::${sortedModules.join(",")}` for performance.
 
 ### Module Resolution
@@ -168,6 +178,14 @@ The module registry (`schemas/registry/modules.json`) defines which modules are 
 - `schemaOrgMappable`: Whether the module can be converted to Schema.org format
 - `minProfile`: Minimum profile required to use the module
 - `allowedOnMinimal`: Whether the module can be used with the minimal profile
+
+**Available Modules (v0.3.0):**
+- `attribution@1`: Source attribution (url, author, datePublished)
+- `taxonomy@1`: Classification (keywords, category, cuisine)
+- `media@1`: Images and videos (images, videos arrays)
+- `times@1`: Timing information (prepMinutes, cookMinutes, totalMinutes)
+- `nutrition@1`: Nutritional data (calories, protein_g as numbers)
+- `schedule@1`: Task scheduling (requires core profile, includes instruction dependencies)
 
 ## Programmatic Usage
 
@@ -186,7 +204,7 @@ import {
 } from 'soustack/scrape';
 
 // Validate a Soustack recipe JSON object with profile enforcement
-const validation = validateRecipe(recipe, { profiles: ['block'] });
+const validation = validateRecipe(recipe, { profile: 'core' });
 if (!validation.valid) {
   console.error(validation.errors);
 }
