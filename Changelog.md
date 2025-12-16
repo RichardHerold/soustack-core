@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-12-15
+
+### Added
+
+- Synced Soustack spec **v0.2.1** artifacts (base schema plus profile schemas).
+
+### Changed
+
+- Implemented **proportional** scaling mode alongside existing scaling behaviors.
+- Updated documentation to reflect the current spec repository link, scaling modes, and bundled schema outputs.
+
+### Fixed
+
+- Corrected Baker's Percentage scaling to scale relative to the `referenceId` ratio/factor.
+
 ## [0.2.0] - 2025-12-15
 
 ### Added
