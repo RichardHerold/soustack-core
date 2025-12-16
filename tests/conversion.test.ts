@@ -2,6 +2,7 @@ import { parseIngredientLine } from '../src/converters/ingredient';
 import { fromSchemaOrg } from '../src/fromSchemaOrg';
 import { toSchemaOrg } from '../src/toSchemaOrg';
 import { Recipe } from '../src/types';
+import { validateRecipe } from '../src/validator';
 
 describe('ingredient parser', () => {
   it('parses common measurement formats', () => {
@@ -93,15 +94,26 @@ describe('Schema.org <-> Soustack', () => {
     expect(recipe.name).toBe('Perfect Chocolate Chip Cookies');
     expect(recipe.yield).toMatchObject({ amount: 24, unit: 'cookies' });
     expect(recipe.time).toMatchObject({ prep: 20, active: 12, total: 32 });
-    expect(recipe.ingredients[0]).toMatchObject({
-      name: 'all-purpose flour',
-      quantity: { amount: 2.25, unit: 'cup' }
-    });
+    expect(recipe.ingredients[0]).toBe('2 1/4 cups all-purpose flour, sifted');
     expect(recipe.instructions).toHaveLength(2);
     expect(recipe.category).toBe('Dessert');
     expect(recipe.tags).toEqual(expect.arrayContaining(['American', 'cookies', 'chocolate']));
     expect(recipe.source).toMatchObject({ author: 'Jane Baker', name: 'Test Kitchen' });
     expect(recipe.nutrition).toMatchObject({ calories: '250 cal' });
+  });
+
+  it('round-trips Schema.org through Base validation', () => {
+    const soustack = fromSchemaOrg(schemaOrgFixture);
+    expect(soustack).not.toBeNull();
+
+    const validation = validateRecipe(soustack, { profile: 'base' });
+    expect(validation.valid).toBe(true);
+
+    const schema = toSchemaOrg(validation.normalized!);
+    expect(schema['@type']).toBe('Recipe');
+    expect(schema.recipeIngredient).toEqual(
+      expect.arrayContaining(['2 1/4 cups all-purpose flour, sifted'])
+    );
   });
 
   it('exports Soustack recipes to Schema.org JSON-LD', () => {

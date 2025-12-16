@@ -4,9 +4,9 @@ import {
   InstructionItem,
   Recipe,
   Source,
+  StepTiming,
   StructuredTime
 } from './types';
-import { parseIngredientLine } from './converters/ingredient';
 import { parseYield } from './converters/yield';
 import { smartParseDuration } from './parsers/duration';
 import {
@@ -92,9 +92,6 @@ function extractRecipeNode(input: unknown): SchemaOrgRecipe | null {
 function hasRecipeType(value: SchemaOrgRecipe['@type']): boolean {
   if (!value) return false;
   const types = Array.isArray(value) ? value : [value];
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/7225c3b5-9ac2-4c94-b561-807ca9003b66',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'fromSchemaOrg.ts:95',message:'hasRecipeType check',data:{types,typesLower:types.map(t=>typeof t==='string'?t.toLowerCase():t),isMatch:types.some(e=>typeof e==='string'&&e.toLowerCase()==='recipe')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
   return types.some(
     entry => typeof entry === 'string' && entry.toLowerCase() === 'recipe'
   );
@@ -111,8 +108,7 @@ function convertIngredients(
   const normalized = Array.isArray(value) ? value : [value];
   return normalized
     .map(item => (typeof item === 'string' ? item.trim() : ''))
-    .filter(Boolean)
-    .map(line => parseIngredientLine(line));
+    .filter(Boolean);
 }
 
 function convertInstructions(
@@ -199,11 +195,43 @@ function convertHowToStep(step: HowToStep): string | Instruction | undefined {
   }
 
   const normalizedImage = normalizeImage(step.image);
-  if (typeof normalizedImage === 'string') {
-    return { text, image: normalizedImage };
+  const image = Array.isArray(normalizedImage)
+    ? normalizedImage[0]
+    : normalizedImage;
+  const id = extractInstructionId(step);
+  const timing = extractInstructionTiming(step);
+
+  if (!image && !id && !timing) {
+    return text;
   }
 
-  return text;
+  const instruction: Instruction = { text };
+  if (id) instruction.id = id;
+  if (image) instruction.image = image;
+  if (timing) instruction.timing = timing;
+
+  return instruction;
+}
+
+function extractInstructionTiming(step: HowToStep): StepTiming | undefined {
+  const duration =
+    step.totalTime || step.performTime || step.prepTime || (step as any).duration;
+
+  if (!duration || typeof duration !== 'string') {
+    return undefined;
+  }
+
+  const parsed = smartParseDuration(duration);
+  return { duration: parsed ?? duration, type: 'active' };
+}
+
+function extractInstructionId(step: HowToStep): string | undefined {
+  const raw = (step as any)['@id'] || (step as any).id || step.url;
+  if (typeof raw !== 'string') {
+    return undefined;
+  }
+  const trimmed = raw.trim();
+  return trimmed || undefined;
 }
 
 function isHowToStep(value: unknown): value is HowToStep {

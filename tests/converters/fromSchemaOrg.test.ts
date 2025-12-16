@@ -170,24 +170,17 @@ describe('source mapping', () => {
 });
 
 describe('ingredient conversion', () => {
-  it('parses ingredient strings and ignores blanks', () => {
+  it('captures ingredient strings and ignores blanks', () => {
     const recipe = getRecipe({
       recipeIngredient: [' 2 cups sugar ', '', '1 tsp salt']
     });
 
-    expect(recipe.ingredients).toHaveLength(2);
-    expect(recipe.ingredients[0]).toMatchObject({
-      quantity: { amount: 2, unit: 'cup' },
-      name: 'sugar'
-    });
+    expect(recipe.ingredients).toEqual(['2 cups sugar', '1 tsp salt']);
   });
 
   it('handles single string values', () => {
     const recipe = getRecipe({ recipeIngredient: '3 large eggs' });
-    expect(recipe.ingredients[0]).toMatchObject({
-      item: '3 large eggs',
-      quantity: { amount: 3 }
-    });
+    expect(recipe.ingredients).toEqual(['3 large eggs']);
   });
 });
 
@@ -275,6 +268,23 @@ describe('instruction conversion', () => {
     ]);
   });
 
+  it('retains structured timing and ids when present', () => {
+    const recipe = getRecipe({
+      recipeInstructions: [
+        {
+          '@type': 'HowToStep',
+          text: 'Let rest',
+          totalTime: 'PT30M',
+          '@id': 'step1'
+        }
+      ]
+    });
+
+    expect(recipe.instructions).toEqual([
+      { text: 'Let rest', timing: { duration: 30, type: 'active' }, id: 'step1' }
+    ]);
+  });
+
   it('keeps instructions as strings when no image metadata exists', () => {
     const recipe = getRecipe({
       recipeInstructions: [{ '@type': 'HowToStep', text: 'Bake' }]
@@ -297,6 +307,37 @@ describe('instruction conversion', () => {
       'Cook',
       'Serve'
     ]);
+  });
+});
+
+describe('context tolerance', () => {
+  const contexts = [
+    'http://schema.org',
+    'https://schema.org/',
+    ['https://schema.org', { '@vocab': 'http://schema.org/' }],
+    { '@vocab': 'https://schema.org/' }
+  ];
+
+  it.each(contexts)('accepts @context variant %p', contextValue => {
+    const result = fromSchemaOrg({
+      '@context': contextValue as any,
+      '@type': 'Recipe',
+      name: 'Context Recipe'
+    });
+
+    expect(result?.name).toBe('Context Recipe');
+  });
+
+  it('detects recipe nodes in graphs regardless of context', () => {
+    const result = fromSchemaOrg({
+      '@context': { '@vocab': 'https://schema.org/' },
+      '@graph': [
+        { '@type': 'Article', name: 'Ignore' },
+        { '@type': 'Recipe', name: 'Graph Recipe' }
+      ]
+    });
+
+    expect(result?.name).toBe('Graph Recipe');
   });
 });
 

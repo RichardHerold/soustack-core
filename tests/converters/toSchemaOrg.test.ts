@@ -151,12 +151,12 @@ describe('convertInstructions', () => {
     {
       name: 'converts string steps',
       input: ['Mix', 'Bake'],
-      expected: [step('Mix'), step('Bake')]
+      expected: ['Mix', 'Bake']
     },
     {
       name: 'converts instruction objects',
       input: [{ text: 'Fold gently' }],
-      expected: [step('Fold gently')]
+      expected: ['Fold gently']
     },
     {
       name: 'creates HowToSection from subsection strings',
@@ -165,7 +165,7 @@ describe('convertInstructions', () => {
         {
           '@type': 'HowToSection',
           name: 'Prep',
-          itemListElement: [step('Gather ingredients')]
+          itemListElement: ['Gather ingredients']
         }
       ]
     },
@@ -176,7 +176,7 @@ describe('convertInstructions', () => {
         {
           '@type': 'HowToSection',
           name: 'Bake',
-          itemListElement: [step('Preheat oven'), step('Bake')]
+          itemListElement: ['Preheat oven', 'Bake']
         }
       ]
     },
@@ -188,17 +188,17 @@ describe('convertInstructions', () => {
     {
       name: 'ignores undefined items',
       input: ['Mix', undefined, { text: 'Bake' }],
-      expected: [step('Mix'), step('Bake')]
+      expected: ['Mix', 'Bake']
     },
     {
       name: 'trims step text',
       input: ['  Stir  '],
-      expected: [step('Stir')]
+      expected: ['Stir']
     },
     {
       name: 'falls back to string conversion for unexpected objects',
       input: [{ foo: 'bar' }],
-      expected: [step('[object Object]')]
+      expected: ['[object Object]']
     },
     {
       name: 'preserves mixed sections and steps order',
@@ -208,13 +208,13 @@ describe('convertInstructions', () => {
         { text: 'Finish' }
       ],
       expected: [
-        step('Start'),
+        'Start',
         {
           '@type': 'HowToSection',
           name: 'Section',
-          itemListElement: [step('Do work')]
+          itemListElement: ['Do work']
         },
-        step('Finish')
+        'Finish'
       ]
     },
     {
@@ -460,13 +460,13 @@ describe('toSchemaOrg integration', () => {
     });
 
     const schema = toSchemaOrg(recipe);
-    const sections = schema.recipeInstructions as Array<HowToStep | HowToSection>;
+    const sections = schema.recipeInstructions as Array<HowToSection | string>;
 
     expect(sections[0]).toMatchObject({
       '@type': 'HowToSection',
       name: 'Prep'
     });
-    expect(sections[1]).toEqual(step('Bake'));
+    expect(sections[1]).toEqual('Bake');
   });
 
   it('removes undefined optional fields', () => {

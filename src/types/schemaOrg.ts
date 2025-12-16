@@ -1,5 +1,8 @@
 export interface SchemaOrgRecipe {
-  '@context'?: string;
+  '@context'?:
+    | string
+    | Array<string | Record<string, unknown>>
+    | Record<string, unknown>;
   '@type'?: string | string[];
   name: string;
   description?: string;
@@ -31,6 +34,8 @@ export type SchemaOrgInstructionList =
   | HowToSection
   | Array<string | HowToStep | HowToSection>;
 
+export type SchemaOrgInstruction = string | HowToStep | HowToSection;
+
 export interface SchemaOrgImageObject {
   '@type'?: string;
   url?: string;
@@ -57,6 +62,12 @@ export interface HowToStep {
   name?: string;
   url?: string;
   image?: SchemaOrgImage;
+  '@id'?: string;
+  id?: string;
+  totalTime?: string;
+  performTime?: string;
+  prepTime?: string;
+  duration?: string;
 }
 
 export interface HowToSection {
