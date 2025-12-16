@@ -465,14 +465,18 @@ export function validateRecipe(input: any, options: ValidateOptions = {}): Valid
 
   const { normalized, warnings } = normalizeRecipe(input as Recipe);
 
-  // Ensure profile is set in normalized recipe (required by profile schemas)
+  // Apply defaults before validation (required by profile schemas)
+  // Profile defaults to "core" if missing
   if (!profileFromDocument) {
     (normalized as any).profile = profile;
   } else {
     (normalized as any).profile = profileFromDocument;
   }
   
-  if (modulesFromDocument.length > 0) {
+  // Modules default to [] if missing (as per schema defaults)
+  if (!('modules' in normalized) || normalized.modules === undefined || normalized.modules === null) {
+    (normalized as any).modules = [];
+  } else if (modulesFromDocument.length > 0) {
     (normalized as any).modules = modules;
   }
 
