@@ -10,10 +10,10 @@ const [, , command, ...args] = process.argv;
 
 async function main() {
   try {
-    switch (command) {
-      case 'validate':
-        await handleValidate(args);
-        break;
+  switch (command) {
+    case 'validate':
+      await handleValidate(args);
+      break;
       case 'scale':
         await handleScale(args);
         break;
@@ -38,7 +38,7 @@ async function main() {
 
 function printUsage() {
   console.log('Usage:');
-  console.log('  npx soustack validate <soustack.json>');
+  console.log('  npx soustack validate <soustack.json> [--profile <name>]');
   console.log('  npx soustack scale <soustack.json> <multiplier>');
   console.log('  npx soustack import <schema-org.jsonld> -o <soustack.json>');
   console.log('  npx soustack export <soustack.json> -o <schema-org.jsonld>');
@@ -46,11 +46,11 @@ function printUsage() {
 }
 
 async function handleValidate(args: string[]) {
-  const filePath = args[0];
+  const { filePath, profile } = parseValidateArgs(args);
   if (!filePath) throw new Error('Path to recipe JSON is required');
   const recipe = readJsonFile(filePath);
-  validateRecipe(recipe);
-  console.log('✅ Valid Soustack Recipe');
+  validateRecipe(recipe, profile ? { profile } : {});
+  console.log(`✅ Valid Soustack Recipe${profile ? ` (profile: ${profile})` : ''}`);
 }
 
 async function handleScale(args: string[]) {
@@ -133,6 +133,26 @@ function resolveOutputPath(args: string[]): string | undefined {
     throw new Error('Output flag provided without a path');
   }
   return target;
+}
+
+function parseValidateArgs(args: string[]): { filePath?: string; profile?: string } {
+  let filePath: string | undefined;
+  let profile: string | undefined;
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--profile') {
+      profile = args[i + 1];
+      if (!profile) {
+        throw new Error('Profile flag provided without a name');
+      }
+      i++;
+    } else if (!filePath) {
+      filePath = arg;
+    }
+  }
+
+  return { filePath, profile };
 }
 
 function writeOutput(data: unknown, outputPath?: string) {

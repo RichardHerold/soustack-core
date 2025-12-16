@@ -8,7 +8,7 @@ describe('Soustack schema version', () => {
     const schemaId = (schema as any).$id as string | undefined;
     expect(schemaId).toBeDefined();
 
-    const versionMatch = schemaId?.match(/\/schema\/v(\d+\.\d+(?:\.\d+)?)/);
+    const versionMatch = schemaId?.match(/v(\d+\.\d+\.\d+)/);
     expect(versionMatch?.[1]).toBe(supportedVersion);
   });
 });

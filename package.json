@@ -1,6 +1,6 @@
 {
   "name": "soustack",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "The logic engine for computational recipes - validation, scaling, parsing, and Schema.org conversion",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -24,8 +24,8 @@
     "type": "git",
     "url": "git+https://github.com/RichardHerold/soustack-core.git"
   },
-  "soustackSpecVersion": "0.2",
-  "soustackSpecTag": "v0.2.0",
+  "soustackSpecVersion": "0.2.1",
+  "soustackSpecTag": "v0.2.1",
   "bin": {
     "soustack": "dist/cli/index.js",
     "soustack-convert": "dist/cli/index.js"
@@ -33,6 +33,8 @@
   "files": [
     "dist",
     "src/schema.json",
+    "src/soustack.schema.json",
+    "src/profiles",
     "README.md",
     "LICENSE"
   ],

@@ -1,14 +1,20 @@
 /**
- * Soustack Recipe Schema v0.2
+ * Soustack Recipe Schema v0.2.1
  * A portable, scalable, interoperable recipe format.
  */
 
 export interface SoustackRecipe {
+  /** Optional $schema pointer for profile-aware validation */
+  $schema?: string;
   /** Unique identifier (slug or UUID) */
   id?: string;
+  /** Optional display title */
+  title?: string;
   /** The title of the recipe */
   name: string;
   /** Semantic versioning (e.g., 1.0.0) */
+  recipeVersion?: string;
+  /** Deprecated alias for recipeVersion */
   version?: string;
   description?: string;
   /** Primary category (e.g., "Main Course") */
@@ -30,6 +36,8 @@ export interface SoustackRecipe {
   storage?: Storage;
   substitutions?: Substitution[];
   nutrition?: NutritionFacts;
+  metadata?: Record<string, unknown>;
+  [k: `x-${string}`]: unknown;
 }
 
 export type Recipe = SoustackRecipe;
@@ -198,7 +206,7 @@ export interface SoustackInstruction {
 export type Instruction = SoustackInstruction;
 
 export interface StepTiming {
-  duration: number;
+  duration: number | string;
   type: "active" | "passive";
   scaling?: "linear" | "fixed" | "sqrt";
 }
