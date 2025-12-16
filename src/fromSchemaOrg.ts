@@ -8,6 +8,7 @@ import {
   TaxonomyModule,
   MediaModule,
   TimesModule,
+  NutritionFacts,
   StepTiming,
   StructuredTime
 } from './types';
@@ -36,10 +37,7 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
   const category = extractFirst(recipeNode.recipeCategory);
   const source = convertSource(recipeNode);
   const dateModified = recipeNode.dateModified || undefined;
-  const nutrition =
-    recipeNode.nutrition && typeof recipeNode.nutrition === 'object'
-      ? recipeNode.nutrition
-      : undefined;
+  const nutrition = convertNutrition(recipeNode.nutrition);
 
   const attribution = convertAttribution(recipeNode);
   const taxonomy = convertTaxonomy(tags, category, extractFirst(recipeNode.recipeCuisine));
@@ -444,4 +442,49 @@ function convertTimes(time?: StructuredTime): TimesModule | undefined {
   if (typeof time.total === 'number') times.totalMinutes = time.total;
 
   return Object.keys(times).length ? times : undefined;
+}
+
+function convertNutrition(
+  nutrition: SchemaOrgRecipe['nutrition']
+): NutritionFacts | undefined {
+  if (!nutrition || typeof nutrition !== 'object') {
+    return undefined;
+  }
+
+  const result: NutritionFacts = {};
+  let hasData = false;
+
+  // Parse calories - can be string or number in Schema.org
+  if ('calories' in nutrition) {
+    const calories = nutrition.calories;
+    if (typeof calories === 'number') {
+      result.calories = calories;
+      hasData = true;
+    } else if (typeof calories === 'string') {
+      // Try to parse string like "200 cal" or "200"
+      const parsed = parseFloat(calories.replace(/[^\d.-]/g, ''));
+      if (!isNaN(parsed)) {
+        result.calories = parsed;
+        hasData = true;
+      }
+    }
+  }
+
+  // Parse protein - Schema.org uses "proteinContent", we need "protein_g"
+  if ('proteinContent' in nutrition || 'protein_g' in nutrition) {
+    const protein = nutrition.proteinContent || nutrition.protein_g;
+    if (typeof protein === 'number') {
+      result.protein_g = protein;
+      hasData = true;
+    } else if (typeof protein === 'string') {
+      // Try to parse string like "10 g" or "10"
+      const parsed = parseFloat(protein.replace(/[^\d.-]/g, ''));
+      if (!isNaN(parsed)) {
+        result.protein_g = parsed;
+        hasData = true;
+      }
+    }
+  }
+
+  return hasData ? result : undefined;
 }
