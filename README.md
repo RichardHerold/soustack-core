@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 
-**Soustack Core** is the reference implementation for the [Soustack Standard](https://github.com/soustack/spec). It provides the validation, parsing, and scaling logic required to turn static recipe data into dynamic, computable objects.
+**Soustack Core** is the reference implementation for the [Soustack Standard](https://github.com/RichardHerold/soustack-spec). It provides the validation, parsing, and scaling logic required to turn static recipe data into dynamic, computable objects.
 
 ---
 
@@ -19,7 +19,7 @@ Soustack is **computational**—it understands _how_ a recipe behaves.
 
 1.  **The "Salty Soup" Problem (Intelligent Scaling):**
     - _Old Way:_ Doubling a recipe doubles every ingredient blindly.
-    - _Soustack:_ Understands that salt scales differently than flour, and frying oil shouldn't scale at all. It supports **Linear**, **Fixed**, **Discrete**, and **Baker's Percentage** scaling modes.
+    - _Soustack:_ Understands that salt scales differently than flour, and frying oil shouldn't scale at all. It supports **Linear**, **Fixed**, **Discrete**, **Proportional**, and **Baker's Percentage** scaling modes.
 2.  **The "Lying Prep Time" Problem:**
     - _Old Way:_ Authors guess "Prep: 15 mins."
     - _Soustack:_ Calculates total time dynamically based on the active/passive duration of every step.
@@ -51,11 +51,17 @@ npm install soustack
   - Recipe-level images: single URL or array of URLs
   - Instruction-level images: optional image URL per step
   - Automatic normalization from Schema.org ImageObject formats
-- **Web Scraping**: 
+- **Web Scraping**:
   - `scrapeRecipe()` fetches a recipe page and extracts Schema.org recipe data (Node.js only)
   - `extractRecipeFromHTML()` extracts recipe data from HTML string, returns Soustack format (browser & Node.js compatible)
   - `extractSchemaOrgRecipeFromHTML()` extracts raw Schema.org recipe data from HTML string (browser & Node.js compatible)
   - Supports JSON-LD (`<script type="application/ld+json">`) and Microdata (`itemscope/itemtype`)
+
+## Spec compatibility & bundled schemas
+
+- Targets Soustack spec **v0.2.1** (`package.json#soustackSpecVersion`).
+- Ships the base schema plus profile schemas: `src/schema.json`, `src/soustack.schema.json`, and `src/profiles/*.schema.json`.
+- All schema artifacts are included in the published package to enable offline validation.
 
 ## Programmatic Usage
 
@@ -226,12 +232,11 @@ npx soustack scrape "https://example.com/recipe" -o recipe.soustack.json
 
 ## 🔄 Keeping the Schema in Sync
 
-The `src/schema.json` file in this repository is a **copy** of the official standard.
-The source of truth lives in [RichardHerold/soustack-spec](https://github.com/RichardHerold/soustack-spec).
+The schema files in this repository are **copies** of the official standard. The source of truth lives in [RichardHerold/soustack-spec](https://github.com/RichardHerold/soustack-spec).
 
-**Do not edit `src/schema.json` manually.**
+**Do not edit any synced schema artifacts manually** (`src/schema.json`, `src/soustack.schema.json`, `src/profiles/*.schema.json`).
 
-To update to the latest version of the standard, run:
+To update to the latest tagged version of the standard, run:
 
 ```bash
 npm run sync:spec
