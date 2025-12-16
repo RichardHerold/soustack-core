@@ -1,0 +1,10 @@
+{
+  "name": "Numeric Timed Salad",
+  "time": {
+    "prep": 5,
+    "active": 15,
+    "total": 20
+  },
+  "ingredients": ["1 cucumber", "1 tbsp olive oil"],
+  "instructions": ["Slice the cucumber", "Drizzle with olive oil"]
+}

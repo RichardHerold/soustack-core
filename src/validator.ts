@@ -8,6 +8,7 @@ import quantifiedProfileSchema from "./profiles/quantified.schema.json";
 import illustratedProfileSchema from "./profiles/illustrated.schema.json";
 import schedulableProfileSchema from "./profiles/schedulable.schema.json";
 import { Recipe } from "./types";
+import { parseDuration } from "./parsers/duration";
 
 type ProfileName =
   | "base"
@@ -116,6 +117,8 @@ function normalizeRecipe(recipe: Recipe): { normalized: Recipe; warnings: Normal
   const normalized = cloneRecipe(recipe);
   const warnings: NormalizedWarning[] = [];
 
+  normalizeTime(normalized);
+
   if (
     normalized &&
     typeof normalized === "object" &&
@@ -128,6 +131,28 @@ function normalizeRecipe(recipe: Recipe): { normalized: Recipe; warnings: Normal
   }
 
   return { normalized, warnings };
+}
+
+function normalizeTime(recipe: Recipe): void {
+  const time = (recipe as any)?.time;
+  if (!time || typeof time !== "object" || Array.isArray(time)) return;
+
+  const structuredKeys: Array<"prep" | "active" | "passive" | "total"> = [
+    "prep",
+    "active",
+    "passive",
+    "total",
+  ];
+
+  structuredKeys.forEach((key) => {
+    const value = (time as any)[key];
+    if (typeof value === "number") return;
+
+    const parsed = parseDuration(value as any);
+    if (parsed !== null) {
+      (time as any)[key] = parsed;
+    }
+  });
 }
 
 const allowedTopLevelProps = new Set<string>([

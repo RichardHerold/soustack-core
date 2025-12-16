@@ -1,0 +1,10 @@
+{
+  "name": "ISO Timed Salad",
+  "time": {
+    "prep": "PT10M",
+    "active": "PT20M",
+    "total": "PT30M"
+  },
+  "ingredients": ["1 tomato", "1 tbsp olive oil"],
+  "instructions": ["Slice the tomato", "Drizzle with olive oil"]
+}

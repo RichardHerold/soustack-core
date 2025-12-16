@@ -21,7 +21,8 @@ describe('parseDuration', () => {
     ['P0D', 0],
     ['pt15m', 15],
     ['PT1.5H', 90],
-    ['PT90M', 90]
+    ['PT90M', 90],
+    [45, 45]
   ])('converts %s to %i minutes', (input, expected) => {
     expect(parseDuration(input)).toBe(expected);
   });

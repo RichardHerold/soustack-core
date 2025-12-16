@@ -53,6 +53,36 @@ describe('Soustack validation', () => {
     expect(result.warnings[0].message).toContain('deprecated');
   });
 
+  describe('time normalization', () => {
+    it('converts ISO8601 durations into minutes', () => {
+      const recipe = loadFixture('base', 'valid', 'time-iso.json');
+      const result = validateRecipe(recipe);
+
+      expect(result.valid).toBe(true);
+      expect(result.normalized?.time).toEqual(
+        expect.objectContaining({ prep: 10, active: 20, total: 30 })
+      );
+    });
+
+    it('keeps numeric durations unchanged', () => {
+      const recipe = loadFixture('base', 'valid', 'time-numeric.json');
+      const result = validateRecipe(recipe);
+
+      expect(result.valid).toBe(true);
+      expect(result.normalized?.time).toEqual(recipe.time);
+    });
+
+    it('handles mixed numeric and ISO durations', () => {
+      const recipe = loadFixture('base', 'valid', 'time-mixed.json');
+      const result = validateRecipe(recipe);
+
+      expect(result.valid).toBe(true);
+      expect(result.normalized?.time).toEqual(
+        expect.objectContaining({ prep: 15, active: 25, total: 40 })
+      );
+    });
+  });
+
   it('collects detailed errors for invalid fixtures', () => {
     const invalid = loadFixture('base', 'invalid', 'missing-fields.json');
     const result: ValidationResult = validateRecipe(invalid);
