@@ -15,8 +15,9 @@ const INVALID_FIXTURE = path.join(__dirname, 'fixtures', 'cli', 'invalid.soustac
 function runCli(args: string[], options: SpawnSyncOptions = {}) {
   if (!existsSync(DIST_CLI_PATH)) {
     throw new Error(
-      `Missing built CLI at ${DIST_CLI_PATH}. Tests expect "npm run build" to run via "pretest".`,
-    );
+  `Missing built CLI at ${DIST_CLI_PATH}. Build artifacts are required before running tests.`,
+);
+
   }
 
   return spawnSync('node', [DIST_CLI_PATH, ...args], {
