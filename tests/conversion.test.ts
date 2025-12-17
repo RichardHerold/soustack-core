@@ -99,7 +99,8 @@ describe('Schema.org <-> Soustack', () => {
     expect(recipe.category).toBe('Dessert');
     expect(recipe.tags).toEqual(expect.arrayContaining(['American', 'cookies', 'chocolate']));
     expect(recipe.source).toMatchObject({ author: 'Jane Baker', name: 'Test Kitchen' });
-    expect(recipe.nutrition).toMatchObject({ calories: '250 cal' });
+    // v0.3: nutrition values are parsed as numbers
+    expect(recipe.nutrition).toMatchObject({ calories: 250 });
   });
 
   it('round-trips Schema.org through Base validation', () => {
