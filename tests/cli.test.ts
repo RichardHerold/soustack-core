@@ -81,6 +81,7 @@ function expectNonZero(status: number | null) {
 
 describe('soustack CLI', () => {
   beforeAll(() => {
+    // Always rebuild to ensure we have the latest code
     buildDist();
   });
 
