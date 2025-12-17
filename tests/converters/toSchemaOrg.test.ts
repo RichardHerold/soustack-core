@@ -25,7 +25,7 @@ function buildRecipe(overrides: Partial<Recipe> = {}): Recipe {
     dateModified: '2024-02-01',
     source: { author: 'Test Author', name: 'Test Kitchen', url: 'https://example.com' },
     yield: { amount: 8, unit: 'servings' },
-    time: { prep: 15, active: 30, total: 45 },
+    times: { prepMinutes: 15, cookMinutes: 30, totalMinutes: 45 },
     nutrition: { calories: 200 },
     ingredients: ['1 cup sugar'],
     instructions: ['Mix everything']
@@ -390,7 +390,12 @@ describe('convertNutrition', () => {
       expected: undefined
     },
     {
-      name: 'adds NutritionInformation type',
+      name: 'converts numeric calories to Schema.org string format',
+      input: { calories: 250 },
+      expected: { calories: '250 calories', '@type': 'NutritionInformation' }
+    },
+    {
+      name: 'preserves string calories as-is',
       input: { calories: '250 cal' },
       expected: { calories: '250 cal', '@type': 'NutritionInformation' }
     },
@@ -432,7 +437,7 @@ describe('toSchemaOrg integration', () => {
       ],
       modules: ['taxonomy@1', 'times@1'], // Include mappable modules for taxonomy and times
       tags: ['Dessert', 'Chocolate'],
-      time: { prep: 20, active: 30, total: 60 },
+      times: { prepMinutes: 20, cookMinutes: 30, totalMinutes: 60 },
       yield: { amount: 24, unit: 'cookies' }
     });
 
@@ -488,6 +493,23 @@ describe('toSchemaOrg integration', () => {
     expect(schema).not.toHaveProperty('recipeYield');
     expect(schema).not.toHaveProperty('nutrition');
   });
+
+  it('converts numeric calories to Schema.org string format when nutrition module is mappable', () => {
+    // Note: nutrition@1 is currently NOT schemaOrgMappable, so this test
+    // directly tests convertNutrition to verify the conversion behavior
+    const recipe = buildRecipe({
+      nutrition: { calories: 200, protein_g: 10 }
+    });
+
+    // Directly test convertNutrition function
+    const nutritionResult = convertNutrition(recipe.nutrition);
+    
+    // Verify that numeric calories are converted to Schema.org string format
+    expect(nutritionResult).toBeDefined();
+    expect(nutritionResult?.calories).toBe('200 calories');
+    expect(nutritionResult?.['@type']).toBe('NutritionInformation');
+    expect(nutritionResult?.protein_g).toBe(10); // Other fields preserved as-is
+  });
 });
 
 describe('round-trip conversion', () => {
@@ -522,9 +544,9 @@ describe('round-trip conversion', () => {
     }
     expect(roundTrip?.ingredients.length).toBeGreaterThanOrEqual(2);
     expect(roundTrip?.instructions.length).toBe(3);
-    // time is only included if times@1 module is present and mappable
-    if (recipe.time && recipe.modules?.includes('times@1')) {
-      expect(roundTrip?.time).toMatchObject(recipe.time);
+    // times is only included if times@1 module is present and mappable
+    if (recipe.times && recipe.modules?.includes('times@1')) {
+      expect(roundTrip?.times).toMatchObject(recipe.times);
     }
     // image is handled by media module
     if (recipe.image) {

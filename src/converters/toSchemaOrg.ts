@@ -4,7 +4,8 @@ import {
   InstructionItem,
   Recipe,
   StructuredTime,
-  Time
+  Time,
+  TimesModule
 } from '../types';
 import { formatDuration } from '../parsers/duration';
 import { formatYield } from './yield';
@@ -187,6 +188,24 @@ export function convertTime(time?: Time): Partial<SchemaOrgRecipe> {
   return result;
 }
 
+export function convertTimesModule(times?: TimesModule): Partial<SchemaOrgRecipe> {
+  if (!times) {
+    return {};
+  }
+
+  const result: Partial<SchemaOrgRecipe> = {};
+  if (times.prepMinutes !== undefined) {
+    result.prepTime = formatDuration(times.prepMinutes);
+  }
+  if (times.cookMinutes !== undefined) {
+    result.cookTime = formatDuration(times.cookMinutes);
+  }
+  if (times.totalMinutes !== undefined) {
+    result.totalTime = formatDuration(times.totalMinutes);
+  }
+  return result;
+}
+
 export function convertYield(yld?: Recipe['yield']): string | undefined {
   if (!yld) {
     return undefined;
@@ -248,10 +267,27 @@ export function convertNutrition(
     return undefined;
   }
 
-  return {
-    ...nutrition,
+  const result: SchemaOrgRecipe['nutrition'] = {
     '@type': 'NutritionInformation'
   };
+
+  // Convert numeric calories to Schema.org string format
+  if (nutrition.calories !== undefined) {
+    if (typeof nutrition.calories === 'number') {
+      result.calories = `${nutrition.calories} calories`;
+    } else {
+      result.calories = nutrition.calories;
+    }
+  }
+
+  // Preserve other nutrition fields as-is (excluding @type which we override)
+  Object.keys(nutrition).forEach(key => {
+    if (key !== 'calories' && key !== '@type') {
+      (result as any)[key] = (nutrition as any)[key];
+    }
+  });
+
+  return result;
 }
 
 export function cleanOutput<T extends Record<string, unknown>>(obj: T): T {
@@ -293,8 +329,11 @@ export function toSchemaOrg(recipe: Recipe): SchemaOrgRecipe {
   const nutrition = hasMappableNutrition ? convertNutrition(recipe.nutrition) : undefined;
 
   // Convert time if times module is mappable (times@1 is mappable)
+  // Prefer recipe.times (TimesModule) over recipe.time (legacy Time)
   const hasMappableTimes = mappableModules.includes('times@1');
-  const timeData = hasMappableTimes ? convertTime(recipe.time) : {};
+  const timeData = hasMappableTimes
+    ? (recipe.times ? convertTimesModule(recipe.times) : convertTime(recipe.time))
+    : {};
 
   // Convert attribution if attribution module is mappable (attribution@1 is mappable)
   const hasMappableAttribution = mappableModules.includes('attribution@1');
