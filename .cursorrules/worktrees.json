@@ -1,0 +1,41 @@
+{
+  "worktrees": [
+    {
+      "name": "soustack-main",
+      "description": "Agent rules for Soustack spec + core repos",
+      "rules": [
+        {
+          "when": "always",
+          "instructions": [
+            "This is a TypeScript / Node.js project using Jest for tests.",
+            "Make the smallest correct change that fixes the root cause.",
+            "Prefer modifying existing code over introducing new abstractions.",
+            "Do not change public APIs without updating documentation and changelog.",
+            "If tests fail, reproduce locally and fix the implementation, not the test, unless the test is incorrect.",
+            "Avoid backward-compatibility work unless explicitly requested."
+          ]
+        },
+        {
+          "when": "schema-related change",
+          "instructions": [
+            "Schema definitions live in soustack-spec, not soustack-core.",
+            "soustack-core syncs schemas from soustack-spec; do not duplicate schema logic.",
+            "When schema changes affect conversions, update both toSchemaOrg and fromSchemaOrg tests.",
+            "Ensure JSON schema remains valid (no duplicate keys, no invalid enums)."
+          ]
+        }
+      ],
+      "commands": {
+        "install": "npm ci",
+        "test": "npm test",
+        "lint": "npm run lint",
+        "typecheck": "npm run typecheck"
+      },
+      "preferences": {
+        "runTestsBeforeFinal": true,
+        "preferProjectFiles": true,
+        "avoidWebSearch": true
+      }
+    }
+  ]
+}
