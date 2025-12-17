@@ -93,7 +93,7 @@ describe('Schema.org <-> Soustack', () => {
     const recipe = soustack as Recipe;
     expect(recipe.name).toBe('Perfect Chocolate Chip Cookies');
     expect(recipe.yield).toMatchObject({ amount: 24, unit: 'cookies' });
-    expect(recipe.time).toMatchObject({ prep: 20, active: 12, total: 32 });
+    expect(recipe.times).toMatchObject({ prepMinutes: 20, cookMinutes: 12, totalMinutes: 32 });
     expect(recipe.ingredients[0]).toBe('2 1/4 cups all-purpose flour, sifted');
     expect(recipe.instructions).toHaveLength(2);
     expect(recipe.category).toBe('Dessert');
@@ -141,7 +141,7 @@ describe('Schema.org <-> Soustack', () => {
       category: 'Bread',
       tags: ['Italian', 'Holiday'],
       yield: { amount: 2, unit: 'loaves' },
-      time: { prep: 30, active: 25, total: 120 },
+      times: { prepMinutes: 30, cookMinutes: 25, totalMinutes: 120 },
       ingredients: [
         {
           item: '500g bread flour',

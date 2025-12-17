@@ -358,7 +358,7 @@ describe('time and yield parsing', () => {
       recipeYield: '24 cookies'
     });
 
-    expect(recipe.time).toEqual({ prep: 20, active: 60, total: 80 });
+    expect(recipe.times).toEqual({ prepMinutes: 20, cookMinutes: 60, totalMinutes: 80 });
     expect(recipe.yield).toEqual({ amount: 24, unit: 'cookies', description: '24 cookies' });
   });
 
