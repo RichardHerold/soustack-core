@@ -3,11 +3,6 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import * as path from 'path';
 
-import { spawnSync, SpawnSyncOptions } from 'child_process';
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
-import * as path from 'path';
-
 const DIST_CLI_PATH = path.join(__dirname, '..', 'dist', 'cli', 'index.js');
 const VALID_FIXTURE = path.join(__dirname, 'fixtures', 'cli', 'valid.soustack.json');
 const INVALID_FIXTURE = path.join(__dirname, 'fixtures', 'cli', 'invalid.soustack.invalid.json');
@@ -15,9 +10,8 @@ const INVALID_FIXTURE = path.join(__dirname, 'fixtures', 'cli', 'invalid.soustac
 function runCli(args: string[], options: SpawnSyncOptions = {}) {
   if (!existsSync(DIST_CLI_PATH)) {
     throw new Error(
-  `Missing built CLI at ${DIST_CLI_PATH}. Build artifacts are required before running tests.`,
-);
-
+      `Missing built CLI at ${DIST_CLI_PATH}. Build artifacts are required before running tests.`,
+    );
   }
 
   return spawnSync('node', [DIST_CLI_PATH, ...args], {
@@ -26,22 +20,12 @@ function runCli(args: string[], options: SpawnSyncOptions = {}) {
   });
 }
 
-function runCli(args: string[], options: SpawnSyncOptions = {}) {
-  const entrypoint = existsSync(DIST_CLI_PATH) ? DIST_CLI_PATH : CLI_PATH;
-  const result = spawnSync('node', [entrypoint, ...args], {
-    encoding: 'utf-8',
-    ...options,
-  });
-  return result;
-}
-
 function expectNonZero(status: number | null) {
   expect(status).not.toBeNull();
   expect(status).not.toBe(0);
 }
 
 describe('soustack CLI', () => {
-
   it('validates a known good fixture successfully', () => {
     const result = runCli(['validate', VALID_FIXTURE]);
     expect(result.status).toBe(0);
