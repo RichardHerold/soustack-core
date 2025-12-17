@@ -21,6 +21,7 @@
     "build": "tsup",
     "prepack": "npm run build",
     "prepublishOnly": "npm run sync:spec && npm run verify:sync && npm run verify:schema && npm run build && npm test",
+    "pretest": "npm run build --silent",
     "test": "jest",
     "sync:spec": "node scripts/sync-spec.mjs",
     "verify:schema": "node scripts/verify-synced-schema.mjs",
