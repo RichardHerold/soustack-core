@@ -1,10 +1,18 @@
 import Ajv2020, { ErrorObject, ValidateFunction } from "ajv/dist/2020";
 import addFormats from "ajv-formats";
-import * as fs from "fs";
-import * as path from "path";
 import { Recipe } from "./types";
 import { normalizeRecipe } from "./normalize";
 import { validateConformance, ConformanceIssue } from "./conformance";
+import rootSchema from "./soustack.schema.json";
+import baseSchema from "./schemas/recipe/base.schema.json";
+import minimalProfileSchema from "./schemas/recipe/profiles/minimal.schema.json";
+import coreProfileSchema from "./schemas/recipe/profiles/core.schema.json";
+import attributionStackSchema from "./schemas/recipe/stacks/attribution/1.schema.json";
+import mediaStackSchema from "./schemas/recipe/stacks/media/1.schema.json";
+import nutritionStackSchema from "./schemas/recipe/stacks/nutrition/1.schema.json";
+import scheduleStackSchema from "./schemas/recipe/stacks/schedule/1.schema.json";
+import taxonomyStackSchema from "./schemas/recipe/stacks/taxonomy/1.schema.json";
+import timesStackSchema from "./schemas/recipe/stacks/times/1.schema.json";
 
 type ProfileName = "minimal" | "core";
 
@@ -51,98 +59,27 @@ interface ValidationContext {
 const validationContexts: Map<boolean, ValidationContext> = new Map();
 
 /**
- * Recursively finds all .schema.json files in a directory
+ * Loads all bundled schema files and registers them with Ajv.
  */
-function findSchemaFiles(dirPath: string, basePath: string = ""): string[] {
-  const files: string[] = [];
-  if (!fs.existsSync(dirPath)) {
-    return files;
-  }
+function loadAllSchemas(ajv: Ajv2020): void {
+  const schemas = [
+    rootSchema,
+    baseSchema,
+    minimalProfileSchema,
+    coreProfileSchema,
+    attributionStackSchema,
+    mediaStackSchema,
+    nutritionStackSchema,
+    scheduleStackSchema,
+    taxonomyStackSchema,
+    timesStackSchema,
+  ];
 
-  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-  for (const entry of entries) {
-    const fullPath = path.join(dirPath, entry.name);
-    const relativePath = basePath ? path.join(basePath, entry.name) : entry.name;
-
-    if (entry.isDirectory()) {
-      files.push(...findSchemaFiles(fullPath, relativePath));
-    } else if (entry.isFile() && entry.name.endsWith(".schema.json")) {
-      files.push(fullPath);
-    }
-  }
-
-  return files;
-}
-
-/**
- * Loads all schema files from the /spec directory and registers them with Ajv
- */
-function loadAllSchemas(ajv: Ajv2020, specDir: string): void {
-  // Load root schema
-  const rootSchemaPath = path.join(specDir, "soustack.schema.json");
-  if (fs.existsSync(rootSchemaPath)) {
-    const rootSchema = JSON.parse(fs.readFileSync(rootSchemaPath, "utf8"));
-    if (rootSchema.$id) {
-      ajv.addSchema(rootSchema, rootSchema.$id);
-    }
-  }
-
-  // Load base schema first (required for all composed validators)
-  const baseSchemaPath = path.join(specDir, "schemas", "recipe", "base.schema.json");
-  if (fs.existsSync(baseSchemaPath)) {
-    try {
-      const baseSchema = JSON.parse(fs.readFileSync(baseSchemaPath, "utf8"));
-      if (baseSchema.$id) {
-        ajv.addSchema(baseSchema, baseSchema.$id);
-        if (!ajv.getSchema(baseSchema.$id)) {
-          throw new Error(`Base schema was added but cannot be retrieved with ID ${baseSchema.$id}`);
-        }
-      } else {
-        throw new Error(`Base schema missing $id field`);
-      }
-    } catch (error: any) {
-      throw new Error(`Failed to load base schema from ${baseSchemaPath}: ${error.message}`);
-    }
-  } else {
-    throw new Error(`Base schema file not found at ${baseSchemaPath} (specDir: ${specDir})`);
-  }
-
-  // Load all schema files from schemas/recipe directory (base, profiles, stacks)
-  const recipeSchemasDir = path.join(specDir, "schemas", "recipe");
-  if (fs.existsSync(recipeSchemasDir)) {
-    const schemaFiles = findSchemaFiles(recipeSchemasDir);
-    for (const schemaPath of schemaFiles) {
-      // Skip base schema since we already loaded it directly
-      if (schemaPath.endsWith("base.schema.json")) {
-        continue;
-      }
-      try {
-        const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
-        if (schema.$id) {
-          try {
-            ajv.addSchema(schema, schema.$id);
-          } catch (addError: any) {
-            // Skip if schema already exists (might be loaded elsewhere)
-            if (!addError.message?.includes("already exists")) {
-              throw addError;
-            }
-          }
-        }
-      } catch (error: any) {
-        // Continue loading other schemas even if one fails
-        console.error(`Failed to load schema from ${schemaPath}:`, error.message);
-      }
-    }
-  }
-
-  // Load profile schemas from profiles directory (if they exist)
-  const profilesDir = path.join(specDir, "profiles");
-  if (fs.existsSync(profilesDir)) {
-    const schemaFiles = findSchemaFiles(profilesDir);
-    for (const schemaPath of schemaFiles) {
-      const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
-      if (schema.$id) {
-        ajv.addSchema(schema, schema.$id);
+  for (const schema of schemas) {
+    if (schema && typeof schema === "object" && "$id" in schema) {
+      const schemaWithId = schema as { $id?: string };
+      if (schemaWithId.$id) {
+        ajv.addSchema(schemaWithId, schemaWithId.$id);
       }
     }
   }
@@ -151,7 +88,7 @@ function loadAllSchemas(ajv: Ajv2020, specDir: string): void {
 /**
  * Creates a new validation context with all schemas loaded
  */
-function createContext(collectAllErrors: boolean, specDir: string): ValidationContext {
+function createContext(collectAllErrors: boolean): ValidationContext {
   const ajv = new Ajv2020({
     strict: false,
     allErrors: collectAllErrors,
@@ -160,7 +97,7 @@ function createContext(collectAllErrors: boolean, specDir: string): ValidationCo
   addFormats(ajv);
 
   // Load all schemas from the spec directory
-  loadAllSchemas(ajv, specDir);
+  loadAllSchemas(ajv);
 
   // Get validators for root and base schemas
   const rootValidator = ajv.getSchema(ROOT_SCHEMA_ID);
@@ -179,22 +116,7 @@ function createContext(collectAllErrors: boolean, specDir: string): ValidationCo
  */
 function getContext(collectAllErrors: boolean): ValidationContext {
   if (!validationContexts.has(collectAllErrors)) {
-    // Determine spec directory path
-    // In compiled code, __dirname points to dist/, so we need to go up to project root
-    // Try __dirname first, then fall back to process.cwd() for flexibility
-    let specDir: string;
-    if (__dirname.includes("dist")) {
-      // We're in dist/, go up to project root then into spec/
-      specDir = path.resolve(__dirname, "..", "spec");
-    } else {
-      // We're in src/ (development), go up to project root then into spec/
-      specDir = path.resolve(__dirname, "..", "spec");
-    }
-    // Fallback: use process.cwd() if the above doesn't work
-    if (!fs.existsSync(specDir)) {
-      specDir = path.resolve(process.cwd(), "spec");
-    }
-    validationContexts.set(collectAllErrors, createContext(collectAllErrors, specDir));
+    validationContexts.set(collectAllErrors, createContext(collectAllErrors));
   }
   return validationContexts.get(collectAllErrors)!;
 }

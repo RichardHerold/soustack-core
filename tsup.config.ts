@@ -11,9 +11,9 @@ const shared = {
 export default defineConfig([
   {
     ...shared,
-    entry: { 'index.browser': 'src/index.browser.ts' },
+    entry: { index: 'src/index.ts' },
     format: ['cjs', 'esm'],
-    dts: { entry: { index: 'src/index.browser.ts' } },
+    dts: { entry: { index: 'src/index.ts' } },
     clean: true, // Only clean on first entry
     splitting: false,
     outDir: 'dist',
@@ -23,22 +23,10 @@ export default defineConfig([
   },
   {
     ...shared,
-    entry: { index: 'src/index.ts' },
+    entry: { 'scrape/index': 'src/scrape/index.ts' },
     format: ['cjs', 'esm'],
-    dts: false, // Use browser build's dts
+    dts: { entry: { 'scrape/index': 'src/scrape/index.ts' } },
     clean: false,
-    splitting: false,
-    outDir: 'dist',
-    platform: 'node',
-    target: 'node18',
-    external: ['ajv', 'ajv-formats', 'cheerio', 'zod']
-  },
-  {
-    ...shared,
-    entry: { scrape: 'src/scrape.ts' },
-    format: ['cjs', 'esm'],
-    dts: { entry: { scrape: 'src/scrape.ts' } },
-    clean: false, // Explicitly don't clean on subsequent entries
     splitting: false,
     outDir: 'dist',
     platform: 'node',
