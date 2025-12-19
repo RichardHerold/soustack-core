@@ -44,7 +44,7 @@ function extractVersionFromSchema(schemaPath) {
     return null; // Skip schemas without $id
   }
 
-  const match = id.match(/v(\d+\.\d+\.\d+)/);
+  const match = id.match(/(?:^|\/)v?(\d+\.\d+\.\d+)(?:\/|$)/);
   if (!match) {
     return null; // Skip schemas without version in $id (component schemas)
   }
@@ -76,36 +76,12 @@ function findSchemaFiles(dirPath) {
 
 function gatherSchemaPaths() {
   const paths = [path.join(SPEC_DIR, 'soustack.schema.json')];
-  
-  // New structure: defs/*.schema.json
+
   const defsDir = path.join(SPEC_DIR, 'defs');
-  if (fs.existsSync(defsDir)) {
-    paths.push(...findSchemaFiles(defsDir));
-  }
+  paths.push(...findSchemaFiles(defsDir));
 
-  // New structure: stacks/*.schema.json
   const stacksDir = path.join(SPEC_DIR, 'stacks');
-  if (fs.existsSync(stacksDir)) {
-    paths.push(...findSchemaFiles(stacksDir));
-  }
-
-  // Legacy: profiles/*.schema.json (if still present)
-  const profilesDir = path.join(SPEC_DIR, 'profiles');
-  if (fs.existsSync(profilesDir)) {
-    paths.push(...findSchemaFiles(profilesDir));
-  }
-
-  // Legacy: schemas/recipe/**/*.schema.json (if still present)
-  const recipeSchemasDir = path.join(SPEC_DIR, 'schemas', 'recipe');
-  if (fs.existsSync(recipeSchemasDir)) {
-    paths.push(...findSchemaFiles(recipeSchemasDir));
-  }
-
-  // schemas/stacks-registry.schema.json (if present)
-  const stacksRegistrySchema = path.join(SPEC_DIR, 'schemas', 'stacks-registry.schema.json');
-  if (fs.existsSync(stacksRegistrySchema)) {
-    paths.push(stacksRegistrySchema);
-  }
+  paths.push(...findSchemaFiles(stacksDir));
 
   return paths;
 }
@@ -115,12 +91,21 @@ function main() {
   const exportedVersion = readExportedVersion();
 
   const mismatches = [];
+  const schemaPaths = gatherSchemaPaths();
+  const shouldListSchemas = process.argv.includes('--list-schemas');
+
+  if (shouldListSchemas) {
+    console.log('Collected schema paths:');
+    schemaPaths
+      .map((schemaPath) => path.relative(ROOT_DIR, schemaPath))
+      .forEach((schemaPath) => console.log(`- ${schemaPath}`));
+  }
 
   if (specVersion !== exportedVersion) {
     mismatches.push(`src/specVersion.ts exports ${exportedVersion} but spec/SOUSTACK_SPEC_VERSION is ${specVersion}`);
   }
 
-  gatherSchemaPaths().forEach((schemaPath) => {
+  schemaPaths.forEach((schemaPath) => {
     const schemaVersion = extractVersionFromSchema(schemaPath);
     if (schemaVersion === null) {
       // Skip schemas without versions (component schemas like base.schema.json, profiles, modules)
