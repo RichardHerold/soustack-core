@@ -5,9 +5,12 @@
   "description": "Schema for the nutrition module. Keeps nutrition data aligned with module declarations and vice versa.",
   "type": "object",
   "properties": {
-    "modules": {
-      "type": "array",
-      "items": { "type": "string" }
+    "stacks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      }
     },
     "nutrition": {
       "type": "object",
@@ -22,9 +25,12 @@
     {
       "if": {
         "properties": {
-          "modules": {
-            "type": "array",
-            "contains": { "const": "nutrition@1" }
+          "stacks": {
+            "type": "object",
+            "properties": {
+              "nutrition": { "const": 1 }
+            },
+            "required": ["nutrition"]
           }
         }
       },
@@ -37,12 +43,14 @@
         "required": ["nutrition"]
       },
       "then": {
-        "required": ["modules"],
+        "required": ["stacks"],
         "properties": {
-          "modules": {
-            "type": "array",
-            "items": { "type": "string" },
-            "contains": { "const": "nutrition@1" }
+          "stacks": {
+            "type": "object",
+            "properties": {
+              "nutrition": { "const": 1 }
+            },
+            "required": ["nutrition"]
           }
         }
       }

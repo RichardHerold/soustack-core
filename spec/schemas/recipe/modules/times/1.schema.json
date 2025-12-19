@@ -2,12 +2,15 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://soustack.org/schemas/recipe/modules/times/1.schema.json",
   "title": "Soustack Recipe Module: times v1",
-  "description": "Schema for the times module. Maintains alignment between module declarations and timing payloads.",
+  "description": "Schema for the times module. Maintains alignment between stack declarations and timing payloads.",
   "type": "object",
   "properties": {
-    "modules": {
-      "type": "array",
-      "items": { "type": "string" }
+    "stacks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      }
     },
     "times": {
       "type": "object",
@@ -23,9 +26,12 @@
     {
       "if": {
         "properties": {
-          "modules": {
-            "type": "array",
-            "contains": { "const": "times@1" }
+          "stacks": {
+            "type": "object",
+            "properties": {
+              "times": { "const": 1 }
+            },
+            "required": ["times"]
           }
         }
       },
@@ -38,12 +44,14 @@
         "required": ["times"]
       },
       "then": {
-        "required": ["modules"],
+        "required": ["stacks"],
         "properties": {
-          "modules": {
-            "type": "array",
-            "items": { "type": "string" },
-            "contains": { "const": "times@1" }
+          "stacks": {
+            "type": "object",
+            "properties": {
+              "times": { "const": 1 }
+            },
+            "required": ["times"]
           }
         }
       }
