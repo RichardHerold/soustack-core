@@ -107,19 +107,13 @@ describe('Schema.org <-> Soustack', () => {
     const soustack = fromSchemaOrg(schemaOrgFixture);
     expect(soustack).not.toBeNull();
 
-    // Remove properties that aren't in the core profile or require modules
+    // Remove properties that aren't in the core profile or require stacks
     const { dateModified, nutrition, times, ...baseCompatible } = soustack as any;
     // Ensure @type and profile are present
     if (!baseCompatible['@type']) {
       baseCompatible['@type'] = 'Recipe';
     }
-    // Remove modules that require fields we removed
-    if (baseCompatible.modules) {
-      baseCompatible.modules = baseCompatible.modules.filter((m: string) => 
-        m !== 'times@1' && m !== 'nutrition@1'
-      );
-    }
-    // Also remove from stacks if present
+    // Remove stacks that require fields we removed
     if (baseCompatible.stacks && typeof baseCompatible.stacks === 'object') {
       delete baseCompatible.stacks.times;
       delete baseCompatible.stacks.nutrition;
@@ -139,7 +133,7 @@ describe('Schema.org <-> Soustack', () => {
     const soustackRecipe: Recipe = {
       '@type': 'Recipe',
       profile: 'minimal',
-      modules: ['taxonomy@1', 'times@1'], // Declare modules for category/tags and time
+      stacks: { taxonomy: 1, times: 1 }, // Declare stacks for category/tags and time
       name: 'Test Bread',
       description: 'A demo loaf.',
       image: 'https://example.com/bread.jpg',

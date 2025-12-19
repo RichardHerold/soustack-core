@@ -93,12 +93,12 @@ describe('metadata mapping', () => {
 
     // v0.3: nutrition values are parsed as numbers
     expect(withNutrition.nutrition).toEqual({ calories: 200 });
-    expect(withNutrition.modules).toContain('nutrition@1');
+    expect(withNutrition.stacks?.nutrition).toBe(1);
     expect(withoutNutrition.nutrition).toBeUndefined();
     expect(withoutNutrition).not.toHaveProperty('nutrition');
-    expect(withoutNutrition.modules).not.toContain('nutrition@1');
+    expect(withoutNutrition.stacks?.nutrition).toBeUndefined();
     expect(missingNutrition).not.toHaveProperty('nutrition');
-    expect(missingNutrition.modules).not.toContain('nutrition@1');
+    expect(missingNutrition.stacks?.nutrition).toBeUndefined();
   });
 });
 
@@ -399,8 +399,14 @@ describe('minimal profile and module emission', () => {
     const recipe = soustack as Recipe;
 
     expect(recipe.profile).toBe('minimal');
-    expect(recipe.modules).toEqual(
-      expect.arrayContaining(['attribution@1', 'taxonomy@1', 'media@1', 'nutrition@1', 'times@1'])
+    expect(recipe.stacks).toEqual(
+      expect.objectContaining({
+        attribution: 1,
+        taxonomy: 1,
+        media: 1,
+        nutrition: 1,
+        times: 1
+      })
     );
 
     expect(recipe.attribution).toEqual(
@@ -426,12 +432,12 @@ describe('minimal profile and module emission', () => {
     // v0.3: times module uses prepMinutes/cookMinutes/totalMinutes
     expect(recipe.times).toEqual({ prepMinutes: 20, cookMinutes: 40, totalMinutes: 60 });
 
-    // Remove top-level fields that should be in modules (fromSchemaOrg puts them at top level for compatibility)
-    // Also remove nutrition since Schema.org format doesn't match Soustack nutrition module format exactly
+    // Remove top-level fields that should be in stacks (fromSchemaOrg puts them at top level for compatibility)
+    // Also remove nutrition since Schema.org format doesn't match Soustack nutrition stack format exactly
     const { description, image, category, tags, nutrition, ...recipeForValidation } = recipe as any;
-    // Remove nutrition@1 from modules if nutrition was removed (module contract requires payload if declared)
-    if (recipeForValidation.modules) {
-      recipeForValidation.modules = recipeForValidation.modules.filter((m: string) => m !== 'nutrition@1');
+    // Remove nutrition from stacks if nutrition was removed (stack contract requires payload if declared)
+    if (recipeForValidation.stacks && recipeForValidation.stacks.nutrition) {
+      delete recipeForValidation.stacks.nutrition;
     }
     // Also remove from stacks if present
     if (recipeForValidation.stacks && typeof recipeForValidation.stacks === 'object') {

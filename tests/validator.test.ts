@@ -24,7 +24,7 @@ describe('Soustack validation', () => {
     '@type': 'Recipe',
     ...baseValidRaw, 
     profile: baseValidRaw.profile || 'core',
-    modules: baseValidRaw.modules || []
+    stacks: baseValidRaw.stacks || {}
   };
   
   // Load example fixtures for v0.3.0
@@ -52,7 +52,7 @@ describe('Soustack validation', () => {
     const recipe: Recipe = {
       ...baseValid,
       $schema: 'http://soustack.org/schema/recipe/profiles/core.schema.json',
-      modules: ['times@1'], // Add times module for times field
+      stacks: { times: 1 }, // Add times stack for times field
       times: { prepMinutes: 10, cookMinutes: 20, totalMinutes: 30 }, // times module uses prepMinutes/cookMinutes/totalMinutes
       yield: baseValid.yield || { amount: 1, unit: 'serving' },
     };
@@ -83,9 +83,9 @@ describe('Soustack validation', () => {
     // Should validate against core profile
   });
 
-  it('defaults to empty modules array if modules is missing', () => {
+  it('defaults to empty stacks map if stacks is missing', () => {
     const recipe = { ...minimalValid };
-    delete (recipe as any).modules;
+    delete (recipe as any).stacks;
     const result = validateRecipe(recipe, { profile: 'minimal' });
     expect(result.valid).toBe(true);
   });
@@ -108,7 +108,7 @@ describe('Soustack validation', () => {
         '@type': 'Recipe',
         ...recipeRaw, 
         profile: recipeRaw.profile || 'core',
-        modules: recipeRaw.modules || []
+        stacks: recipeRaw.stacks || {}
       };
       const result = validateRecipe(recipe);
 
@@ -127,7 +127,7 @@ describe('Soustack validation', () => {
         '@type': 'Recipe',
         ...recipeRaw, 
         profile: recipeRaw.profile || 'core',
-        modules: recipeRaw.modules || []
+        stacks: recipeRaw.stacks || {}
       };
       const result = validateRecipe(recipe);
 
@@ -143,7 +143,7 @@ describe('Soustack validation', () => {
         '@type': 'Recipe',
         ...recipeRaw, 
         profile: recipeRaw.profile || 'core',
-        modules: recipeRaw.modules || []
+        stacks: recipeRaw.stacks || {}
       };
       const result = validateRecipe(recipe);
 
@@ -163,7 +163,7 @@ describe('Soustack validation', () => {
       '@type': 'Recipe',
       ...invalidRaw, 
       profile: invalidRaw.profile || 'core',
-      modules: invalidRaw.modules || []
+      stacks: invalidRaw.stacks || {}
     };
     const result: ValidationResult = validateRecipe(invalid);
     expect(result.valid).toBe(false);
@@ -251,7 +251,7 @@ describe('Soustack validation', () => {
     });
   });
 
-  describe('composed validation with modules', () => {
+  describe('composed validation with stacks', () => {
     it('validates minimal profile with nutrition module', () => {
       const result = validateRecipe(minimalNutritionValid);
       expect(result.valid).toBe(true);
@@ -270,32 +270,32 @@ describe('Soustack validation', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it('enforces module declaration when payload exists (module contract)', () => {
+    it('enforces stack declaration when payload exists (stack contract)', () => {
       const recipe = {
         ...minimalValid,
         nutrition: { calories: 100, protein_g: 5 },
-        // modules is missing or doesn't include nutrition@1
+        // stacks is missing or doesn't include nutrition: 1
       };
       const result = validateRecipe(recipe);
 
-      // Module contract: if payload exists, module must be declared
+      // Stack contract: if payload exists, stack must be declared
       expect(result.valid).toBe(false);
       expect(result.errors.some(e => 
         e.message.includes('nutrition') || 
-        e.message.includes('modules') ||
-        e.path.includes('modules')
+        e.message.includes('stacks') ||
+        e.path.includes('stacks')
       )).toBe(true);
     });
 
-    it('enforces payload existence when module is declared (module contract)', () => {
+    it('enforces payload existence when stack is declared (stack contract)', () => {
       const recipe = {
         ...minimalValid,
-        modules: ['nutrition@1'],
+        stacks: { nutrition: 1 },
         // nutrition payload is missing
       };
       const result = validateRecipe(recipe);
 
-      // Module contract: if module is declared, payload must exist
+      // Stack contract: if stack is declared, payload must exist
       expect(result.valid).toBe(false);
       expect(result.errors.some(e => 
         e.message.includes('nutrition') || 
@@ -303,10 +303,10 @@ describe('Soustack validation', () => {
       )).toBe(true);
     });
 
-    it('validates when both module declaration and payload exist', () => {
+    it('validates when both stack declaration and payload exist', () => {
       const recipe = {
         ...minimalValid,
-        modules: ['nutrition@1'],
+        stacks: { nutrition: 1 },
         nutrition: { calories: 100, protein_g: 5 },
       };
       const result = validateRecipe(recipe);
@@ -314,45 +314,45 @@ describe('Soustack validation', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it('infers modules from payload and enforces declaration requirement', () => {
+    it('infers stacks from payload and enforces declaration requirement', () => {
       const recipe = {
         ...minimalValid,
         times: { prepMinutes: 10, cookMinutes: 20, totalMinutes: 30 },
-        // modules doesn't include times@1
+        // stacks doesn't include times: 1
       };
       const result = validateRecipe(recipe);
 
-      // Should infer times@1 from payload and enforce that it's declared
+      // Should infer times: 1 from payload and enforce that it's declared
       expect(result.valid).toBe(false);
       expect(result.errors.some(e => 
         e.message.includes('times') || 
-        e.message.includes('modules') ||
-        e.path.includes('modules')
+        e.message.includes('stacks') ||
+        e.path.includes('stacks')
       )).toBe(true);
     });
 
-    it('validates with multiple modules', () => {
+    it('validates with multiple stacks', () => {
       const recipe = {
         ...minimalValid,
-        modules: ['nutrition@1', 'times@1'],
+        stacks: { nutrition: 1, times: 1 },
         nutrition: { calories: 100, protein_g: 5 },
-        times: { prepMinutes: 10, cookMinutes: 20, totalMinutes: 30 }, // times module uses prepMinutes/cookMinutes/totalMinutes
+        times: { prepMinutes: 10, cookMinutes: 20, totalMinutes: 30 }, // times stack uses prepMinutes/cookMinutes/totalMinutes
       };
       const result = validateRecipe(recipe);
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
 
-    it('caches validators by profile and sorted modules', () => {
+    it('caches validators by profile and sorted stacks', () => {
       const recipe1 = {
         ...minimalValid,
-        modules: ['nutrition@1', 'times@1'],
+        stacks: { nutrition: 1, times: 1 },
         nutrition: { calories: 100, protein_g: 5 },
         times: { prepMinutes: 10, cookMinutes: 20, totalMinutes: 30 },
       };
       const recipe2 = {
         ...minimalValid,
-        modules: ['times@1', 'nutrition@1'], // Same modules, different order
+        stacks: { times: 1, nutrition: 1 }, // Same stacks, different order
         nutrition: { calories: 100, protein_g: 5 },
         times: { prepMinutes: 10, cookMinutes: 20, totalMinutes: 30 },
       };

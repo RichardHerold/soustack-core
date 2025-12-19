@@ -208,7 +208,7 @@ function cloneRecipe<T>(recipe: T): T {
 }
 
 function normalizeRecipe(recipe: any): { normalized: Recipe; warnings: NormalizedWarning[] } {
-  // First, apply the new normalization for stacks/modules
+  // First, apply the new normalization for stacks
   const { recipe: normalizedInput, warnings: inputWarnings } = normalizeRecipeInput(recipe);
   const normalized = cloneRecipe(normalizedInput);
   const warnings: NormalizedWarning[] = inputWarnings.map((msg) => ({
@@ -229,19 +229,6 @@ function normalizeRecipe(recipe: any): { normalized: Recipe; warnings: Normalize
   ) {
     (normalized as any).recipeVersion = (normalized as any).version;
     warnings.push({ path: "/version", message: "'version' is deprecated; mapped to 'recipeVersion'." });
-  }
-
-  // Convert stacks map back to modules array for validation (temporary compatibility)
-  // The validator still expects modules array format
-  if (normalized.stacks && typeof normalized.stacks === "object" && !Array.isArray(normalized.stacks)) {
-    const modules: string[] = [];
-    for (const [name, version] of Object.entries(normalized.stacks)) {
-      if (typeof version === "number" && version >= 1) {
-        modules.push(`${name}@${version}`);
-      }
-    }
-    // Keep both for now - stacks is the source of truth, modules is for validator compatibility
-    (normalized as any).modules = modules.sort();
   }
 
   return { normalized, warnings };
@@ -284,36 +271,37 @@ function formatAjvError(error: ErrorObject): NormalizedError {
 }
 
 /**
- * Infers module identifiers from payload fields in the recipe.
- * Returns an array of module IDs (e.g., ["times@1", "nutrition@1"]).
+ * Infers stacks from payload fields in the recipe.
+ * Returns a stacks map (e.g., { times: 1, nutrition: 1 }).
+ * Uses version 1 as default, but can be enhanced to use registry "latest" if available.
  */
-function inferModulesFromPayload(recipe: any): string[] {
-  const inferred: string[] = [];
+function inferStacksFromPayload(recipe: any): Record<string, number> {
+  const inferred: Record<string, number> = {};
 
-  // Map payload field names to module IDs
-  const payloadToModule: Record<string, string> = {
-    attribution: "attribution@1",
-    taxonomy: "taxonomy@1",
-    media: "media@1",
-    times: "times@1",
-    nutrition: "nutrition@1",
-    schedule: "schedule@1",
+  // Map payload field names to stack names
+  const payloadToStack: Record<string, string> = {
+    attribution: "attribution",
+    taxonomy: "taxonomy",
+    media: "media",
+    times: "times",
+    nutrition: "nutrition",
+    schedule: "schedule",
   };
 
-  for (const [field, moduleId] of Object.entries(payloadToModule)) {
+  for (const [field, stackName] of Object.entries(payloadToStack)) {
     if (recipe && typeof recipe === "object" && field in recipe && recipe[field] != null) {
       // Check if the payload is a non-empty object/array
       const payload = recipe[field];
       if (typeof payload === "object" && !Array.isArray(payload)) {
         // For objects, check if it has any properties
         if (Object.keys(payload).length > 0) {
-          inferred.push(moduleId);
+          inferred[stackName] = 1; // Default to version 1, can be enhanced with registry lookup
         }
       } else if (Array.isArray(payload) && payload.length > 0) {
-        inferred.push(moduleId);
+        inferred[stackName] = 1;
       } else if (payload !== null && payload !== undefined) {
         // For primitive values, consider it present
-        inferred.push(moduleId);
+        inferred[stackName] = 1;
       }
     }
   }
@@ -322,19 +310,22 @@ function inferModulesFromPayload(recipe: any): string[] {
 }
 
 /**
- * Gets a composed validator for a profile and modules using vendored schemas
+ * Gets a composed validator for a profile and stacks using vendored schemas
  */
 function getComposedValidator(
   profile: ProfileName,
-  modules: string[],
+  stacks: Record<string, number>,
   context: ValidationContext,
 ): ValidateFunction {
-  const sortedModules = [...modules].sort();
-  const cacheKey = `${profile}::${sortedModules.join(",")}`;
+  // Create cache key from profile + sorted stack identifiers (e.g., "attribution@1,times@1")
+  const stackIdentifiers = Object.entries(stacks)
+    .map(([name, version]) => `${name}@${version}`)
+    .sort();
+  const cacheKey = `${profile}::${stackIdentifiers.join(",")}`;
   const cached = context.validators.get(cacheKey);
   if (cached) return cached;
 
-  // Build composed schema: base + profile + modules
+  // Build composed schema: base + profile + stacks
   const allOf: any[] = [{ $ref: BASE_SCHEMA_ID }];
 
   // Verify base schema is loaded
@@ -349,17 +340,15 @@ function getComposedValidator(
   }
   allOf.push({ $ref: profileSchemaId });
 
-  // Add module schemas
-  for (const moduleId of sortedModules) {
-    const match = moduleId.match(/^([a-z0-9_-]+)@(\d+)$/i);
-    if (match) {
-      const [, name, version] = match;
-      // Module schemas use https:// prefix
-      const moduleSchemaId = `https://soustack.org/schemas/recipe/modules/${name}/${version}.schema.json`;
-      if (!context.ajv.getSchema(moduleSchemaId)) {
-        throw new Error(`Module schema not loaded: ${moduleSchemaId}`);
+  // Add stack schemas
+  for (const [name, version] of Object.entries(stacks)) {
+    if (typeof version === "number" && version >= 1) {
+      // Stack schemas use https:// prefix
+      const stackSchemaId = `https://soustack.org/schemas/recipe/modules/${name}/${version}.schema.json`;
+      if (!context.ajv.getSchema(stackSchemaId)) {
+        throw new Error(`Stack schema not loaded: ${stackSchemaId}`);
       }
-      allOf.push({ $ref: moduleSchemaId });
+      allOf.push({ $ref: stackSchemaId });
     }
   }
 
@@ -405,54 +394,57 @@ export function validateRecipeSchema(input: unknown): {
 
   // Determine if we should use composed validation or root schema
   const hasProfile = normalized.profile && typeof normalized.profile === "string";
-  let modules: string[] = [];
-  if (Array.isArray(normalized.modules)) {
-    modules.push(...normalized.modules.filter((m: any) => typeof m === "string"));
-  } else if (normalized.stacks && typeof normalized.stacks === "object" && !Array.isArray(normalized.stacks)) {
+  
+  // Get declared stacks from recipe
+  let declaredStacks: Record<string, number> = {};
+  if (normalized.stacks && typeof normalized.stacks === "object" && !Array.isArray(normalized.stacks)) {
     for (const [name, version] of Object.entries(normalized.stacks)) {
       if (typeof version === "number" && version >= 1) {
-        modules.push(`${name}@${version}`);
+        declaredStacks[name] = version;
       }
     }
   }
 
-  // Infer modules from payloads (for module contract enforcement)
-  // We include inferred modules in the validation schema, but don't add them to the modules array
-  // This allows the module contract (if/then in module schemas) to enforce that modules must be declared
-  const inferredModules = inferModulesFromPayload(normalized);
-  // Include both declared and inferred modules in the schema validation
-  const allModules = new Set([...modules, ...inferredModules]);
+  // Infer stacks from payloads (for stack contract enforcement)
+  // We include inferred stacks in the validation schema to enforce that stacks must be declared
+  const inferredStacks = inferStacksFromPayload(normalized);
+  
+  // Merge declared and inferred stacks, using max(version) per stack name
+  const allStacks: Record<string, number> = { ...declaredStacks };
+  for (const [name, version] of Object.entries(inferredStacks)) {
+    if (!allStacks[name] || allStacks[name] < version) {
+      allStacks[name] = version;
+    }
+  }
 
   let isValid: boolean;
   let errors: ErrorObject[] = [];
 
   // Default to core profile if no profile specified
-  // Always use composed validation (base + profile + modules) instead of root schema
+  // Always use composed validation (base + profile + stacks) instead of root schema
   const profile: ProfileName = hasProfile
     ? ((normalized.profile as string).toLowerCase() as ProfileName)
     : "core";
 
-  // Always use composed validation for recipes (base + profile + modules)
+  // Always use composed validation for recipes (base + profile + stacks)
   // Root schema validation is only for standalone validation without profiles
   if (profile === "minimal" || profile === "core") {
-    // Use composed validation (base + profile + modules)
-    // Include both declared and inferred modules in schema to enforce contract
-    // But only use declared modules in the modules array - this allows contract enforcement
+    // Use composed validation (base + profile + stacks)
+    // Include both declared and inferred stacks in schema to enforce contract
+    // The schema will enforce that stacks must be declared if payload exists
 
-    // Ensure modules array exists for validation (only declared modules, not inferred)
+    // Ensure stacks map exists for validation
     const validationCopy = cloneRecipe(normalized);
-    if (!Array.isArray(validationCopy.modules)) {
-      (validationCopy as any).modules = modules.length > 0 ? [...modules].sort() : [];
-    } else {
-      (validationCopy as any).modules = [...modules].sort();
+    if (!validationCopy.stacks || typeof validationCopy.stacks !== "object" || Array.isArray(validationCopy.stacks)) {
+      (validationCopy as any).stacks = declaredStacks;
     }
     // Ensure profile exists
     if (!validationCopy.profile) {
       (validationCopy as any).profile = profile;
     }
 
-    // Use allModules (declared + inferred) in the validator to enforce contract
-    const validator = getComposedValidator(profile, Array.from(allModules), context);
+    // Use allStacks (declared + inferred) in the validator to enforce contract
+    const validator = getComposedValidator(profile, allStacks, context);
     isValid = validator(validationCopy);
     errors = validator.errors || [];
 
@@ -461,7 +453,7 @@ export function validateRecipeSchema(input: unknown): {
     if (isValid && context.rootValidator) {
       const rootCheckCopy = cloneRecipe(normalized);
       // Remove fields that root schema doesn't have but are valid in composed validation
-      // Root schema doesn't include: @type, profile, modules, stacks, or module payloads
+      // Root schema doesn't include: @type, profile, stacks, or stack payloads
       if ("@type" in rootCheckCopy) {
         delete (rootCheckCopy as any)["@type"];
       }
@@ -470,9 +462,6 @@ export function validateRecipeSchema(input: unknown): {
       }
       if ("profile" in rootCheckCopy) {
         delete (rootCheckCopy as any).profile;
-      }
-      if ("modules" in rootCheckCopy) {
-        delete (rootCheckCopy as any).modules;
       }
       // Also remove module payload fields that root schema doesn't have
       const moduleFields = ["attribution", "taxonomy", "media", "times", "nutrition", "schedule"];

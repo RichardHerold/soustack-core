@@ -79,17 +79,6 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
   // Normalize the recipe to ensure it's in the correct format
   const { recipe } = normalizeRecipe(rawRecipe);
   
-  // For backward compatibility, also set modules array from stacks
-  if (recipe.stacks && typeof recipe.stacks === 'object' && !Array.isArray(recipe.stacks)) {
-    const modules: string[] = [];
-    for (const [name, version] of Object.entries(recipe.stacks)) {
-      if (typeof version === 'number' && version >= 1) {
-        modules.push(`${name}@${version}`);
-      }
-    }
-    (recipe as any).modules = modules.sort();
-  }
-  
   return recipe;
 }
 

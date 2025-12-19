@@ -6,9 +6,12 @@
   "type": "object",
   "properties": {
     "profile": { "type": "string" },
-    "modules": {
-      "type": "array",
-      "items": { "type": "string" }
+    "stacks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      }
     },
     "schedule": {
       "type": "object",
@@ -22,9 +25,12 @@
     {
       "if": {
         "properties": {
-          "modules": {
-            "type": "array",
-            "contains": { "const": "schedule@1" }
+          "stacks": {
+            "type": "object",
+            "properties": {
+              "schedule": { "const": 1 }
+            },
+            "required": ["schedule"]
           }
         }
       },
@@ -40,12 +46,14 @@
         "required": ["schedule"]
       },
       "then": {
-        "required": ["modules", "profile"],
+        "required": ["stacks", "profile"],
         "properties": {
-          "modules": {
-            "type": "array",
-            "items": { "type": "string" },
-            "contains": { "const": "schedule@1" }
+          "stacks": {
+            "type": "object",
+            "properties": {
+              "schedule": { "const": 1 }
+            },
+            "required": ["schedule"]
           },
           "profile": { "const": "core" }
         }

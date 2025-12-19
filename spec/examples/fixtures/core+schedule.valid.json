@@ -1,7 +1,7 @@
 {
   "@type": "Recipe",
   "profile": "core",
-  "modules": ["schedule@1"],
+  "stacks": { "schedule": 1 },
   "name": "Core with Schedule",
   "ingredients": [
     { "item": "Flour", "quantity": "1 cup" },

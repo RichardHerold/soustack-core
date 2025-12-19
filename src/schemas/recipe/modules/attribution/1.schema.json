@@ -5,9 +5,12 @@
   "description": "Schema for the attribution module. Ensures namespace data is present when the module is enabled and vice versa.",
   "type": "object",
   "properties": {
-    "modules": {
-      "type": "array",
-      "items": { "type": "string" }
+    "stacks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      }
     },
     "attribution": {
       "type": "object",
@@ -23,9 +26,12 @@
     {
       "if": {
         "properties": {
-          "modules": {
-            "type": "array",
-            "contains": { "const": "attribution@1" }
+          "stacks": {
+            "type": "object",
+            "properties": {
+              "attribution": { "const": 1 }
+            },
+            "required": ["attribution"]
           }
         }
       },
@@ -38,12 +44,14 @@
         "required": ["attribution"]
       },
       "then": {
-        "required": ["modules"],
+        "required": ["stacks"],
         "properties": {
-          "modules": {
-            "type": "array",
-            "items": { "type": "string" },
-            "contains": { "const": "attribution@1" }
+          "stacks": {
+            "type": "object",
+            "properties": {
+              "attribution": { "const": 1 }
+            },
+            "required": ["attribution"]
           }
         }
       }

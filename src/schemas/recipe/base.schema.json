@@ -14,11 +14,12 @@
       "type": "string",
       "description": "Profile identifier applied to this recipe"
     },
-    "modules": {
-      "type": "array",
-      "description": "List of module identifiers applied to this recipe",
-      "items": {
-        "type": "string"
+    "stacks": {
+      "type": "object",
+      "description": "Module stacks as a map: Record<moduleName, versionNumber>",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
       }
     },
     "name": {
