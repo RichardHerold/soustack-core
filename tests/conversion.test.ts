@@ -119,6 +119,11 @@ describe('Schema.org <-> Soustack', () => {
         m !== 'times@1' && m !== 'nutrition@1'
       );
     }
+    // Also remove from stacks if present
+    if (baseCompatible.stacks && typeof baseCompatible.stacks === 'object') {
+      delete baseCompatible.stacks.times;
+      delete baseCompatible.stacks.nutrition;
+    }
     baseCompatible.profile = 'core';
     const validation = validateRecipe(baseCompatible, { profile: 'core' });
     expect(validation.valid).toBe(true);

@@ -22,6 +22,7 @@ import {
   SchemaOrgImage
 } from './types/schemaOrg';
 import { normalizeImage } from './utils/image';
+import { normalizeRecipe } from './normalize';
 
 export function fromSchemaOrg(input: unknown): Recipe | null {
   const recipeNode = extractRecipeNode(input);
@@ -44,17 +45,18 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
   const media = convertMedia(recipeNode.image, recipeNode.video);
   const times = convertTimes(time);
 
-  const modules: string[] = [];
-  if (attribution) modules.push('attribution@1');
-  if (taxonomy) modules.push('taxonomy@1');
-  if (media) modules.push('media@1');
-  if (nutrition) modules.push('nutrition@1');
-  if (times) modules.push('times@1');
+  // Build stacks map from modules
+  const stacks: Record<string, number> = {};
+  if (attribution) stacks.attribution = 1;
+  if (taxonomy) stacks.taxonomy = 1;
+  if (media) stacks.media = 1;
+  if (nutrition) stacks.nutrition = 1;
+  if (times) stacks.times = 1;
 
-  return {
+  const rawRecipe = {
     '@type': 'Recipe',
     profile: 'minimal',
-    modules: modules.sort(),
+    stacks,
     name: recipeNode.name.trim(),
     description: recipeNode.description?.trim() || undefined,
     image: normalizeImage(recipeNode.image),
@@ -73,6 +75,22 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
     ...(media ? { media } : {}),
     ...(times ? { times } : {})
   };
+
+  // Normalize the recipe to ensure it's in the correct format
+  const { recipe } = normalizeRecipe(rawRecipe);
+  
+  // For backward compatibility, also set modules array from stacks
+  if (recipe.stacks && typeof recipe.stacks === 'object' && !Array.isArray(recipe.stacks)) {
+    const modules: string[] = [];
+    for (const [name, version] of Object.entries(recipe.stacks)) {
+      if (typeof version === 'number' && version >= 1) {
+        modules.push(`${name}@${version}`);
+      }
+    }
+    (recipe as any).modules = modules.sort();
+  }
+  
+  return recipe;
 }
 
 function extractRecipeNode(input: unknown): SchemaOrgRecipe | null {

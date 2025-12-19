@@ -433,6 +433,10 @@ describe('minimal profile and module emission', () => {
     if (recipeForValidation.modules) {
       recipeForValidation.modules = recipeForValidation.modules.filter((m: string) => m !== 'nutrition@1');
     }
+    // Also remove from stacks if present
+    if (recipeForValidation.stacks && typeof recipeForValidation.stacks === 'object') {
+      delete recipeForValidation.stacks.nutrition;
+    }
     const validation = validateRecipe(recipeForValidation);
     expect(validation.valid).toBe(true);
   });
