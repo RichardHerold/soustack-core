@@ -4,7 +4,7 @@ import os from 'node:os';
 import crypto from 'node:crypto';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { SPEC_REPO, REQUIRED_SPEC_FILES } from './schema-artifacts.mjs';
+import { SPEC_REPO, getRequiredSpecFiles } from './schema-artifacts.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -109,21 +109,41 @@ function copyIntoSpecDirectory(sourceDir) {
   fs.rmSync(SPEC_DIR, { recursive: true, force: true });
   fs.mkdirSync(SPEC_DIR, { recursive: true });
 
-  const entries = [
-    'soustack.schema.json',
-    'schemas',
-    'profiles',
-    'fixtures',
-    'examples',
-  ];
+  // Copy root schema
+  const rootSchema = path.join(sourceDir, 'soustack.schema.json');
+  if (fs.existsSync(rootSchema)) {
+    fs.copyFileSync(rootSchema, path.join(SPEC_DIR, 'soustack.schema.json'));
+  }
 
-  entries.forEach((entry) => {
-    const from = path.join(sourceDir, entry);
-    const to = path.join(SPEC_DIR, entry);
-    if (fs.existsSync(from)) {
-      fs.cpSync(from, to, { recursive: true });
-    }
-  });
+  // Copy defs directory (new structure)
+  const defsSource = path.join(sourceDir, 'defs');
+  if (fs.existsSync(defsSource)) {
+    fs.cpSync(defsSource, path.join(SPEC_DIR, 'defs'), { recursive: true });
+  }
+
+  // Copy stacks directory (new structure)
+  const stacksSource = path.join(sourceDir, 'stacks');
+  if (fs.existsSync(stacksSource)) {
+    fs.cpSync(stacksSource, path.join(SPEC_DIR, 'stacks'), { recursive: true });
+  }
+
+  // Copy schemas directory (may contain stacks-registry.schema.json)
+  const schemasSource = path.join(sourceDir, 'schemas');
+  if (fs.existsSync(schemasSource)) {
+    fs.cpSync(schemasSource, path.join(SPEC_DIR, 'schemas'), { recursive: true });
+  }
+
+  // Copy fixtures directory
+  const fixturesSource = path.join(sourceDir, 'fixtures');
+  if (fs.existsSync(fixturesSource)) {
+    fs.cpSync(fixturesSource, path.join(SPEC_DIR, 'fixtures'), { recursive: true });
+  }
+
+  // Copy examples directory (if present)
+  const examplesSource = path.join(sourceDir, 'examples');
+  if (fs.existsSync(examplesSource)) {
+    fs.cpSync(examplesSource, path.join(SPEC_DIR, 'examples'), { recursive: true });
+  }
 }
 
 function copySchemaIntoSrc() {
@@ -138,20 +158,32 @@ function copySchemaIntoSrc() {
     fs.copyFileSync(schemaSource, target);
   });
 
-  const recipeSchemasSource = path.join(SPEC_DIR, 'schemas', 'recipe');
-  if (fs.existsSync(recipeSchemasSource)) {
-    fs.rmSync(path.join(srcDir, 'schemas', 'recipe'), { recursive: true, force: true });
-    fs.mkdirSync(path.join(srcDir, 'schemas'), { recursive: true });
-    fs.cpSync(recipeSchemasSource, path.join(srcDir, 'schemas', 'recipe'), { recursive: true });
+  // Copy defs directory to src (new structure)
+  const defsSource = path.join(SPEC_DIR, 'defs');
+  if (fs.existsSync(defsSource)) {
+    fs.rmSync(path.join(srcDir, 'defs'), { recursive: true, force: true });
+    fs.mkdirSync(path.join(srcDir, 'defs'), { recursive: true });
+    fs.cpSync(defsSource, path.join(srcDir, 'defs'), { recursive: true });
   }
 
-  const registrySource = path.join(SPEC_DIR, 'schemas', 'registry');
-  if (fs.existsSync(registrySource)) {
-    fs.rmSync(path.join(srcDir, 'schemas', 'registry'), { recursive: true, force: true });
-    fs.mkdirSync(path.join(srcDir, 'schemas'), { recursive: true });
-    fs.cpSync(registrySource, path.join(srcDir, 'schemas', 'registry'), { recursive: true });
+  // Copy stacks directory to src (new structure)
+  const stacksSource = path.join(SPEC_DIR, 'stacks');
+  if (fs.existsSync(stacksSource)) {
+    fs.rmSync(path.join(srcDir, 'stacks'), { recursive: true, force: true });
+    fs.mkdirSync(path.join(srcDir, 'stacks'), { recursive: true });
+    fs.cpSync(stacksSource, path.join(srcDir, 'stacks'), { recursive: true });
   }
 
+  // Copy schemas directory (may contain stacks-registry.schema.json or legacy recipe/registry)
+  const schemasSource = path.join(SPEC_DIR, 'schemas');
+  if (fs.existsSync(schemasSource)) {
+    // Copy entire schemas directory structure
+    fs.rmSync(path.join(srcDir, 'schemas'), { recursive: true, force: true });
+    fs.mkdirSync(path.join(srcDir, 'schemas'), { recursive: true });
+    fs.cpSync(schemasSource, path.join(srcDir, 'schemas'), { recursive: true });
+  }
+
+  // Legacy: Copy profiles if they still exist (for backward compatibility during transition)
   const profilesSource = path.join(SPEC_DIR, 'profiles');
   if (fs.existsSync(profilesSource)) {
     fs.rmSync(path.join(srcDir, 'profiles'), { recursive: true, force: true });
@@ -254,12 +286,15 @@ async function main() {
     updateSpecVersionModule(version);
     copySchemaIntoSrc();
     updatePackageJson(pkg, version, tag);
+    
+    // Discover required files from the synced spec directory
+    const requiredFiles = getRequiredSpecFiles(SPEC_DIR);
     writeSyncMetadata({
       repo: SPEC_REPO,
       ref: tag,
       version,
       commit: sourceCommit,
-      files: REQUIRED_SPEC_FILES,
+      files: requiredFiles,
     });
 
     console.log(`Soustack spec synced successfully (version ${version}).`);

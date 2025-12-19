@@ -52,13 +52,59 @@ function extractVersionFromSchema(schemaPath) {
   return match[1];
 }
 
+/**
+ * Recursively find all schema files in a directory
+ */
+function findSchemaFiles(dirPath) {
+  const files = [];
+  if (!fs.existsSync(dirPath)) {
+    return files;
+  }
+
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...findSchemaFiles(fullPath));
+    } else if (entry.isFile() && entry.name.endsWith('.schema.json')) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
 function gatherSchemaPaths() {
   const paths = [path.join(SPEC_DIR, 'soustack.schema.json')];
+  
+  // New structure: defs/*.schema.json
+  const defsDir = path.join(SPEC_DIR, 'defs');
+  if (fs.existsSync(defsDir)) {
+    paths.push(...findSchemaFiles(defsDir));
+  }
+
+  // New structure: stacks/*.schema.json
+  const stacksDir = path.join(SPEC_DIR, 'stacks');
+  if (fs.existsSync(stacksDir)) {
+    paths.push(...findSchemaFiles(stacksDir));
+  }
+
+  // Legacy: profiles/*.schema.json (if still present)
   const profilesDir = path.join(SPEC_DIR, 'profiles');
   if (fs.existsSync(profilesDir)) {
-    fs.readdirSync(profilesDir)
-      .filter((file) => file.endsWith('.schema.json'))
-      .forEach((file) => paths.push(path.join(profilesDir, file)));
+    paths.push(...findSchemaFiles(profilesDir));
+  }
+
+  // Legacy: schemas/recipe/**/*.schema.json (if still present)
+  const recipeSchemasDir = path.join(SPEC_DIR, 'schemas', 'recipe');
+  if (fs.existsSync(recipeSchemasDir)) {
+    paths.push(...findSchemaFiles(recipeSchemasDir));
+  }
+
+  // schemas/stacks-registry.schema.json (if present)
+  const stacksRegistrySchema = path.join(SPEC_DIR, 'schemas', 'stacks-registry.schema.json');
+  if (fs.existsSync(stacksRegistrySchema)) {
+    paths.push(stacksRegistrySchema);
   }
 
   return paths;
