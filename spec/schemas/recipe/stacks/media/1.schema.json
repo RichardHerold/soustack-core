@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://soustack.org/schemas/recipe/modules/times/1.schema.json",
-  "title": "Soustack Recipe Module: times v1",
-  "description": "Schema for the times module. Maintains alignment between stack declarations and timing payloads.",
+  "$id": "https://soustack.org/schemas/recipe/stacks/media/1.schema.json",
+  "title": "Soustack Recipe Module: media v1",
+  "description": "Schema for the media module. Guards media blocks based on module activation and ensures declarations accompany payloads.",
   "type": "object",
   "properties": {
     "stacks": {
@@ -12,12 +12,11 @@
         "minimum": 1
       }
     },
-    "times": {
+    "media": {
       "type": "object",
       "properties": {
-        "prepMinutes": { "type": "number" },
-        "cookMinutes": { "type": "number" },
-        "totalMinutes": { "type": "number" }
+        "images": { "type": "array", "items": { "type": "string" } },
+        "videos": { "type": "array", "items": { "type": "string" } }
       },
       "additionalProperties": false
     }
@@ -29,19 +28,19 @@
           "stacks": {
             "type": "object",
             "properties": {
-              "times": { "const": 1 }
+              "media": { "const": 1 }
             },
-            "required": ["times"]
+            "required": ["media"]
           }
         }
       },
       "then": {
-        "required": ["times"]
+        "required": ["media"]
       }
     },
     {
       "if": {
-        "required": ["times"]
+        "required": ["media"]
       },
       "then": {
         "required": ["stacks"],
@@ -49,9 +48,9 @@
           "stacks": {
             "type": "object",
             "properties": {
-              "times": { "const": 1 }
+              "media": { "const": 1 }
             },
-            "required": ["times"]
+            "required": ["media"]
           }
         }
       }

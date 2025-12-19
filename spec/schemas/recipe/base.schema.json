@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "http://soustack.org/schema/recipe/base.schema.json",
   "title": "Soustack Recipe Base Schema",
-  "description": "Base document shape for Soustack recipe documents. Profiles and modules build on this baseline.",
+  "description": "Base document shape for Soustack recipe documents. Profiles and stacks build on this baseline.",
   "type": "object",
   "additionalProperties": true,
   "properties": {
@@ -28,11 +28,11 @@
     },
     "ingredients": {
       "type": "array",
-      "description": "Ingredients payload; content is validated by profiles/modules"
+      "description": "Ingredients payload; content is validated by profiles/stacks"
     },
     "instructions": {
       "type": "array",
-      "description": "Instruction payload; content is validated by profiles/modules"
+      "description": "Instruction payload; content is validated by profiles/stacks"
     }
   },
   "required": ["@type"]

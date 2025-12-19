@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://soustack.org/schemas/recipe/modules/taxonomy/1.schema.json",
-  "title": "Soustack Recipe Module: taxonomy v1",
-  "description": "Schema for the taxonomy module. Enforces keyword and categorization data when enabled and ensures module declaration accompanies the namespace block.",
+  "$id": "https://soustack.org/schemas/recipe/stacks/attribution/1.schema.json",
+  "title": "Soustack Recipe Module: attribution v1",
+  "description": "Schema for the attribution module. Ensures namespace data is present when the module is enabled and vice versa.",
   "type": "object",
   "properties": {
     "stacks": {
@@ -12,12 +12,12 @@
         "minimum": 1
       }
     },
-    "taxonomy": {
+    "attribution": {
       "type": "object",
       "properties": {
-        "keywords": { "type": "array", "items": { "type": "string" } },
-        "category": { "type": "string" },
-        "cuisine": { "type": "string" }
+        "url": { "type": "string" },
+        "author": { "type": "string" },
+        "datePublished": { "type": "string" }
       },
       "additionalProperties": false
     }
@@ -29,19 +29,19 @@
           "stacks": {
             "type": "object",
             "properties": {
-              "taxonomy": { "const": 1 }
+              "attribution": { "const": 1 }
             },
-            "required": ["taxonomy"]
+            "required": ["attribution"]
           }
         }
       },
       "then": {
-        "required": ["taxonomy"]
+        "required": ["attribution"]
       }
     },
     {
       "if": {
-        "required": ["taxonomy"]
+        "required": ["attribution"]
       },
       "then": {
         "required": ["stacks"],
@@ -49,9 +49,9 @@
           "stacks": {
             "type": "object",
             "properties": {
-              "taxonomy": { "const": 1 }
+              "attribution": { "const": 1 }
             },
-            "required": ["taxonomy"]
+            "required": ["attribution"]
           }
         }
       }

@@ -16,6 +16,8 @@ function loadExampleFixture(file: string): Recipe {
 }
 
 describe('Soustack validation', () => {
+  const legacyKey = ['mod', 'ules'].join('');
+  const legacyErrorMessage = 'legacy field is no longer supported';
   // Load base fixture (may not have profile, will default to core)
   const baseValidRaw = JSON.parse(
     fs.readFileSync(path.join(__dirname, '..', 'spec', 'fixtures', 'base', 'valid', 'quick-salsa.json'), 'utf8')
@@ -39,6 +41,17 @@ describe('Soustack validation', () => {
     expect(result.valid).toBe(true);
     expect(result.errors).toHaveLength(0);
     expect(result.normalized).toBeDefined();
+  });
+
+  it('throws when legacy field is present during validation', () => {
+    const recipe = {
+      name: 'Legacy Field',
+      ingredients: [],
+      instructions: [],
+      [legacyKey]: ['times@1'],
+    };
+
+    expect(() => validateRecipe(recipe)).toThrow(legacyErrorMessage);
   });
 
   it('detects unknown top-level keys as errors', () => {

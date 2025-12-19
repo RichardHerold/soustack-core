@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "http://soustack.org/schema/recipe/profiles/minimal.schema.json",
   "title": "Soustack Recipe Minimal Profile",
-  "description": "Minimal profile that ensures the basic Recipe structure is present while allowing modules to extend it.",
+  "description": "Minimal profile that ensures the basic Recipe structure is present while allowing stacks to extend it.",
   "allOf": [
     {
       "$ref": "http://soustack.org/schema/recipe/base.schema.json"

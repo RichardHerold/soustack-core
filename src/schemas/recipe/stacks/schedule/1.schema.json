@@ -1,10 +1,11 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://soustack.org/schemas/recipe/modules/nutrition/1.schema.json",
-  "title": "Soustack Recipe Module: nutrition v1",
-  "description": "Schema for the nutrition module. Keeps nutrition data aligned with module declarations and vice versa.",
+  "$id": "https://soustack.org/schemas/recipe/stacks/schedule/1.schema.json",
+  "title": "Soustack Recipe Module: schedule v1",
+  "description": "Schema for the schedule module. Enforces bidirectional module gating and restricts usage to the core profile.",
   "type": "object",
   "properties": {
+    "profile": { "type": "string" },
     "stacks": {
       "type": "object",
       "additionalProperties": {
@@ -12,11 +13,10 @@
         "minimum": 1
       }
     },
-    "nutrition": {
+    "schedule": {
       "type": "object",
       "properties": {
-        "calories": { "type": "number" },
-        "protein_g": { "type": "number" }
+        "tasks": { "type": "array" }
       },
       "additionalProperties": false
     }
@@ -28,30 +28,34 @@
           "stacks": {
             "type": "object",
             "properties": {
-              "nutrition": { "const": 1 }
+              "schedule": { "const": 1 }
             },
-            "required": ["nutrition"]
+            "required": ["schedule"]
           }
         }
       },
       "then": {
-        "required": ["nutrition"]
+        "required": ["schedule", "profile"],
+        "properties": {
+          "profile": { "const": "core" }
+        }
       }
     },
     {
       "if": {
-        "required": ["nutrition"]
+        "required": ["schedule"]
       },
       "then": {
-        "required": ["stacks"],
+        "required": ["stacks", "profile"],
         "properties": {
           "stacks": {
             "type": "object",
             "properties": {
-              "nutrition": { "const": 1 }
+              "schedule": { "const": 1 }
             },
-            "required": ["nutrition"]
-          }
+            "required": ["schedule"]
+          },
+          "profile": { "const": "core" }
         }
       }
     }

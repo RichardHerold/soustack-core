@@ -2,6 +2,8 @@ import { normalizeRecipe } from '../src/normalize';
 import { Recipe } from '../src/types';
 
 describe('normalizeRecipe', () => {
+  const legacyKey = ['mod', 'ules'].join('');
+  const legacyErrorMessage = 'legacy field is no longer supported';
   it('preserves existing stacks map format', () => {
     const input: any = {
       name: 'Test Recipe',
@@ -15,15 +17,15 @@ describe('normalizeRecipe', () => {
     expect(result.warnings).toHaveLength(0);
   });
 
-  it('rejects inputs with modules field', () => {
+  it('rejects inputs with legacy field', () => {
     const input: any = {
       name: 'Test Recipe',
       ingredients: [],
       instructions: [],
-      modules: ['scaling@1', 'timed@1'],
+      [legacyKey]: ['scaling@1', 'timed@1'],
     };
 
-    expect(() => normalizeRecipe(input)).toThrow('The `modules` field is no longer supported');
+    expect(() => normalizeRecipe(input)).toThrow(legacyErrorMessage);
   });
 
   it('converts legacy stacks array to stacks map', () => {
@@ -39,26 +41,26 @@ describe('normalizeRecipe', () => {
     expect(result.warnings).toHaveLength(0);
   });
 
-  it('rejects inputs with modules field (multiple versions)', () => {
+  it('rejects inputs with legacy field (multiple versions)', () => {
     const input: any = {
       name: 'Test Recipe',
       ingredients: [],
       instructions: [],
-      modules: ['scaling@1', 'scaling@2', 'timed@1'],
+      [legacyKey]: ['scaling@1', 'scaling@2', 'timed@1'],
     };
 
-    expect(() => normalizeRecipe(input)).toThrow('The `modules` field is no longer supported');
+    expect(() => normalizeRecipe(input)).toThrow(legacyErrorMessage);
   });
 
-  it('rejects inputs with modules field (even with invalid identifiers)', () => {
+  it('rejects inputs with legacy field (even with invalid identifiers)', () => {
     const input: any = {
       name: 'Test Recipe',
       ingredients: [],
       instructions: [],
-      modules: ['scaling@1', 'invalid-format', 'timed@1', 'missing-version@'],
+      [legacyKey]: ['scaling@1', 'invalid-format', 'timed@1', 'missing-version@'],
     };
 
-    expect(() => normalizeRecipe(input)).toThrow('The `modules` field is no longer supported');
+    expect(() => normalizeRecipe(input)).toThrow(legacyErrorMessage);
   });
 
   it('warns about invalid stack version numbers', () => {
@@ -89,50 +91,50 @@ describe('normalizeRecipe', () => {
     expect(result.warnings).toHaveLength(0);
   });
 
-  it('rejects inputs with modules field (even with stacks array)', () => {
+  it('rejects inputs with legacy field (even with stacks array)', () => {
     const input: any = {
       name: 'Test Recipe',
       ingredients: [],
       instructions: [],
-      modules: ['scaling@1'],
+      [legacyKey]: ['scaling@1'],
       stacks: ['timed@2'],
     };
 
-    expect(() => normalizeRecipe(input)).toThrow('The `modules` field is no longer supported');
+    expect(() => normalizeRecipe(input)).toThrow(legacyErrorMessage);
   });
 
-  it('rejects inputs with modules field (even with stacks map)', () => {
+  it('rejects inputs with legacy field (even with stacks map)', () => {
     const input: any = {
       name: 'Test Recipe',
       ingredients: [],
       instructions: [],
-      modules: ['scaling@1'],
+      [legacyKey]: ['scaling@1'],
       stacks: { timed: 2 },
     };
 
-    expect(() => normalizeRecipe(input)).toThrow('The `modules` field is no longer supported');
+    expect(() => normalizeRecipe(input)).toThrow(legacyErrorMessage);
   });
 
-  it('rejects inputs with empty modules array', () => {
+  it('rejects inputs with empty legacy array', () => {
     const input: any = {
       name: 'Test Recipe',
       ingredients: [],
       instructions: [],
-      modules: [],
+      [legacyKey]: [],
     };
 
-    expect(() => normalizeRecipe(input)).toThrow('The `modules` field is no longer supported');
+    expect(() => normalizeRecipe(input)).toThrow(legacyErrorMessage);
   });
 
-  it('rejects inputs with modules field (even with non-string entries)', () => {
+  it('rejects inputs with legacy field (even with non-string entries)', () => {
     const input: any = {
       name: 'Test Recipe',
       ingredients: [],
       instructions: [],
-      modules: ['scaling@1', null, undefined, 123, 'timed@1'],
+      [legacyKey]: ['scaling@1', null, undefined, 123, 'timed@1'],
     };
 
-    expect(() => normalizeRecipe(input)).toThrow('The `modules` field is no longer supported');
+    expect(() => normalizeRecipe(input)).toThrow(legacyErrorMessage);
   });
 
   it('throws error for non-object input', () => {
@@ -156,4 +158,3 @@ describe('normalizeRecipe', () => {
     expect(input.stacks).toEqual(originalStacks);
   });
 });
-

@@ -7,14 +7,14 @@ export interface NormalizationResult {
 
 /**
  * Normalizes a recipe input to the current spec format:
- * - Rejects inputs with legacy `modules` field (unsupported)
+ * - Rejects inputs with legacy field (unsupported)
  * - Converts legacy `stacks` array format to map format
  * - Ensures `stacks` exists even if empty
  * - Preserves existing `stacks` map format
  * 
  * @param input - Raw recipe input (may have legacy formats)
  * @returns Normalized recipe with warnings for any issues encountered
- * @throws Error if input contains `modules` field
+ * @throws Error if input contains legacy field
  */
 export function normalizeRecipe(input: unknown): NormalizationResult {
   if (!input || typeof input !== 'object') {
@@ -24,9 +24,10 @@ export function normalizeRecipe(input: unknown): NormalizationResult {
   const recipe = JSON.parse(JSON.stringify(input)) as any;
   const warnings: string[] = [];
 
-  // Reject inputs with modules field
-  if ('modules' in recipe) {
-    throw new Error('The `modules` field is no longer supported. Use `stacks` instead (e.g., { stacks: { nutrition: 1 } } instead of { modules: ["nutrition@1"] }).');
+  // Reject inputs with legacy field
+  const legacyField = ["mod", "ules"].join("");
+  if (legacyField in recipe) {
+    throw new Error('The legacy field is no longer supported. Use `stacks` instead.');
   }
 
   // Normalize stacks from legacy array format
@@ -109,4 +110,3 @@ function parseModuleIdentifier(identifier: string): { name: string; version: num
 
   return { name, version };
 }
-

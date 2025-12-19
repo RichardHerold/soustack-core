@@ -101,10 +101,10 @@ export function getRequiredSpecFiles(specDir = null) {
       if (fs.existsSync(profilesDir)) {
         files.push(...getSchemaFiles(profilesDir, 'schemas/recipe/profiles'));
       }
-      // Add module schemas
-      const modulesDir = path.join(specDir, 'schemas', 'recipe', 'modules');
-      if (fs.existsSync(modulesDir)) {
-        files.push(...getSchemaFiles(modulesDir, 'schemas/recipe/modules'));
+      // Add stack schemas
+      const recipeStacksDir = path.join(specDir, 'schemas', 'recipe', 'stacks');
+      if (fs.existsSync(recipeStacksDir)) {
+        files.push(...getSchemaFiles(recipeStacksDir, 'schemas/recipe/stacks'));
       }
       // Add registry files
       const registryDir = path.join(specDir, 'schemas', 'registry');
@@ -131,7 +131,7 @@ export const REQUIRED_RECIPE_PROFILE_FILES = [
   'minimal.schema.json',
 ];
 
-export const REQUIRED_MODULE_FILES = [
+export const REQUIRED_STACK_FILES = [
   'attribution/1.schema.json',
   'taxonomy/1.schema.json',
   'media/1.schema.json',
