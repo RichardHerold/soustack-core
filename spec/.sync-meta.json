@@ -19,19 +19,19 @@
     "schemas/registry/profiles.json"
   ],
   "checksums": {
-    "soustack.schema.json": "9f0a63fd38833a44e609ddddc40bb549b03fcbc0cee303aa99742cc8b36d1055",
+    "soustack.schema.json": "cf25596c64d7c57847de36dbf670d099bd1e7d37d7a0802bb79737027f0ca8ce",
     "SOUSTACK_SPEC_VERSION": "d915cc95d6ca8f47ae297713ed46d4e5c5d99ddd29fc3c61e263bdf305f2b5b0",
-    "schemas/recipe/base.schema.json": "e7ff4166daff3d8ad2fd38a3abd15079ffac2b593f8159adb42f02a66d3e8087",
-    "schemas/recipe/profiles/core.schema.json": "6469d119a8bc430e827e4998d8ebd8c4da8dd50d90fb7cfb4e566980eba043c1",
-    "schemas/recipe/profiles/minimal.schema.json": "9631c82f464f9b937e7543d466275bcd0be8b27dfb8b49a255e936d1b2134979",
-    "schemas/recipe/modules/attribution/1.schema.json": "f82003d36a7bc9c55071396ff9e87b314f51dde378a54f80adcfb34add01e1a3",
-    "schemas/recipe/modules/taxonomy/1.schema.json": "c0064320bd26521d1d5272494842b5bdd15db4bc4b83ed758208e463c84d89e0",
-    "schemas/recipe/modules/media/1.schema.json": "126588d02cbab4380e27b7b1c43a18aec83ee42121dc1c54c7e611c1849dcc08",
-    "schemas/recipe/modules/nutrition/1.schema.json": "dabad070f02d7ee78be5e2cd647a3eb1288be97d1933b3d358c11b9565fccb98",
-    "schemas/recipe/modules/times/1.schema.json": "3d33777b07090cf14faaa2ecd24180c3367979452e5fedd33403de96cf629c45",
-    "schemas/recipe/modules/schedule/1.schema.json": "adc374a8fed8f4291f2f70d13e3ee9bf7eb915adeff6c5eeb83d85b05d477229",
-    "schemas/registry/modules.json": "ccf4c45953a931e72e0bfd9fe64c44dfb305db6030c914cf930cfa21b25ef3f9",
-    "schemas/registry/profiles.json": "968441d98f3c5feedd62b0c4029817a24d6c6d4a08404e830cb4fef7ce8369b9"
+    "schemas/recipe/base.schema.json": "08644ac02ea802830b94c3410248af200b5937d187d6abd7599a684ea23ad896",
+    "schemas/recipe/profiles/core.schema.json": "1427bb52bfc10f9e7881112bcd406188080f34547ca61f3304bd3d510b6dec86",
+    "schemas/recipe/profiles/minimal.schema.json": "471e2f7e32a6acfaa98932383eca7861276335b9492aef86651f62721ff88e37",
+    "schemas/recipe/modules/attribution/1.schema.json": "83a26a1505f027785af4ae11c87ab0dfd59993dd761dcb6fb02c952d5e288bdc",
+    "schemas/recipe/modules/taxonomy/1.schema.json": "c5d6f186063060b0593b295cc1a5c04e10f02c82ae5926781ce056fdfb52f37b",
+    "schemas/recipe/modules/media/1.schema.json": "0b9d9c3ccc24d2c1a86e3701bef0b847fbefd8156fed45a1f2ccd64f96e9daca",
+    "schemas/recipe/modules/nutrition/1.schema.json": "b472714dd3ba409d350a0e4f1928c05cd955c569e3d4c9842c1d9d135dc3089a",
+    "schemas/recipe/modules/times/1.schema.json": "d859be0655ddb1ae90c9ee4f983c3fcae6521218a575dd6d1e84166d5c7bb211",
+    "schemas/recipe/modules/schedule/1.schema.json": "754a0a329c01e37d7b57825b36e6db45bef817d3e9e65184fd3854d319a70863",
+    "schemas/registry/modules.json": "0d7919d9164a15c83500cf2fe15c38012019840ff23c9bf428f9db7627f074ee",
+    "schemas/registry/profiles.json": "719ad92114c138bd9dcd48bea089d67a6cedd6553a25f48b8ae07679c80abc03"
   },
   "commit": "140b36031852005726e1750785ce2910eb42b149"
 }
