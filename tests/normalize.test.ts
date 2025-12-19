@@ -157,4 +157,37 @@ describe('normalizeRecipe', () => {
     
     expect(input.stacks).toEqual(originalStacks);
   });
+
+  it('maps deprecated version to recipeVersion with warning', () => {
+    const input: any = {
+      name: 'Versioned Recipe',
+      ingredients: [],
+      instructions: [],
+      version: '2.0.0',
+    };
+
+    const result = normalizeRecipe(input);
+    expect(result.recipe.recipeVersion).toBe('2.0.0');
+    expect(result.warnings.some(w => w.includes('deprecated'))).toBe(true);
+    expect((input as any).recipeVersion).toBeUndefined();
+  });
+
+  it('normalizes time durations in structured time fields', () => {
+    const input: any = {
+      name: 'Timing Recipe',
+      ingredients: [],
+      instructions: [],
+      time: {
+        prep: 'PT5M',
+        active: 'PT10M',
+        passive: 20,
+        total: 'PT30M',
+      },
+    };
+
+    const result = normalizeRecipe(input);
+    expect(result.recipe.time).toEqual(
+      expect.objectContaining({ prep: 5, active: 10, passive: 20, total: 30 })
+    );
+  });
 });
