@@ -211,9 +211,15 @@ async function main() {
   schemaTargets.forEach(compileSchema);
 
   // Compile root schema to verify all references resolve
+  // Note: root schema may already be compiled if it was in schemaTargets
   try {
     const rootSchema = readJson(SPEC_SCHEMA_PATH);
-    ajv.compile(rootSchema);
+    const schemaId = rootSchema.$id;
+    if (schemaId && ajv.getSchema(schemaId)) {
+      // Schema already compiled, skip to avoid duplicate ID error
+    } else {
+      ajv.compile(rootSchema);
+    }
   } catch (error) {
     throw new Error(
       `Root schema compilation failed (references may not resolve): ${error.message || error.toString()}`
