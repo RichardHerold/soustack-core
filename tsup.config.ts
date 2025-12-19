@@ -11,15 +11,27 @@ const shared = {
 export default defineConfig([
   {
     ...shared,
-    entry: { index: 'src/index.ts' },
+    entry: { 'index.browser': 'src/index.browser.ts' },
     format: ['cjs', 'esm'],
-    dts: { entry: { index: 'src/index.ts' } },
+    dts: { entry: { index: 'src/index.browser.ts' } },
     clean: true, // Only clean on first entry
     splitting: false,
     outDir: 'dist',
     platform: 'browser',
     target: 'es2019',
     external: ['ajv', 'ajv-formats', 'zod']
+  },
+  {
+    ...shared,
+    entry: { index: 'src/index.ts' },
+    format: ['cjs', 'esm'],
+    dts: false, // Use browser build's dts
+    clean: false,
+    splitting: false,
+    outDir: 'dist',
+    platform: 'node',
+    target: 'node18',
+    external: ['ajv', 'ajv-formats', 'cheerio', 'zod']
   },
   {
     ...shared,

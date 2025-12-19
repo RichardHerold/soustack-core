@@ -365,4 +365,26 @@ describe('Soustack validation', () => {
       expect(result2.valid).toBe(true);
     });
   });
+
+  describe('vendored spec fixtures', () => {
+    it('validates a valid fixture from spec/fixtures/base/valid', () => {
+      const validFixture = JSON.parse(
+        fs.readFileSync(path.join(__dirname, '..', 'spec', 'fixtures', 'base', 'valid', 'quick-salsa.json'), 'utf8')
+      );
+      // Add required fields for validation
+      const recipe = { '@type': 'Recipe', profile: 'core', ...validFixture };
+      const result = validateRecipe(recipe);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('validates an invalid fixture from spec/fixtures/base/invalid', () => {
+      const invalidFixture = JSON.parse(
+        fs.readFileSync(path.join(__dirname, '..', 'spec', 'fixtures', 'base', 'invalid', 'missing-name.json'), 'utf8')
+      );
+      const result = validateRecipe(invalidFixture);
+      expect(result.valid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+  });
 });

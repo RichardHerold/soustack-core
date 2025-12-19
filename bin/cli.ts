@@ -294,15 +294,26 @@ function expandTargets(target: string): string[] {
 }
 
 function validateFile(file: string, profile?: ProfileName): ValidationOutcome {
-  const recipe = readJsonFile(file);
-  const result = validateRecipe(recipe, profile ? { profile } : {});
-  return {
-    file,
-    profile,
-    valid: result.valid,
-    warnings: result.warnings,
-    errors: result.errors,
-  };
+  try {
+    const recipe = readJsonFile(file);
+    const result = validateRecipe(recipe, profile ? { profile } : {});
+    return {
+      file,
+      profile,
+      valid: result.valid,
+      warnings: result.warnings,
+      errors: result.errors,
+    };
+  } catch (error: any) {
+    // Return validation outcome with error instead of throwing
+    return {
+      file,
+      profile,
+      valid: false,
+      warnings: [],
+      errors: [{ path: "/", message: error?.message || "Validation failed", keyword: "error" }],
+    };
+  }
 }
 
 function reportValidation(
