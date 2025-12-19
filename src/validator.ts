@@ -3,8 +3,7 @@ import addFormats from "ajv-formats";
 import * as fs from "fs";
 import * as path from "path";
 import { Recipe } from "./types";
-import { parseDuration } from "./parsers/duration";
-import { normalizeRecipe as normalizeRecipeInput } from "./normalize";
+import { normalizeRecipe } from "./normalize";
 import { validateConformance, ConformanceIssue } from "./conformance";
 
 type ProfileName = "minimal" | "core";
@@ -207,55 +206,6 @@ function cloneRecipe<T>(recipe: T): T {
   return JSON.parse(JSON.stringify(recipe));
 }
 
-function normalizeRecipe(recipe: any): { normalized: Recipe; warnings: NormalizedWarning[] } {
-  // First, apply the new normalization for stacks
-  const { recipe: normalizedInput, warnings: inputWarnings } = normalizeRecipeInput(recipe);
-  const normalized = cloneRecipe(normalizedInput);
-  const warnings: NormalizedWarning[] = inputWarnings.map((msg) => ({
-    path: "/stacks",
-    message: msg,
-  }));
-
-  // Normalize time
-  normalizeTime(normalized);
-
-  // Normalize deprecated version field
-  if (
-    normalized &&
-    typeof normalized === "object" &&
-    "version" in normalized &&
-    !(normalized as any).recipeVersion &&
-    typeof (normalized as any).version === "string"
-  ) {
-    (normalized as any).recipeVersion = (normalized as any).version;
-    warnings.push({ path: "/version", message: "'version' is deprecated; mapped to 'recipeVersion'." });
-  }
-
-  return { normalized, warnings };
-}
-
-function normalizeTime(recipe: Recipe): void {
-  const time = (recipe as any)?.time;
-  if (!time || typeof time !== "object" || Array.isArray(time)) return;
-
-  const structuredKeys: Array<"prep" | "active" | "passive" | "total"> = [
-    "prep",
-    "active",
-    "passive",
-    "total",
-  ];
-
-  structuredKeys.forEach((key) => {
-    const value = (time as any)[key];
-    if (typeof value === "number") return;
-
-    const parsed = parseDuration(value as any);
-    if (parsed !== null) {
-      (time as any)[key] = parsed;
-    }
-  });
-}
-
 function formatAjvError(error: ErrorObject): NormalizedError {
   let path = error.instancePath || "/";
   if (error.keyword === "additionalProperties" && (error.params as any)?.additionalProperty) {
@@ -372,22 +322,10 @@ export function validateRecipeSchema(input: unknown): {
   errors: NormalizedError[];
   warnings: string[];
 } {
-  // Normalize the input first - use normalizeRecipeInput for stacks
-  const { recipe: normalizedInput, warnings: inputWarnings } = normalizeRecipeInput(input);
+  // Normalize the input first
+  const { recipe: normalizedInput, warnings: inputWarnings } = normalizeRecipe(input);
   const normalized = cloneRecipe(normalizedInput);
   const warnings: string[] = [...inputWarnings];
-
-  // Add deprecated version warning if present
-  if (
-    normalized &&
-    typeof normalized === "object" &&
-    "version" in normalized &&
-    !(normalized as any).recipeVersion &&
-    typeof (normalized as any).version === "string"
-  ) {
-    (normalized as any).recipeVersion = (normalized as any).version;
-    warnings.push("'version' is deprecated; mapped to 'recipeVersion'.");
-  }
 
   // Get validation context
   const context = getContext(true);
@@ -609,7 +547,7 @@ export function validateRecipe(input: any, options: ValidateOptions = {}): Valid
   const { ok, errors: schemaErrors, warnings: schemaWarnings } = validateRecipeSchema(input);
   
   // Get normalized recipe for return value
-  const { normalized } = normalizeRecipe(input);
+  const { recipe: normalized } = normalizeRecipe(input);
   
   // Convert warnings format
   const warnings: NormalizedWarning[] = schemaWarnings.map((msg) => ({

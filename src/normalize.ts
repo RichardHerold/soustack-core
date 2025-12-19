@@ -1,3 +1,4 @@
+import { parseDuration } from './parsers/duration';
 import { Recipe } from './types';
 
 export interface NormalizationResult {
@@ -37,6 +38,21 @@ export function normalizeRecipe(input: unknown): NormalizationResult {
   if (!recipe.stacks) {
     recipe.stacks = {};
   }
+
+  // Normalize deprecated version field
+  if (
+    recipe &&
+    typeof recipe === 'object' &&
+    'version' in recipe &&
+    !(recipe as any).recipeVersion &&
+    typeof (recipe as any).version === 'string'
+  ) {
+    (recipe as any).recipeVersion = (recipe as any).version;
+    warnings.push("'version' is deprecated; mapped to 'recipeVersion'.");
+  }
+
+  // Normalize time
+  normalizeTime(recipe);
 
   return {
     recipe: recipe as Recipe,
@@ -109,4 +125,26 @@ function parseModuleIdentifier(identifier: string): { name: string; version: num
   }
 
   return { name, version };
+}
+
+function normalizeTime(recipe: Recipe): void {
+  const time = (recipe as any)?.time;
+  if (!time || typeof time !== 'object' || Array.isArray(time)) return;
+
+  const structuredKeys: Array<'prep' | 'active' | 'passive' | 'total'> = [
+    'prep',
+    'active',
+    'passive',
+    'total',
+  ];
+
+  structuredKeys.forEach((key) => {
+    const value = (time as any)[key];
+    if (typeof value === 'number') return;
+
+    const parsed = parseDuration(value as any);
+    if (parsed !== null) {
+      (time as any)[key] = parsed;
+    }
+  });
 }
