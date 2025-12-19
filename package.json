@@ -8,21 +8,13 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "browser": {
-        "import": "./dist/index.browser.mjs",
-        "require": "./dist/index.browser.js"
-      },
-      "node": {
-        "import": "./dist/index.mjs",
-        "require": "./dist/index.js"
-      },
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
     "./scrape": {
-      "types": "./dist/scrape.d.ts",
-      "import": "./dist/scrape.mjs",
-      "require": "./dist/scrape.js"
+      "types": "./dist/scrape/index.d.ts",
+      "import": "./dist/scrape/index.mjs",
+      "require": "./dist/scrape/index.js"
     }
   },
   "scripts": {

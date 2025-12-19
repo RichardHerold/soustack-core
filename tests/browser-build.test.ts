@@ -4,7 +4,7 @@ import path from 'path';
 describe('browser build', () => {
   it('does not pull node-only built-ins', () => {
     const distDir = path.resolve(__dirname, '..', 'dist');
-    const outputs = ['index.browser.js', 'index.browser.mjs'];
+    const outputs = ['index.js', 'index.mjs'];
 
     for (const file of outputs) {
       const full = path.join(distDir, file);
@@ -12,7 +12,7 @@ describe('browser build', () => {
       const content = readFileSync(full, 'utf8');
 
       const forbidden =
-        /(require\(["'](?:fs|path|undici)["']\)|from ["'](?:fs|path|undici)["']|node:(?:fs|path))/;
+        /(node:|require\(["'](?:fs|path|undici)["']\)|from ["'](?:fs|path|undici)["'])/;
       expect(content).not.toMatch(forbidden);
     }
   });
