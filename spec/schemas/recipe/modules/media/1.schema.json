@@ -5,9 +5,12 @@
   "description": "Schema for the media module. Guards media blocks based on module activation and ensures declarations accompany payloads.",
   "type": "object",
   "properties": {
-    "modules": {
-      "type": "array",
-      "items": { "type": "string" }
+    "stacks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      }
     },
     "media": {
       "type": "object",
@@ -22,9 +25,12 @@
     {
       "if": {
         "properties": {
-          "modules": {
-            "type": "array",
-            "contains": { "const": "media@1" }
+          "stacks": {
+            "type": "object",
+            "properties": {
+              "media": { "const": 1 }
+            },
+            "required": ["media"]
           }
         }
       },
@@ -37,12 +43,14 @@
         "required": ["media"]
       },
       "then": {
-        "required": ["modules"],
+        "required": ["stacks"],
         "properties": {
-          "modules": {
-            "type": "array",
-            "items": { "type": "string" },
-            "contains": { "const": "media@1" }
+          "stacks": {
+            "type": "object",
+            "properties": {
+              "media": { "const": 1 }
+            },
+            "required": ["media"]
           }
         }
       }

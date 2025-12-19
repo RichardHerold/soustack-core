@@ -5,9 +5,12 @@
   "description": "Schema for the taxonomy module. Enforces keyword and categorization data when enabled and ensures module declaration accompanies the namespace block.",
   "type": "object",
   "properties": {
-    "modules": {
-      "type": "array",
-      "items": { "type": "string" }
+    "stacks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      }
     },
     "taxonomy": {
       "type": "object",
@@ -23,9 +26,12 @@
     {
       "if": {
         "properties": {
-          "modules": {
-            "type": "array",
-            "contains": { "const": "taxonomy@1" }
+          "stacks": {
+            "type": "object",
+            "properties": {
+              "taxonomy": { "const": 1 }
+            },
+            "required": ["taxonomy"]
           }
         }
       },
@@ -38,12 +44,14 @@
         "required": ["taxonomy"]
       },
       "then": {
-        "required": ["modules"],
+        "required": ["stacks"],
         "properties": {
-          "modules": {
-            "type": "array",
-            "items": { "type": "string" },
-            "contains": { "const": "taxonomy@1" }
+          "stacks": {
+            "type": "object",
+            "properties": {
+              "taxonomy": { "const": 1 }
+            },
+            "required": ["taxonomy"]
           }
         }
       }
