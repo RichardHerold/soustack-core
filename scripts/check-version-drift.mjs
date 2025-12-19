@@ -41,12 +41,12 @@ function extractVersionFromSchema(schemaPath) {
   const schema = JSON.parse(contents);
   const id = schema.$id;
   if (!id) {
-    throw new Error(`${schemaPath} is missing a $id`);
+    return null; // Skip schemas without $id
   }
 
   const match = id.match(/v(\d+\.\d+\.\d+)/);
   if (!match) {
-    throw new Error(`${schemaPath} has an unparseable version in $id: ${id}`);
+    return null; // Skip schemas without version in $id (component schemas)
   }
 
   return match[1];
@@ -122,6 +122,10 @@ function main() {
 
   gatherSchemaPaths().forEach((schemaPath) => {
     const schemaVersion = extractVersionFromSchema(schemaPath);
+    if (schemaVersion === null) {
+      // Skip schemas without versions (component schemas like base.schema.json, profiles, modules)
+      return;
+    }
     if (schemaVersion !== specVersion) {
       mismatches.push(`${path.relative(ROOT_DIR, schemaPath)} declares version ${schemaVersion} but spec version is ${specVersion}`);
     }
