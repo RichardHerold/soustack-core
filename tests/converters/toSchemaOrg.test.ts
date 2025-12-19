@@ -435,7 +435,7 @@ describe('toSchemaOrg integration', () => {
         'Preheat oven',
         { subsection: 'Bake', items: ['Pour batter', { text: 'Bake 30 minutes' }] } as any
       ],
-      modules: ['taxonomy@1', 'times@1'], // Include mappable modules for taxonomy and times
+      stacks: { taxonomy: 1, times: 1 }, // Include mappable stacks for taxonomy and times
       tags: ['Dessert', 'Chocolate'],
       times: { prepMinutes: 20, cookMinutes: 30, totalMinutes: 60 },
       yield: { amount: 24, unit: 'cookies' }
@@ -525,7 +525,7 @@ describe('round-trip conversion', () => {
         { subsection: 'Finish', items: ['Frost cake'] } as any,
         { text: 'Serve', image: 'https://example.com/step.jpg' }
       ],
-      modules: ['taxonomy@1', 'times@1'], // Include modules for category/tags and time
+      stacks: { taxonomy: 1, times: 1 }, // Include stacks for category/tags and time
       tags: ['Dessert', 'Party']
       // time will be added by buildRecipe if needed
     });
@@ -544,8 +544,8 @@ describe('round-trip conversion', () => {
     }
     expect(roundTrip?.ingredients.length).toBeGreaterThanOrEqual(2);
     expect(roundTrip?.instructions.length).toBe(3);
-    // times is only included if times@1 module is present and mappable
-    if (recipe.times && recipe.modules?.includes('times@1')) {
+    // times is only included if times stack is present and mappable
+    if (recipe.times && recipe.stacks?.times === 1) {
       expect(roundTrip?.times).toMatchObject(recipe.times);
     }
     // image is handled by media module

@@ -14,11 +14,6 @@ export interface SoustackRecipe {
   level?: "lite" | "base";
   /** Module stacks as a map: Record<moduleName, versionNumber> */
   stacks?: Record<string, number>;
-  /** 
-   * @deprecated Use `stacks` instead. Enabled module identifiers (e.g., "nutrition@1")
-   * This field is kept for backward compatibility and will be normalized to `stacks` automatically.
-   */
-  modules?: string[];
   /** Attribution module payload */
   attribution?: AttributionModule;
   /** Taxonomy module payload */

@@ -1,7 +1,7 @@
 {
   "@type": "Recipe",
   "profile": "minimal",
-  "modules": [],
+  "stacks": {},
   "name": "Nutrition Without Module",
   "ingredients": [
     "1 cup flour"

@@ -1,7 +1,7 @@
 import { validateRecipe } from '../src/validator';
 import { Recipe } from '../src/types';
 
-describe('Module contract unit tests', () => {
+describe('Stack contract unit tests', () => {
   const baseRecipe: Recipe = {
     '@type': 'Recipe',
     profile: 'minimal',
@@ -10,12 +10,12 @@ describe('Module contract unit tests', () => {
     instructions: ['Mix'],
   };
 
-  describe('attribution@1 module contract', () => {
+  describe('attribution stack contract', () => {
     it('fails when attribution payload exists without module declaration', () => {
       const recipe = {
         ...baseRecipe,
         attribution: { url: 'https://example.com' },
-        modules: [],
+        stacks: {},
       };
       const result = validateRecipe(recipe);
       expect(result.valid).toBe(false);
@@ -24,7 +24,7 @@ describe('Module contract unit tests', () => {
     it('fails when attribution@1 declared without payload', () => {
       const recipe = {
         ...baseRecipe,
-        modules: ['attribution@1'],
+        stacks: { attribution: 1 },
       };
       const result = validateRecipe(recipe);
       expect(result.valid).toBe(false);
@@ -33,7 +33,7 @@ describe('Module contract unit tests', () => {
     it('passes when both declaration and payload exist', () => {
       const recipe = {
         ...baseRecipe,
-        modules: ['attribution@1'],
+        stacks: { attribution: 1 },
         attribution: { url: 'https://example.com', author: 'Test Author' },
       };
       const result = validateRecipe(recipe);
@@ -41,12 +41,12 @@ describe('Module contract unit tests', () => {
     });
   });
 
-  describe('taxonomy@1 module contract', () => {
+  describe('taxonomy stack contract', () => {
     it('fails when taxonomy payload exists without module declaration', () => {
       const recipe = {
         ...baseRecipe,
         taxonomy: { keywords: ['test'] },
-        modules: [],
+        stacks: {},
       };
       const result = validateRecipe(recipe);
       expect(result.valid).toBe(false);
@@ -55,7 +55,7 @@ describe('Module contract unit tests', () => {
     it('fails when taxonomy@1 declared without payload', () => {
       const recipe = {
         ...baseRecipe,
-        modules: ['taxonomy@1'],
+        stacks: { taxonomy: 1 },
       };
       const result = validateRecipe(recipe);
       expect(result.valid).toBe(false);
@@ -64,7 +64,7 @@ describe('Module contract unit tests', () => {
     it('passes when both declaration and payload exist', () => {
       const recipe = {
         ...baseRecipe,
-        modules: ['taxonomy@1'],
+        stacks: { taxonomy: 1 },
         taxonomy: { keywords: ['test'], category: 'Dessert' },
       };
       const result = validateRecipe(recipe);
@@ -72,12 +72,12 @@ describe('Module contract unit tests', () => {
     });
   });
 
-  describe('media@1 module contract', () => {
+  describe('media stack contract', () => {
     it('fails when media payload exists without module declaration', () => {
       const recipe = {
         ...baseRecipe,
         media: { images: ['https://example.com/image.jpg'] },
-        modules: [],
+        stacks: {},
       };
       const result = validateRecipe(recipe);
       expect(result.valid).toBe(false);
@@ -86,7 +86,7 @@ describe('Module contract unit tests', () => {
     it('fails when media@1 declared without payload', () => {
       const recipe = {
         ...baseRecipe,
-        modules: ['media@1'],
+        stacks: { media: 1 },
       };
       const result = validateRecipe(recipe);
       expect(result.valid).toBe(false);
@@ -95,7 +95,7 @@ describe('Module contract unit tests', () => {
     it('passes when both declaration and payload exist', () => {
       const recipe = {
         ...baseRecipe,
-        modules: ['media@1'],
+        stacks: { media: 1 },
         media: { images: ['https://example.com/image.jpg'] },
       };
       const result = validateRecipe(recipe);
@@ -103,12 +103,12 @@ describe('Module contract unit tests', () => {
     });
   });
 
-  describe('times@1 module contract', () => {
+  describe('times stack contract', () => {
     it('fails when times payload exists without module declaration', () => {
       const recipe = {
         ...baseRecipe,
         times: { prepMinutes: 10 },
-        modules: [],
+        stacks: {},
       };
       const result = validateRecipe(recipe);
       expect(result.valid).toBe(false);
@@ -117,7 +117,7 @@ describe('Module contract unit tests', () => {
     it('fails when times@1 declared without payload', () => {
       const recipe = {
         ...baseRecipe,
-        modules: ['times@1'],
+        stacks: { times: 1 },
       };
       const result = validateRecipe(recipe);
       expect(result.valid).toBe(false);
@@ -126,7 +126,7 @@ describe('Module contract unit tests', () => {
     it('passes when both declaration and payload exist', () => {
       const recipe = {
         ...baseRecipe,
-        modules: ['times@1'],
+        stacks: { times: 1 },
         times: { prepMinutes: 10, cookMinutes: 20, totalMinutes: 30 },
       };
       const result = validateRecipe(recipe);
@@ -134,12 +134,12 @@ describe('Module contract unit tests', () => {
     });
   });
 
-  describe('nutrition@1 module contract', () => {
+  describe('nutrition stack contract', () => {
     it('fails when nutrition payload exists without module declaration', () => {
       const recipe = {
         ...baseRecipe,
         nutrition: { calories: 100 },
-        modules: [],
+        stacks: {},
       };
       const result = validateRecipe(recipe);
       expect(result.valid).toBe(false);
@@ -148,7 +148,7 @@ describe('Module contract unit tests', () => {
     it('fails when nutrition@1 declared without payload', () => {
       const recipe = {
         ...baseRecipe,
-        modules: ['nutrition@1'],
+        stacks: { nutrition: 1 },
       };
       const result = validateRecipe(recipe);
       expect(result.valid).toBe(false);
@@ -157,7 +157,7 @@ describe('Module contract unit tests', () => {
     it('passes when both declaration and payload exist', () => {
       const recipe = {
         ...baseRecipe,
-        modules: ['nutrition@1'],
+        stacks: { nutrition: 1 },
         nutrition: { calories: 100, protein_g: 5 },
       };
       const result = validateRecipe(recipe);
@@ -165,13 +165,13 @@ describe('Module contract unit tests', () => {
     });
   });
 
-  describe('schedule@1 module contract', () => {
+  describe('schedule stack contract', () => {
     it('fails when schedule payload exists without module declaration', () => {
       const recipe = {
         ...baseRecipe,
         profile: 'core', // schedule requires core profile
         schedule: { tasks: [{ id: 't1', description: 'Test' }] },
-        modules: [],
+        stacks: {},
       };
       const result = validateRecipe(recipe);
       expect(result.valid).toBe(false);
@@ -181,7 +181,7 @@ describe('Module contract unit tests', () => {
       const recipe = {
         ...baseRecipe,
         profile: 'core',
-        modules: ['schedule@1'],
+        stacks: { schedule: 1 },
       };
       const result = validateRecipe(recipe);
       expect(result.valid).toBe(false);
@@ -191,7 +191,7 @@ describe('Module contract unit tests', () => {
       const recipe = {
         ...baseRecipe,
         profile: 'core',
-        modules: ['schedule@1'],
+        stacks: { schedule: 1 },
         schedule: { tasks: [{ id: 't1', description: 'Test task' }] },
       };
       const result = validateRecipe(recipe);
@@ -199,11 +199,11 @@ describe('Module contract unit tests', () => {
     });
   });
 
-  describe('multiple modules contract', () => {
-    it('validates multiple modules correctly', () => {
+  describe('multiple stacks contract', () => {
+    it('validates multiple stacks correctly', () => {
       const recipe = {
         ...baseRecipe,
-        modules: ['attribution@1', 'taxonomy@1', 'times@1'],
+        stacks: { attribution: 1, taxonomy: 1, times: 1 },
         attribution: { url: 'https://example.com' },
         taxonomy: { keywords: ['test'] },
         times: { prepMinutes: 10 },
@@ -212,10 +212,10 @@ describe('Module contract unit tests', () => {
       expect(result.valid).toBe(true);
     });
 
-    it('fails if any module is missing its payload', () => {
+    it('fails if any stack is missing its payload', () => {
       const recipe = {
         ...baseRecipe,
-        modules: ['attribution@1', 'taxonomy@1', 'times@1'],
+        stacks: { attribution: 1, taxonomy: 1, times: 1 },
         attribution: { url: 'https://example.com' },
         taxonomy: { keywords: ['test'] },
         // times payload missing
@@ -224,13 +224,13 @@ describe('Module contract unit tests', () => {
       expect(result.valid).toBe(false);
     });
 
-    it('fails if any payload is missing its module declaration', () => {
+    it('fails if any payload is missing its stack declaration', () => {
       const recipe = {
         ...baseRecipe,
-        modules: ['attribution@1', 'taxonomy@1'],
+        stacks: { attribution: 1, taxonomy: 1 },
         attribution: { url: 'https://example.com' },
         taxonomy: { keywords: ['test'] },
-        times: { prepMinutes: 10 }, // payload exists but module not declared
+        times: { prepMinutes: 10 }, // payload exists but stack not declared
       };
       const result = validateRecipe(recipe);
       expect(result.valid).toBe(false);

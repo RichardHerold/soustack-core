@@ -7,7 +7,7 @@ describe("Conformance validation", () => {
       const recipe = {
         "@type": "Recipe",
         profile: "core",
-        modules: ["schedule@1"],
+        stacks: { schedule: 1 },
         name: "Test Recipe",
         ingredients: ["Flour"],
         instructions: [
@@ -28,7 +28,7 @@ describe("Conformance validation", () => {
       const recipe = {
         "@type": "Recipe",
         profile: "core",
-        modules: ["schedule@1"],
+        stacks: { schedule: 1 },
         name: "Test Recipe",
         ingredients: ["Flour"],
         instructions: [
@@ -56,7 +56,7 @@ describe("Conformance validation", () => {
       const recipe = {
         "@type": "Recipe",
         profile: "core",
-        modules: ["schedule@1"],
+        stacks: { schedule: 1 },
         name: "Test Recipe",
         ingredients: ["Flour"],
         instructions: [
@@ -279,7 +279,7 @@ describe("Conformance validation", () => {
       const recipe: any = {
         "@type": "Recipe",
         profile: "core",
-        modules: ["schedule@1"],
+        stacks: { schedule: 1 },
         // Missing name - schema error
         ingredients: ["Flour"],
         instructions: [

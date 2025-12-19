@@ -1,7 +1,7 @@
 {
   "@type": "Recipe",
   "profile": "minimal",
-  "modules": ["nutrition@1"],
+  "stacks": { "nutrition": 1 },
   "name": "Minimal with Nutrition",
   "ingredients": [
     "1 cup flour"

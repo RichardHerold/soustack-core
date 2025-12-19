@@ -297,15 +297,27 @@ export function cleanOutput<T extends Record<string, unknown>>(obj: T): T {
 }
 
 /**
- * Get schemaOrgMappable modules from the recipe's modules list.
- * Only modules that are marked as schemaOrgMappable in the registry are included.
+ * Get schemaOrgMappable stacks from the recipe's stacks map.
+ * Only stacks that are marked as schemaOrgMappable in the registry are included.
+ * Returns a set of stack identifiers (e.g., ["attribution@1", "times@1"]).
  */
-function getSchemaOrgMappableModules(modules: string[] = []): string[] {
-  const mappableModules = modulesRegistry.modules
+function getSchemaOrgMappableStacks(stacks: Record<string, number> = {}): Set<string> {
+  const mappableStackIds = new Set<string>();
+  
+  // Get list of mappable stack identifiers from registry
+  const mappableFromRegistry = modulesRegistry.modules
     .filter((m) => m.schemaOrgMappable)
     .map((m) => `${m.id}@${m.latest}`);
   
-  return modules.filter((moduleId) => mappableModules.includes(moduleId));
+  // Check which stacks in the recipe are mappable
+  for (const [name, version] of Object.entries(stacks)) {
+    const stackId = `${name}@${version}`;
+    if (mappableFromRegistry.includes(stackId)) {
+      mappableStackIds.add(stackId);
+    }
+  }
+  
+  return mappableStackIds;
 }
 
 /**
@@ -321,26 +333,30 @@ export function toSchemaOrg(recipe: Recipe): SchemaOrgRecipe {
   const ingredients = convertIngredients(recipe.ingredients);
   const instructions = convertInstructions(recipe.instructions);
   
-  // Only include nutrition if the nutrition module is schemaOrgMappable
+  // Get mappable stacks from recipe.stacks
+  const recipeStacks = (recipe.stacks && typeof recipe.stacks === 'object' && !Array.isArray(recipe.stacks))
+    ? recipe.stacks
+    : {};
+  const mappableStacks = getSchemaOrgMappableStacks(recipeStacks);
+  
+  // Only include nutrition if the nutrition stack is schemaOrgMappable
   // (Currently nutrition@1 is NOT mappable, so this will be undefined)
-  const recipeModules = Array.isArray(recipe.modules) ? recipe.modules : [];
-  const mappableModules = getSchemaOrgMappableModules(recipeModules);
-  const hasMappableNutrition = mappableModules.includes('nutrition@1');
+  const hasMappableNutrition = mappableStacks.has('nutrition@1');
   const nutrition = hasMappableNutrition ? convertNutrition(recipe.nutrition) : undefined;
 
-  // Convert time if times module is mappable (times@1 is mappable)
+  // Convert time if times stack is mappable (times@1 is mappable)
   // Prefer recipe.times (TimesModule) over recipe.time (legacy Time)
-  const hasMappableTimes = mappableModules.includes('times@1');
+  const hasMappableTimes = mappableStacks.has('times@1');
   const timeData = hasMappableTimes
     ? (recipe.times ? convertTimesModule(recipe.times) : convertTime(recipe.time))
     : {};
 
-  // Convert attribution if attribution module is mappable (attribution@1 is mappable)
-  const hasMappableAttribution = mappableModules.includes('attribution@1');
+  // Convert attribution if attribution stack is mappable (attribution@1 is mappable)
+  const hasMappableAttribution = mappableStacks.has('attribution@1');
   const attributionData = hasMappableAttribution ? convertAuthor(recipe.source) : {};
 
-  // Convert taxonomy if taxonomy module is mappable (taxonomy@1 is mappable)
-  const hasMappableTaxonomy = mappableModules.includes('taxonomy@1');
+  // Convert taxonomy if taxonomy stack is mappable (taxonomy@1 is mappable)
+  const hasMappableTaxonomy = mappableStacks.has('taxonomy@1');
   const taxonomyData = hasMappableTaxonomy
     ? convertCategoryTags(recipe.category, recipe.tags)
     : {};

@@ -7,13 +7,14 @@ export interface NormalizationResult {
 
 /**
  * Normalizes a recipe input to the current spec format:
- * - Converts legacy `modules` array (e.g., ["scaling@1"]) to `stacks` map (e.g., { scaling: 1 })
+ * - Rejects inputs with legacy `modules` field (unsupported)
  * - Converts legacy `stacks` array format to map format
  * - Ensures `stacks` exists even if empty
  * - Preserves existing `stacks` map format
  * 
  * @param input - Raw recipe input (may have legacy formats)
  * @returns Normalized recipe with warnings for any issues encountered
+ * @throws Error if input contains `modules` field
  */
 export function normalizeRecipe(input: unknown): NormalizationResult {
   if (!input || typeof input !== 'object') {
@@ -23,7 +24,12 @@ export function normalizeRecipe(input: unknown): NormalizationResult {
   const recipe = JSON.parse(JSON.stringify(input)) as any;
   const warnings: string[] = [];
 
-  // Normalize stacks from various legacy formats
+  // Reject inputs with modules field
+  if ('modules' in recipe) {
+    throw new Error('The `modules` field is no longer supported. Use `stacks` instead (e.g., { stacks: { nutrition: 1 } } instead of { modules: ["nutrition@1"] }).');
+  }
+
+  // Normalize stacks from legacy array format
   normalizeStacks(recipe, warnings);
 
   // Ensure stacks exists (even if empty)
@@ -40,7 +46,6 @@ export function normalizeRecipe(input: unknown): NormalizationResult {
 /**
  * Normalizes the stacks field from legacy formats to the map format.
  * Handles:
- * - Legacy `modules` array: ["scaling@1", "timed@1"] -> { scaling: 1, timed: 1 }
  * - Legacy `stacks` array: ["scaling@1"] -> { scaling: 1 }
  * - Existing `stacks` map: { scaling: 1 } -> preserved as-is
  */
@@ -58,39 +63,27 @@ function normalizeStacks(recipe: any, warnings: string[]): void {
     }
   }
 
-  // Collect module identifiers from various sources
-  const moduleIdentifiers: string[] = [];
-
-  // Check legacy modules array
-  if (Array.isArray(recipe.modules)) {
-    moduleIdentifiers.push(...recipe.modules.filter((m: any) => typeof m === 'string'));
-  }
-
-  // Check legacy stacks array (only if stacks wasn't already a map)
+  // Check legacy stacks array format (only if stacks wasn't already a map)
   if (Array.isArray(recipe.stacks)) {
-    moduleIdentifiers.push(...recipe.stacks.filter((s: any) => typeof s === 'string'));
-  }
-
-  // Parse module identifiers into stacks map and merge with existing stacks
-  for (const identifier of moduleIdentifiers) {
-    const parsed = parseModuleIdentifier(identifier);
-    if (parsed) {
-      const { name, version } = parsed;
-      // If the same module appears multiple times, keep the highest version
-      if (!stacks[name] || stacks[name] < version) {
-        stacks[name] = version;
+    const moduleIdentifiers: string[] = recipe.stacks.filter((s: any) => typeof s === 'string');
+    
+    // Parse module identifiers into stacks map and merge with existing stacks
+    for (const identifier of moduleIdentifiers) {
+      const parsed = parseModuleIdentifier(identifier);
+      if (parsed) {
+        const { name, version } = parsed;
+        // If the same module appears multiple times, keep the highest version
+        if (!stacks[name] || stacks[name] < version) {
+          stacks[name] = version;
+        }
+      } else {
+        warnings.push(`Invalid module identifier '${identifier}': expected format 'name@version' (e.g., 'scaling@1')`);
       }
-    } else {
-      warnings.push(`Invalid module identifier '${identifier}': expected format 'name@version' (e.g., 'scaling@1')`);
     }
   }
 
   // Set the normalized stacks
   recipe.stacks = stacks;
-
-  // Optionally remove legacy modules field after normalization
-  // We keep it for now to maintain backward compatibility during transition
-  // but it will be ignored in favor of stacks
 }
 
 /**

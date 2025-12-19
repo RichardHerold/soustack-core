@@ -1,7 +1,7 @@
 {
   "@type": "Recipe",
   "profile": "minimal",
-  "modules": ["schedule@1"],
+  "stacks": { "schedule": 1 },
   "name": "Minimal with Schedule",
   "ingredients": [
     "1 cup flour"
