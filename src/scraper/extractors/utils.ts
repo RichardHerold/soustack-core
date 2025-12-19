@@ -12,9 +12,6 @@ export function isRecipeNode(value: unknown): value is SchemaOrgRecipe {
   }
 
   const type = (value as Record<string, unknown>)['@type'];
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/7225c3b5-9ac2-4c94-b561-807ca9003b66',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/extractors/utils.ts:14',message:'isRecipeNode check',data:{type,typeLower:typeof type==='string'?type.toLowerCase():Array.isArray(type)?type.map(t=>typeof t==='string'?t.toLowerCase():t):undefined,isMatch:typeof type==='string'?RECIPE_TYPES.has(type.toLowerCase()):Array.isArray(type)?type.some(e=>typeof e==='string'&&RECIPE_TYPES.has(e.toLowerCase())):false},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
 
   if (typeof type === 'string') {
     return RECIPE_TYPES.has(type.toLowerCase());

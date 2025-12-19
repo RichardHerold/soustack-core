@@ -4,7 +4,7 @@ import path from 'path';
 describe('browser build', () => {
   it('does not pull node-only built-ins', () => {
     const distDir = path.resolve(__dirname, '..', 'dist');
-    const outputs = ['index.js', 'index.mjs'];
+    const outputs = ['index.browser.js', 'index.browser.mjs'];
 
     for (const file of outputs) {
       const full = path.join(distDir, file);

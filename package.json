@@ -8,6 +8,14 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "browser": {
+        "import": "./dist/index.browser.mjs",
+        "require": "./dist/index.browser.js"
+      },
+      "node": {
+        "import": "./dist/index.mjs",
+        "require": "./dist/index.js"
+      },
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
