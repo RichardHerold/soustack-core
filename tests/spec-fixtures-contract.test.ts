@@ -62,14 +62,6 @@ describe('Spec fixture contract tests', () => {
         
         expect(result.valid).toBe(false);
         expect(result.errors.length).toBeGreaterThan(0);
-        
-        // Log errors for debugging
-        if (result.errors.length > 0) {
-          const errorSummary = result.errors
-            .map(e => `  - ${e.path}: ${e.message}`)
-            .join('\n');
-          console.log(`Validation errors for ${fixtureFile}:\n${errorSummary}`);
-        }
       });
     });
   });
