@@ -27,7 +27,8 @@
     "verify:schema": "node scripts/verify-synced-schema.mjs",
     "verify:sync": "node scripts/verify-sync-meta.mjs",
     "validate:version": "node scripts/check-version-drift.mjs",
-    "prepare": "husky"
+    "prepare": "husky",
+    "dump:ai": "node scripts/dump-repo-for-ai.mjs"
   },
   "repository": {
     "type": "git",
