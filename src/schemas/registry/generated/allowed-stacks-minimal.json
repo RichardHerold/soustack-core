@@ -1,0 +1,10 @@
+{
+  "$id": "http://soustack.org/schema/registry/generated/allowed-stacks-minimal.json",
+  "allowedStacksMinimal": [
+    "attribution@1",
+    "taxonomy@1",
+    "media@1",
+    "nutrition@1",
+    "times@1"
+  ]
+}

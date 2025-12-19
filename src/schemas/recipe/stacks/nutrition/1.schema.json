@@ -1,11 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://soustack.org/schemas/recipe/modules/schedule/1.schema.json",
-  "title": "Soustack Recipe Module: schedule v1",
-  "description": "Schema for the schedule module. Enforces bidirectional module gating and restricts usage to the core profile.",
+  "$id": "https://soustack.org/schemas/recipe/stacks/nutrition/1.schema.json",
+  "title": "Soustack Recipe Module: nutrition v1",
+  "description": "Schema for the nutrition module. Keeps nutrition data aligned with module declarations and vice versa.",
   "type": "object",
   "properties": {
-    "profile": { "type": "string" },
     "stacks": {
       "type": "object",
       "additionalProperties": {
@@ -13,10 +12,11 @@
         "minimum": 1
       }
     },
-    "schedule": {
+    "nutrition": {
       "type": "object",
       "properties": {
-        "tasks": { "type": "array" }
+        "calories": { "type": "number" },
+        "protein_g": { "type": "number" }
       },
       "additionalProperties": false
     }
@@ -28,34 +28,30 @@
           "stacks": {
             "type": "object",
             "properties": {
-              "schedule": { "const": 1 }
+              "nutrition": { "const": 1 }
             },
-            "required": ["schedule"]
+            "required": ["nutrition"]
           }
         }
       },
       "then": {
-        "required": ["schedule", "profile"],
-        "properties": {
-          "profile": { "const": "core" }
-        }
+        "required": ["nutrition"]
       }
     },
     {
       "if": {
-        "required": ["schedule"]
+        "required": ["nutrition"]
       },
       "then": {
-        "required": ["stacks", "profile"],
+        "required": ["stacks"],
         "properties": {
           "stacks": {
             "type": "object",
             "properties": {
-              "schedule": { "const": 1 }
+              "nutrition": { "const": 1 }
             },
-            "required": ["schedule"]
-          },
-          "profile": { "const": "core" }
+            "required": ["nutrition"]
+          }
         }
       }
     }

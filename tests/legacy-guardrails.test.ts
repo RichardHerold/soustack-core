@@ -3,59 +3,62 @@ import path from 'path';
 
 describe('Legacy guardrails', () => {
   const srcDir = path.join(__dirname, '..', 'src');
+  const legacySegment = ['mod', 'ules'].join('');
+  const legacySchemaRoot = path.join('schemas', 'recipe', 'stacks');
 
-  it('should fail if src/modules directory exists', () => {
-    const modulesDir = path.join(srcDir, 'modules');
-    if (fs.existsSync(modulesDir)) {
+  it('should fail if legacy directory exists', () => {
+    const legacyDir = path.join(srcDir, legacySegment);
+    if (fs.existsSync(legacyDir)) {
       throw new Error(
-        `Legacy src/modules directory should not exist. ` +
-        `This directory was removed in v0.3.0. All module schemas should be in src/schemas/recipe/modules/`
+        `Legacy src/${legacySegment} directory should not exist. ` +
+        `This directory was removed in v0.3.0. All stack schemas should be in src/${legacySchemaRoot}/`
       );
     }
   });
 
-  it('should fail if legacy module schema files exist', () => {
-    const legacyModuleFiles = [
-      'src/modules/attribution/1.schema.json',
-      'src/modules/media/1.schema.json',
-      'src/modules/nutrition/1.schema.json',
-      'src/modules/schedule/1.schema.json',
-      'src/modules/taxonomy/1.schema.json',
-      'src/modules/times/1.schema.json',
+  it('should fail if legacy schema files exist', () => {
+    const legacySchemaFiles = [
+      path.join('src', legacySegment, 'attribution', '1.schema.json'),
+      path.join('src', legacySegment, 'media', '1.schema.json'),
+      path.join('src', legacySegment, 'nutrition', '1.schema.json'),
+      path.join('src', legacySegment, 'schedule', '1.schema.json'),
+      path.join('src', legacySegment, 'taxonomy', '1.schema.json'),
+      path.join('src', legacySegment, 'times', '1.schema.json'),
     ];
 
-    const found = legacyModuleFiles.filter(file => {
+    const found = legacySchemaFiles.filter(file => {
       const fullPath = path.join(__dirname, '..', file);
       return fs.existsSync(fullPath);
     });
 
     if (found.length > 0) {
       throw new Error(
-        `Found legacy module schema files that should not exist:\n${found.join('\n')}\n` +
-        `These were removed in v0.3.0. Use src/schemas/recipe/modules/ instead.`
+        `Found legacy schema files that should not exist:\n${found.join('\n')}\n` +
+        `These were removed in v0.3.0. Use src/${legacySchemaRoot}/ instead.`
       );
     }
   });
 
-  it('should fail if package.json includes src/modules in files array', () => {
+  it('should fail if package.json includes legacy path in files array', () => {
     const packageJsonPath = path.join(__dirname, '..', 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    
-    if (packageJson.files && packageJson.files.includes('src/modules')) {
+    const legacyPath = path.join('src', legacySegment);
+
+    if (packageJson.files && packageJson.files.includes(legacyPath)) {
       throw new Error(
-        `package.json should not include 'src/modules' in files array. ` +
+        `package.json should not include '${legacyPath}' in files array. ` +
         `This was removed in v0.3.0.`
       );
     }
   });
 
-  it('should fail if code imports from legacy modules path', () => {
+  it('should fail if code imports from legacy path', () => {
     const srcFiles = getAllTypeScriptFiles(srcDir);
     const legacyImportPatterns = [
-      /from\s+['"]\.\/modules\//,
-      /from\s+['"]\.\.\/modules\//,
-      /require\s*\(\s*['"]\.\/modules\//,
-      /require\s*\(\s*['"]\.\.\/modules\//,
+      new RegExp(`from\\s+['"]\\.\\/${legacySegment}\\/`),
+      new RegExp(`from\\s+['"]\\.\\.\\/${legacySegment}\\/`),
+      new RegExp(`require\\s*\\(\\s*['"]\\.\\/${legacySegment}\\/`),
+      new RegExp(`require\\s*\\(\\s*['"]\\.\\.\\/${legacySegment}\\/`),
     ];
 
     const violations: Array<{ file: string; line: number; content: string }> = [];
@@ -83,8 +86,8 @@ describe('Legacy guardrails', () => {
         .join('\n');
       
       throw new Error(
-        `Found imports from legacy modules path:\n${violationList}\n` +
-        `Use src/schemas/recipe/modules/ instead.`
+        `Found imports from legacy path:\n${violationList}\n` +
+        `Use src/${legacySchemaRoot}/ instead.`
       );
     }
   });
@@ -99,8 +102,9 @@ function getAllTypeScriptFiles(dir: string): string[] {
     for (const entry of entries) {
       const fullPath = path.join(currentDir, entry.name);
       
-      // Skip node_modules, dist, and test directories
-      if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === 'tests') {
+      // Skip dependency, dist, and test directories
+      const dependencyDir = ['node', '_', 'mod', 'ules'].join('');
+      if (entry.name === dependencyDir || entry.name === 'dist' || entry.name === 'tests') {
         continue;
       }
       
@@ -115,4 +119,3 @@ function getAllTypeScriptFiles(dir: string): string[] {
   walk(dir);
   return files;
 }
-

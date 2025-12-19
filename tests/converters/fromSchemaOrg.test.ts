@@ -368,7 +368,7 @@ describe('time and yield parsing', () => {
   });
 });
 
-describe('minimal profile and module emission', () => {
+describe('minimal profile and stack emission', () => {
   const schemaOrgSample = {
     '@context': 'https://schema.org',
     '@type': 'Recipe',
@@ -393,7 +393,7 @@ describe('minimal profile and module emission', () => {
     }
   } as const;
 
-  it('defaults to minimal profile with selective modules and validates', () => {
+  it('defaults to minimal profile with selective stacks and validates', () => {
     const soustack = fromSchemaOrg(schemaOrgSample);
     expect(soustack).not.toBeNull();
     const recipe = soustack as Recipe;

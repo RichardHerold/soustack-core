@@ -15,7 +15,7 @@ import {
   SchemaOrgInstruction,
   SchemaOrgRecipe
 } from '../types/schemaOrg';
-import modulesRegistry from '../schemas/registry/modules.json';
+import stacksRegistry from '../schemas/registry/stacks.json';
 
 export function convertBasicMetadata(recipe: Recipe): Partial<SchemaOrgRecipe> {
   return cleanOutput({
@@ -305,9 +305,9 @@ function getSchemaOrgMappableStacks(stacks: Record<string, number> = {}): Set<st
   const mappableStackIds = new Set<string>();
   
   // Get list of mappable stack identifiers from registry
-  const mappableFromRegistry = modulesRegistry.modules
-    .filter((m) => m.schemaOrgMappable)
-    .map((m) => `${m.id}@${m.latest}`);
+  const mappableFromRegistry = stacksRegistry.stacks
+    .filter((stack) => stack.schemaOrgMappable)
+    .map((stack) => `${stack.id}@${stack.latest}`);
   
   // Check which stacks in the recipe are mappable
   for (const [name, version] of Object.entries(stacks)) {
@@ -324,8 +324,8 @@ function getSchemaOrgMappableStacks(stacks: Record<string, number> = {}): Set<st
  * Convert a Soustack recipe to Schema.org JSON-LD format.
  * 
  * BREAKING CHANGE in v0.3.0: This function now targets the "minimal" profile
- * and only includes modules that are schemaOrgMappable (as defined in the
- * modules registry). Non-mappable modules (e.g., nutrition@1, schedule@1)
+ * and only includes stacks that are schemaOrgMappable (as defined in the
+ * stacks registry). Non-mappable stacks (e.g., nutrition@1, schedule@1)
  * are excluded from the conversion.
  */
 export function toSchemaOrg(recipe: Recipe): SchemaOrgRecipe {

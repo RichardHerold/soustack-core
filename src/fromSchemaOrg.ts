@@ -45,7 +45,7 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
   const media = convertMedia(recipeNode.image, recipeNode.video);
   const times = convertTimes(time);
 
-  // Build stacks map from modules
+  // Build stacks map from payloads
   const stacks: Record<string, number> = {};
   if (attribution) stacks.attribution = 1;
   if (taxonomy) stacks.taxonomy = 1;

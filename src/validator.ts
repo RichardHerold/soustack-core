@@ -108,7 +108,7 @@ function loadAllSchemas(ajv: Ajv2020, specDir: string): void {
     throw new Error(`Base schema file not found at ${baseSchemaPath} (specDir: ${specDir})`);
   }
 
-  // Load all schema files from schemas/recipe directory (base, profiles, modules)
+  // Load all schema files from schemas/recipe directory (base, profiles, stacks)
   const recipeSchemasDir = path.join(specDir, "schemas", "recipe");
   if (fs.existsSync(recipeSchemasDir)) {
     const schemaFiles = findSchemaFiles(recipeSchemasDir);
@@ -344,7 +344,7 @@ function getComposedValidator(
   for (const [name, version] of Object.entries(stacks)) {
     if (typeof version === "number" && version >= 1) {
       // Stack schemas use https:// prefix
-      const stackSchemaId = `https://soustack.org/schemas/recipe/modules/${name}/${version}.schema.json`;
+      const stackSchemaId = `https://soustack.org/schemas/recipe/stacks/${name}/${version}.schema.json`;
       if (!context.ajv.getSchema(stackSchemaId)) {
         throw new Error(`Stack schema not loaded: ${stackSchemaId}`);
       }
@@ -364,15 +364,15 @@ function getComposedValidator(
 /**
  * Validates a recipe against the root schema from the vendored spec.
  * This is the new primary validation function.
- * For recipes with profile/modules, uses composed validation (base + profile + modules).
- * For recipes without profile/modules, validates against root schema directly.
+ * For recipes with profile/stacks, uses composed validation (base + profile + stacks).
+ * For recipes without profile/stacks, validates against root schema directly.
  */
 export function validateRecipeSchema(input: unknown): {
   ok: boolean;
   errors: NormalizedError[];
   warnings: string[];
 } {
-  // Normalize the input first - use normalizeRecipeInput for stacks/modules
+  // Normalize the input first - use normalizeRecipeInput for stacks
   const { recipe: normalizedInput, warnings: inputWarnings } = normalizeRecipeInput(input);
   const normalized = cloneRecipe(normalizedInput);
   const warnings: string[] = [...inputWarnings];
