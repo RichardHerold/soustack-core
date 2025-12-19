@@ -5,6 +5,7 @@ import * as path from "path";
 import { Recipe } from "./types";
 import { parseDuration } from "./parsers/duration";
 import { normalizeRecipe as normalizeRecipeInput } from "./normalize";
+import { validateConformance, ConformanceIssue } from "./conformance";
 
 type ProfileName = "minimal" | "core";
 
@@ -34,6 +35,10 @@ export interface ValidationResult {
   errors: NormalizedError[];
   warnings: NormalizedWarning[];
   normalized?: Recipe;
+  conformance?: {
+    ok: boolean;
+    issues: ConformanceIssue[];
+  };
 }
 
 interface ValidationContext {
@@ -608,6 +613,7 @@ export function checkInstructionGraph(recipe: Recipe): NormalizedError[] {
 /**
  * Legacy validateRecipe function - now uses the new validateRecipeSchema internally
  * but maintains backward compatibility with profile/module-based validation
+ * Also includes semantic conformance validation.
  */
 export function validateRecipe(input: any, options: ValidateOptions = {}): ValidationResult {
   // Use the new validateRecipeSchema as the base (it normalizes internally)
@@ -622,27 +628,31 @@ export function validateRecipe(input: any, options: ValidateOptions = {}): Valid
     message: msg,
   }));
 
-  // Check instruction graph if schedule module is present
-  const modules: string[] = [];
-  if (Array.isArray(normalized.modules)) {
-    modules.push(...normalized.modules.filter((value) => typeof value === "string"));
-  } else if (normalized.stacks && typeof normalized.stacks === "object" && !Array.isArray(normalized.stacks)) {
-    for (const [name, version] of Object.entries(normalized.stacks)) {
-      if (typeof version === "number" && version >= 1) {
-        modules.push(`${name}@${version}`);
-      }
-    }
-  }
+  // Run conformance validation (semantic checks)
+  // Only run if schema validation passed (or if we want to show both types of errors)
+  const conformanceResult = normalized ? validateConformance(normalized) : { ok: false, issues: [] };
+  
+  // Convert conformance issues to NormalizedError format for backward compatibility
+  // But also include the conformance result separately
+  const conformanceErrors: NormalizedError[] = conformanceResult.issues
+    .filter((issue) => issue.severity === "error")
+    .map((issue) => ({
+      path: issue.path,
+      message: issue.message,
+      keyword: issue.code,
+    }));
 
-  const graphErrors =
-    modules.includes("schedule@1") && schemaErrors.length === 0 ? checkInstructionGraph(normalized) : [];
-  const errors = [...schemaErrors, ...graphErrors];
+  // Combine schema errors and conformance errors
+  // Note: We include conformance errors even if schema validation failed,
+  // but typically we'd only show conformance errors if schema passed
+  const errors = [...schemaErrors, ...conformanceErrors];
 
   return {
-    valid: errors.length === 0,
+    valid: errors.length === 0 && conformanceResult.ok,
     errors,
     warnings,
-    normalized: errors.length === 0 ? normalized : undefined,
+    normalized: errors.length === 0 && conformanceResult.ok ? normalized : undefined,
+    conformance: conformanceResult,
   };
 }
 
