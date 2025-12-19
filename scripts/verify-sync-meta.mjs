@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { SPEC_REPO, REQUIRED_SPEC_FILES } from './schema-artifacts.mjs';
+import { SPEC_REPO, getRequiredSpecFiles } from './schema-artifacts.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -113,8 +113,12 @@ async function main() {
     assert(fs.existsSync(absolutePath), `metadata.files references missing file: ${relativePath}`);
   });
 
+  // Get required files based on what's actually in the spec directory
+  const requiredFiles = getRequiredSpecFiles(SPEC_DIR);
   const fileSet = new Set(metadata.files);
-  REQUIRED_SPEC_FILES.forEach((requiredPath) => {
+  
+  // Check that all required files are present in metadata
+  requiredFiles.forEach((requiredPath) => {
     assert(
       fileSet.has(requiredPath),
       `metadata.files is missing required entry: ${requiredPath}`
