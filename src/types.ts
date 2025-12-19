@@ -10,7 +10,14 @@ export interface SoustackRecipe {
   $schema?: string;
   /** Optional declared validation profile */
   profile?: string;
-  /** Enabled module identifiers (e.g., "nutrition@1") */
+  /** Recipe level: "lite" or "base" */
+  level?: "lite" | "base";
+  /** Module stacks as a map: Record<moduleName, versionNumber> */
+  stacks?: Record<string, number>;
+  /** 
+   * @deprecated Use `stacks` instead. Enabled module identifiers (e.g., "nutrition@1")
+   * This field is kept for backward compatibility and will be normalized to `stacks` automatically.
+   */
   modules?: string[];
   /** Attribution module payload */
   attribution?: AttributionModule;

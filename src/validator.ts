@@ -11,6 +11,7 @@ import mediaModuleV1 from "./schemas/recipe/modules/media/1.schema.json";
 import timesModuleV1 from "./schemas/recipe/modules/times/1.schema.json";
 import { Recipe } from "./types";
 import { parseDuration } from "./parsers/duration";
+import { normalizeRecipe as normalizeRecipeInput } from "./normalize";
 
 type ProfileName = "minimal" | "core";
 
@@ -237,12 +238,19 @@ function getCombinedValidator(
   return validateFn;
 }
 
-function normalizeRecipe(recipe: Recipe): { normalized: Recipe; warnings: NormalizedWarning[] } {
-  const normalized = cloneRecipe(recipe);
-  const warnings: NormalizedWarning[] = [];
+function normalizeRecipe(recipe: any): { normalized: Recipe; warnings: NormalizedWarning[] } {
+  // First, apply the new normalization for stacks/modules
+  const { recipe: normalizedInput, warnings: inputWarnings } = normalizeRecipeInput(recipe);
+  const normalized = cloneRecipe(normalizedInput);
+  const warnings: NormalizedWarning[] = inputWarnings.map(msg => ({
+    path: "/stacks",
+    message: msg,
+  }));
 
+  // Normalize time
   normalizeTime(normalized);
 
+  // Normalize deprecated version field
   if (
     normalized &&
     typeof normalized === "object" &&
@@ -252,6 +260,19 @@ function normalizeRecipe(recipe: Recipe): { normalized: Recipe; warnings: Normal
   ) {
     (normalized as any).recipeVersion = (normalized as any).version;
     warnings.push({ path: "/version", message: "'version' is deprecated; mapped to 'recipeVersion'." });
+  }
+
+  // Convert stacks map back to modules array for validation (temporary compatibility)
+  // The validator still expects modules array format
+  if (normalized.stacks && typeof normalized.stacks === 'object' && !Array.isArray(normalized.stacks)) {
+    const modules: string[] = [];
+    for (const [name, version] of Object.entries(normalized.stacks)) {
+      if (typeof version === 'number' && version >= 1) {
+        modules.push(`${name}@${version}`);
+      }
+    }
+    // Keep both for now - stacks is the source of truth, modules is for validator compatibility
+    (normalized as any).modules = modules.sort();
   }
 
   return { normalized, warnings };
@@ -284,6 +305,9 @@ function normalizeTime(recipe: Recipe): void {
 const allowedTopLevelProps = new Set<string>([
   ...Object.keys((baseSchema as any)?.properties ?? {}),
   "$schema",
+  // New v0.3.0 fields
+  "level",
+  "stacks",
   // Module fields (validated by module schemas)
   "attribution",
   "taxonomy",
@@ -457,13 +481,23 @@ export function validateRecipe(input: any, options: ValidateOptions = {}): Valid
   const profileFromDocument = typeof input?.profile === "string" ? (input.profile as ProfileName) : undefined;
   const profile: ProfileName =
     options.profile ?? profileFromDocument ?? detectProfileFromSchema(schemaRef) ?? "core";
-  // Modules default to [] if missing
-  const modulesFromDocument = Array.isArray(input?.modules)
-    ? (input.modules as string[]).filter((value) => typeof value === "string")
-    : [];
-  const modules = modulesFromDocument.length > 0 ? [...modulesFromDocument].sort() : [];
-
+  
+  // Normalize recipe first (converts stacks/modules)
   const { normalized, warnings } = normalizeRecipe(input as Recipe);
+  
+  // Extract modules from normalized recipe (may come from stacks or modules)
+  let modules: string[] = [];
+  if (Array.isArray(normalized.modules)) {
+    modules = [...normalized.modules].filter((value) => typeof value === "string");
+  } else if (normalized.stacks && typeof normalized.stacks === 'object' && !Array.isArray(normalized.stacks)) {
+    // Convert stacks map to modules array for validator
+    for (const [name, version] of Object.entries(normalized.stacks)) {
+      if (typeof version === 'number' && version >= 1) {
+        modules.push(`${name}@${version}`);
+      }
+    }
+  }
+  modules = modules.length > 0 ? modules.sort() : [];
 
   // Apply defaults before validation (required by profile schemas)
   // Profile defaults to "core" if missing
@@ -473,10 +507,10 @@ export function validateRecipe(input: any, options: ValidateOptions = {}): Valid
     (normalized as any).profile = profileFromDocument;
   }
   
-  // Modules default to [] if missing (as per schema defaults)
+  // Ensure modules array exists for validator compatibility (derived from stacks if needed)
   if (!('modules' in normalized) || normalized.modules === undefined || normalized.modules === null) {
-    (normalized as any).modules = [];
-  } else if (modulesFromDocument.length > 0) {
+    (normalized as any).modules = modules;
+  } else if (modules.length > 0) {
     (normalized as any).modules = modules;
   }
 
