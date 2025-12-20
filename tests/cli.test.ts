@@ -62,4 +62,52 @@ describe('soustack CLI', () => {
     expect(result.stdout).toContain('Test summary');
     expect(result.stdout).toContain('❌');
   });
+
+  it('prints a stable JSON conformance report for valid fixtures', () => {
+    const result = runCli(['check', VALID_FIXTURE, '--json']);
+    expect(result.status).toBe(0);
+    const output = JSON.parse(result.stdout.toString());
+    expect(output).toMatchInlineSnapshot(`
+{
+  "conformanceIssues": [],
+  "level": null,
+  "ok": true,
+  "schemaErrors": [],
+  "stacks": {},
+  "warnings": [],
+}
+`);
+  });
+
+  it('prints a stable JSON conformance report for invalid fixtures', () => {
+    const result = runCli(['check', INVALID_FIXTURE, '--json']);
+    expectNonZero(result.status);
+    const output = JSON.parse(result.stdout.toString());
+    expect(output).toMatchInlineSnapshot(`
+{
+  "conformanceIssues": [],
+  "level": null,
+  "ok": false,
+  "schemaErrors": [
+    {
+      "keyword": "required",
+      "message": "must have required property '@type'",
+      "path": "/",
+    },
+    {
+      "keyword": "required",
+      "message": "must have required property '@type'",
+      "path": "/",
+    },
+    {
+      "keyword": "required",
+      "message": "must have required property 'instructions'",
+      "path": "/",
+    },
+  ],
+  "stacks": {},
+  "warnings": [],
+}
+`);
+  });
 });
