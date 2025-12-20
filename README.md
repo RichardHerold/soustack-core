@@ -372,6 +372,9 @@ npx soustack validate recipe.soustack.json --profile core --strict --json
 # Schema-only validation (skip semantic conformance checks)
 npx soustack validate recipe.soustack.json --schema-only
 
+# Stable JSON conformance report for CI
+npx soustack check recipe.soustack.json --json
+
 # Repo-wide test run (validates every *.soustack.json)
 npx soustack test --profile core
 

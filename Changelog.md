@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `ValidateMode` and `ValidateResult` with explicit validation modes (`schema` vs `full`).
 - Added `--schema-only` flag to the CLI to run schema-only validation.
+- Added `soustack check <file> --json` CLI command for stable JSON conformance reports.
 
 ### Changed
 

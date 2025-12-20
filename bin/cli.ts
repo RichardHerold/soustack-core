@@ -40,6 +40,7 @@ type ConvertDirection = 'schemaorg-to-soustack' | 'soustack-to-schemaorg';
 type ProfileName = NonNullable<ValidateOptions['profile']>;
 
 type KnownCommand =
+  | 'check'
   | 'validate'
   | 'convert'
   | 'import'
@@ -54,6 +55,9 @@ export async function runCli(argv: string[]): Promise<void> {
 
   try {
     switch (command as KnownCommand) {
+      case 'check':
+        await handleCheck(args);
+        return;
       case 'validate':
         await handleValidate(args);
         return;
@@ -84,12 +88,37 @@ export async function runCli(argv: string[]): Promise<void> {
 
 function printUsage() {
   console.log('Usage:');
+  console.log('  soustack check <file> --json');
   console.log('  soustack validate <fileOrGlob> [--profile <name>] [--schema-only] [--strict] [--json]');
   console.log('  soustack convert --from <schemaorg|soustack> --to <schemaorg|soustack> <input> [-o <output>]');
   console.log('  soustack import --url <url> [-o <soustack.json>]');
   console.log('  soustack test [--profile <name>] [--schema-only] [--strict] [--json]');
   console.log('  soustack scale <soustack.json> <multiplier>');
   console.log('  soustack scrape <url> -o <soustack.json>');
+}
+
+async function handleCheck(args: string[]) {
+  const { target, json } = parseCheckArgs(args);
+  if (!target) throw new Error('Path to Soustack recipe JSON is required');
+  if (!json) throw new Error('Check usage: check <file> --json');
+
+  try {
+    const input = readJsonFile(target);
+    const result = validateRecipe(input, { mode: 'full', includeNormalized: true });
+    const report = buildConformanceReport(result);
+    console.log(JSON.stringify(report, null, 2));
+    if (!report.ok) process.exitCode = 1;
+  } catch (error: any) {
+    const report = buildConformanceReport({
+      ok: false,
+      warnings: [],
+      schemaErrors: [{ path: '/', message: error?.message || 'Validation failed' }],
+      conformanceIssues: [],
+      normalizedRecipe: undefined,
+    });
+    console.log(JSON.stringify(report, null, 2));
+    process.exitCode = 1;
+  }
 }
 
 async function handleValidate(args: string[]) {
@@ -212,6 +241,25 @@ function parseValidateArgs(args: string[]): { target?: string } & ValidationFlag
   }
 
   return { profile, strict, json, mode, target };
+}
+
+function parseCheckArgs(args: string[]): { target?: string; json: boolean } {
+  let json = false;
+  let target: string | undefined;
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--json') {
+      json = true;
+      continue;
+    }
+
+    if (!arg.startsWith('--') && !target) {
+      target = arg;
+    }
+  }
+
+  return { target, json };
 }
 
 function parseValidationFlags(args: string[]): ValidationFlags {
@@ -424,6 +472,57 @@ function writeOutput(data: unknown, outputPath?: string) {
 
   const absolutePath = path.resolve(outputPath);
   fs.writeFileSync(absolutePath, serialized, 'utf-8');
+}
+
+function buildConformanceReport(result: ValidateResult) {
+  const recipe = result.normalizedRecipe;
+  const level = typeof recipe?.level === 'string' ? recipe.level : null;
+  const stacks = normalizeStacksForReport(recipe?.stacks);
+  const schemaErrors = sortSchemaErrors(result.schemaErrors).map((error) => ({
+    path: error.path,
+    keyword: error.keyword ?? null,
+    message: error.message,
+  }));
+  const conformanceIssues = sortConformanceIssues(result.conformanceIssues).map((issue) => ({
+    code: issue.code,
+    path: issue.path,
+    severity: issue.severity === 'warning' ? 'warn' : 'error',
+    message: issue.message,
+  }));
+
+  return {
+    ok: result.ok,
+    level,
+    stacks,
+    warnings: result.warnings,
+    schemaErrors,
+    conformanceIssues,
+  };
+}
+
+function normalizeStacksForReport(stacks: unknown): Record<string, number> {
+  if (!stacks || typeof stacks !== 'object' || Array.isArray(stacks)) return {};
+  const entries = Object.entries(stacks).filter(([, value]) => typeof value === 'number');
+  entries.sort(([a], [b]) => a.localeCompare(b));
+  return Object.fromEntries(entries);
+}
+
+function sortSchemaErrors(errors: NormalizedError[]): NormalizedError[] {
+  return [...errors].sort((left, right) => {
+    const pathCompare = left.path.localeCompare(right.path);
+    if (pathCompare !== 0) return pathCompare;
+    const leftKeyword = left.keyword ?? '';
+    const rightKeyword = right.keyword ?? '';
+    return leftKeyword.localeCompare(rightKeyword);
+  });
+}
+
+function sortConformanceIssues(issues: ValidateResult['conformanceIssues']): ValidateResult['conformanceIssues'] {
+  return [...issues].sort((left, right) => {
+    const pathCompare = left.path.localeCompare(right.path);
+    if (pathCompare !== 0) return pathCompare;
+    return left.code.localeCompare(right.code);
+  });
 }
 
 if (require.main === module) {
