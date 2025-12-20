@@ -12,10 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `ValidateMode` and `ValidateResult` with explicit validation modes (`schema` vs `full`).
 - Added `--schema-only` flag to the CLI to run schema-only validation.
 - Added `soustack check <file> --json` CLI command for stable JSON conformance reports.
+- Added `--force-profile` to the CLI to override a mismatched recipe profile.
 
 ### Changed
 
 - `validateRecipe()` now returns a stable `{ ok, schemaErrors, conformanceIssues, warnings, normalizedRecipe }` payload.
+- Updated CLI profile vocabulary and help text to match the latest spec.
 
 ## [0.3.0] - 2025-12-16
 

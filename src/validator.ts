@@ -20,7 +20,16 @@ import scheduleStackSchema from "./schemas/recipe/stacks/schedule/1.schema.json"
 import taxonomyStackSchema from "./schemas/recipe/stacks/taxonomy/1.schema.json";
 import timesStackSchema from "./schemas/recipe/stacks/times/1.schema.json";
 
-type ProfileName = "minimal" | "core";
+type ProfileName =
+  | "base"
+  | "equipped"
+  | "illustrated"
+  | "lite"
+  | "prepped"
+  | "scalable"
+  | "timed"
+  | "minimal"
+  | "core";
 
 // Schema IDs from the vendored spec
 const LEGACY_ROOT_SCHEMA_ID = "http://soustack.org/schema/v0.3.0";
@@ -383,7 +392,19 @@ function validateRecipeSchemaNormalized(
 
   // Always use composed validation for recipes (base + profile + stacks)
   // Root schema validation is only for standalone validation without profiles
-  if (profile === "minimal" || profile === "core") {
+  const profileSchemaId = `${PROFILE_SCHEMA_PREFIX}${profile}.schema.json`;
+  if (!context.ajv.getSchema(profileSchemaId)) {
+    return {
+      ok: false,
+      errors: [
+        {
+          path: "/profile",
+          message: `Profile schema not loaded: ${profileSchemaId}`,
+        },
+      ],
+    };
+  }
+  {
     // Use composed validation (base + profile + stacks)
     // Include both declared and inferred stacks in schema to enforce contract
     // The schema will enforce that stacks must be declared if payload exists
@@ -441,17 +462,6 @@ function validateRecipeSchemaNormalized(
         }
       }
     }
-  } else {
-    // Unknown profile - return error
-    return {
-      ok: false,
-      errors: [
-        {
-          path: "/profile",
-          message: `Unknown profile: ${profile}. Supported profiles: minimal, core`,
-        },
-      ],
-    };
   }
 
   return {

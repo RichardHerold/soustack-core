@@ -24,6 +24,7 @@ interface ValidationOutcome {
 
 interface ValidationFlags {
   profile?: ProfileName;
+  forceProfile: boolean;
   strict: boolean;
   json: boolean;
   mode: ValidateMode;
@@ -48,7 +49,15 @@ type KnownCommand =
   | 'scrape'
   | 'test';
 
-const supportedProfiles: ProfileName[] = ['minimal', 'core'];
+const supportedProfiles: ProfileName[] = [
+  'base',
+  'equipped',
+  'illustrated',
+  'lite',
+  'prepped',
+  'scalable',
+  'timed',
+];
 
 export async function runCli(argv: string[]): Promise<void> {
   const [command, ...args] = argv;
@@ -89,12 +98,15 @@ export async function runCli(argv: string[]): Promise<void> {
 function printUsage() {
   console.log('Usage:');
   console.log('  soustack check <file> --json');
-  console.log('  soustack validate <fileOrGlob> [--profile <name>] [--schema-only] [--strict] [--json]');
+  console.log(
+    '  soustack validate <fileOrGlob> [--profile <name>] [--force-profile] [--schema-only] [--strict] [--json]',
+  );
   console.log('  soustack convert --from <schemaorg|soustack> --to <schemaorg|soustack> <input> [-o <output>]');
   console.log('  soustack import --url <url> [-o <soustack.json>]');
-  console.log('  soustack test [--profile <name>] [--schema-only] [--strict] [--json]');
+  console.log('  soustack test [--profile <name>] [--force-profile] [--schema-only] [--strict] [--json]');
   console.log('  soustack scale <soustack.json> <multiplier>');
   console.log('  soustack scrape <url> -o <soustack.json>');
+  console.log(`\nProfiles: ${supportedProfiles.join(', ')}`);
 }
 
 async function handleCheck(args: string[]) {
@@ -122,18 +134,18 @@ async function handleCheck(args: string[]) {
 }
 
 async function handleValidate(args: string[]) {
-  const { target, profile, strict, json, mode } = parseValidateArgs(args);
+  const { target, profile, forceProfile, strict, json, mode } = parseValidateArgs(args);
   if (!target) throw new Error('Path or glob to Soustack recipe JSON is required');
 
   const files = expandTargets(target);
   if (files.length === 0) throw new Error(`No files matched pattern: ${target}`);
 
-  const results = files.map((file) => validateFile(file, profile, mode));
-  reportValidation(results, { profile, strict, json, mode });
+  const results = files.map((file) => validateFile(file, profile, mode, forceProfile));
+  reportValidation(results, { profile, forceProfile, strict, json, mode });
 }
 
 async function handleTest(args: string[]) {
-  const { profile, strict, json, mode } = parseValidationFlags(args);
+  const { profile, forceProfile, strict, json, mode } = parseValidationFlags(args);
   const cwd = process.cwd();
   const files = globSync('**/*.soustack.json', {
     cwd,
@@ -147,8 +159,8 @@ async function handleTest(args: string[]) {
     return;
   }
 
-  const results = files.map((file) => validateFile(file, profile, mode));
-  reportValidation(results, { profile, strict, json, mode, context: 'test' });
+  const results = files.map((file) => validateFile(file, profile, mode, forceProfile));
+  reportValidation(results, { profile, forceProfile, strict, json, mode, context: 'test' });
 }
 
 async function handleConvert(args: string[]) {
@@ -211,6 +223,7 @@ async function handleScrape(args: string[]) {
 
 function parseValidateArgs(args: string[]): { target?: string } & ValidationFlags {
   let profile: ProfileName | undefined;
+  let forceProfile = false;
   let strict = false;
   let json = false;
   let mode: ValidateMode = 'full';
@@ -222,6 +235,9 @@ function parseValidateArgs(args: string[]): { target?: string } & ValidationFlag
       case '--profile':
         profile = normalizeProfile(args[i + 1]);
         i++;
+        break;
+      case '--force-profile':
+        forceProfile = true;
         break;
       case '--schema-only':
         mode = 'schema';
@@ -240,7 +256,7 @@ function parseValidateArgs(args: string[]): { target?: string } & ValidationFlag
     }
   }
 
-  return { profile, strict, json, mode, target };
+  return { profile, forceProfile, strict, json, mode, target };
 }
 
 function parseCheckArgs(args: string[]): { target?: string; json: boolean } {
@@ -263,8 +279,8 @@ function parseCheckArgs(args: string[]): { target?: string; json: boolean } {
 }
 
 function parseValidationFlags(args: string[]): ValidationFlags {
-  const { profile, strict, json, mode } = parseValidateArgs(args);
-  return { profile, strict, json, mode };
+  const { profile, forceProfile, strict, json, mode } = parseValidateArgs(args);
+  return { profile, forceProfile, strict, json, mode };
 }
 
 function normalizeProfile(value?: string): ProfileName | undefined {
@@ -273,7 +289,7 @@ function normalizeProfile(value?: string): ProfileName | undefined {
   if (supportedProfiles.includes(normalized)) {
     return normalized;
   }
-  throw new Error(`Unknown Soustack profile: ${value}`);
+  throw new Error(`Unknown Soustack profile: ${value}. Supported profiles: ${supportedProfiles.join(', ')}`);
 }
 
 function parseConvertArgs(args: string[]): { from?: string; to?: string; inputPath?: string; outputPath?: string } {
@@ -348,10 +364,26 @@ function expandTargets(target: string): string[] {
   return unique;
 }
 
-function validateFile(file: string, profile?: ProfileName, mode: ValidateMode = 'full'): ValidationOutcome {
+function validateFile(
+  file: string,
+  profile?: ProfileName,
+  mode: ValidateMode = 'full',
+  forceProfile = false,
+): ValidationOutcome {
   try {
     const recipe = readJsonFile(file);
-    const result = validateRecipe(recipe, profile ? { profile, mode } : { mode });
+    const { recipe: validationRecipe, mismatchError } = resolveProfileForValidation(recipe, profile, forceProfile);
+    if (mismatchError) {
+      return {
+        file,
+        profile,
+        ok: false,
+        warnings: [],
+        schemaErrors: [mismatchError],
+        conformanceIssues: [],
+      };
+    }
+    const result = validateRecipe(validationRecipe, profile ? { profile, mode } : { mode });
     return {
       file,
       profile,
@@ -371,6 +403,41 @@ function validateFile(file: string, profile?: ProfileName, mode: ValidateMode = 
       conformanceIssues: [],
     };
   }
+}
+
+function resolveProfileForValidation(
+  recipe: unknown,
+  profile?: ProfileName,
+  forceProfile = false,
+): { recipe: unknown; mismatchError?: NormalizedError } {
+  if (!profile) return { recipe };
+  if (!recipe || typeof recipe !== 'object' || Array.isArray(recipe)) {
+    return { recipe };
+  }
+
+  const recipeProfileRaw = (recipe as { profile?: unknown }).profile;
+  const recipeProfile = typeof recipeProfileRaw === 'string' ? recipeProfileRaw.toLowerCase() : undefined;
+
+  if (!recipeProfile) {
+    return { recipe: { ...(recipe as object), profile } };
+  }
+
+  if (recipeProfile !== profile) {
+    if (!forceProfile) {
+      return {
+        recipe,
+        mismatchError: {
+          path: '/profile',
+          keyword: 'profile',
+          message: `Recipe profile "${recipeProfile}" does not match --profile "${profile}". Use --force-profile to override.`,
+        },
+      };
+    }
+
+    return { recipe: { ...(recipe as object), profile } };
+  }
+
+  return { recipe };
 }
 
 function reportValidation(
