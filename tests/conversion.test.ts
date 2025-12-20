@@ -120,9 +120,9 @@ describe('Schema.org <-> Soustack', () => {
     }
     baseCompatible.profile = 'core';
     const validation = validateRecipe(baseCompatible, { profile: 'core' });
-    expect(validation.valid).toBe(true);
+    expect(validation.ok).toBe(true);
 
-    const schema = toSchemaOrg(validation.normalized!);
+    const schema = toSchemaOrg(validation.normalizedRecipe!);
     expect(schema['@type']).toBe('Recipe');
     expect(schema.recipeIngredient).toEqual(
       expect.arrayContaining(['2 1/4 cups all-purpose flour, sifted'])

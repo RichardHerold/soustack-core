@@ -1,4 +1,4 @@
-import { detectProfiles, validateRecipe, validateRecipeSchema, ValidationResult } from '../src/validator';
+import { detectProfiles, validateRecipe, validateRecipeSchema, ValidateResult } from '../src/validator';
 import { Recipe } from '../src/types';
 import path from 'path';
 import fs from 'fs';
@@ -38,9 +38,9 @@ describe('Soustack validation', () => {
   it('validates the base schema with extensions', () => {
     const recipe: Recipe = { ...baseValid, 'x-extra': true };
     const result = validateRecipe(recipe);
-    expect(result.valid).toBe(true);
-    expect(result.errors).toHaveLength(0);
-    expect(result.normalized).toBeDefined();
+    expect(result.ok).toBe(true);
+    expect(result.schemaErrors).toHaveLength(0);
+    expect(result.normalizedRecipe).toBeDefined();
   });
 
   it('throws when legacy field is present during validation', () => {
@@ -68,8 +68,8 @@ describe('Soustack validation', () => {
   it('detects unknown top-level keys as errors', () => {
     const recipe = { ...baseValid, unexpected: true };
     const result = validateRecipe(recipe);
-    expect(result.valid).toBe(false);
-    expect(result.errors[0]).toMatchObject({ path: '/unexpected', keyword: 'additionalProperties' });
+    expect(result.ok).toBe(false);
+    expect(result.schemaErrors[0]).toMatchObject({ path: '/unexpected', keyword: 'additionalProperties' });
   });
 
   it('auto-detects profile validation from $schema', () => {
@@ -82,28 +82,28 @@ describe('Soustack validation', () => {
     };
 
     const result = validateRecipe(recipe);
-    expect(result.valid).toBe(true);
-    expect(result.errors).toHaveLength(0);
+    expect(result.ok).toBe(true);
+    expect(result.schemaErrors).toHaveLength(0);
   });
 
   it('ignores non-Soustack $schema hints for profile detection', () => {
     const recipe: Recipe = { ...baseValid, $schema: 'http://json-schema.org/draft-07/schema#' };
 
     const result = validateRecipe(recipe);
-    expect(result.valid).toBe(true);
-    expect(result.errors).toHaveLength(0);
+    expect(result.ok).toBe(true);
+    expect(result.schemaErrors).toHaveLength(0);
   });
 
   it('accepts an explicit profile selection', () => {
     const result = validateRecipe(baseValid, { profile: 'core' });
-    expect(result.valid).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   it('defaults to core profile if profile is missing', () => {
     const recipe = { ...baseValid };
     delete (recipe as any).profile;
     const result = validateRecipe(recipe);
-    expect(result.valid).toBe(true);
+    expect(result.ok).toBe(true);
     // Should validate against core profile
   });
 
@@ -111,16 +111,16 @@ describe('Soustack validation', () => {
     const recipe = { ...minimalValid };
     delete (recipe as any).stacks;
     const result = validateRecipe(recipe, { profile: 'minimal' });
-    expect(result.valid).toBe(true);
+    expect(result.ok).toBe(true);
   });
 
   it('normalizes deprecated version into recipeVersion without mutating the input', () => {
     const recipe: Recipe = { ...baseValid, version: '2.0.0' };
     const result = validateRecipe(recipe);
-    expect(result.valid).toBe(true);
-    expect(result.normalized?.recipeVersion).toBe('2.0.0');
+    expect(result.ok).toBe(true);
+    expect(result.normalizedRecipe?.recipeVersion).toBe('2.0.0');
     expect(recipe.recipeVersion).toBeUndefined();
-    expect(result.warnings[0].message).toContain('deprecated');
+    expect(result.warnings[0]).toContain('deprecated');
   });
 
   describe('time normalization', () => {
@@ -136,9 +136,9 @@ describe('Soustack validation', () => {
       };
       const result = validateRecipe(recipe);
 
-      expect(result.valid).toBe(true);
+      expect(result.ok).toBe(true);
       // The validator preserves ISO8601 strings in normalized output
-      expect(result.normalized?.time).toEqual(
+      expect(result.normalizedRecipe?.time).toEqual(
         expect.objectContaining({ prepTime: 'PT5M', cookTime: 'PT12M' })
       );
     });
@@ -155,8 +155,8 @@ describe('Soustack validation', () => {
       };
       const result = validateRecipe(recipe);
 
-      expect(result.valid).toBe(true);
-      expect(result.normalized?.time).toEqual(recipe.time);
+      expect(result.ok).toBe(true);
+      expect(result.normalizedRecipe?.time).toEqual(recipe.time);
     });
 
     it('handles mixed numeric and ISO durations', () => {
@@ -171,9 +171,9 @@ describe('Soustack validation', () => {
       };
       const result = validateRecipe(recipe);
 
-      expect(result.valid).toBe(true);
+      expect(result.ok).toBe(true);
       // active: 10, passive: 30, total: 40, cookTime: PT40M = 40
-      expect(result.normalized?.time).toEqual(
+      expect(result.normalizedRecipe?.time).toEqual(
         expect.objectContaining({ active: 10, passive: 30, total: 40 })
       );
     });
@@ -189,9 +189,9 @@ describe('Soustack validation', () => {
       profile: invalidRaw.profile || 'core',
       stacks: invalidRaw.stacks || {}
     };
-    const result: ValidationResult = validateRecipe(invalid);
-    expect(result.valid).toBe(false);
-    expect(result.errors[0]).toEqual(
+    const result: ValidateResult = validateRecipe(invalid);
+    expect(result.ok).toBe(false);
+    expect(result.schemaErrors[0]).toEqual(
       expect.objectContaining({ path: expect.any(String), message: expect.any(String), keyword: expect.any(String) }),
     );
   });
@@ -206,8 +206,8 @@ describe('Soustack validation', () => {
       if (validFiles.length === 0) return;
       const valid = loadFixture(profile, 'valid', validFiles[0]);
       const result = validateRecipe(valid, { profile });
-      expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
+      expect(result.ok).toBe(true);
+      expect(result.schemaErrors).toHaveLength(0);
     });
 
     it.each(profiles)('reports errors for invalid %s fixtures', (profile) => {
@@ -217,8 +217,8 @@ describe('Soustack validation', () => {
       if (invalidFiles.length === 0) return;
       const invalid = loadFixture(profile, 'invalid', invalidFiles[0]);
       const result = validateRecipe(invalid, { profile });
-      expect(result.valid).toBe(false);
-      expect(result.errors[0]).toEqual(
+      expect(result.ok).toBe(false);
+      expect(result.schemaErrors[0]).toEqual(
         expect.objectContaining({ path: expect.any(String), message: expect.any(String) }),
       );
     });
@@ -242,8 +242,8 @@ describe('Soustack validation', () => {
       };
       const result = validateRecipe(recipe);
 
-      expect(result.valid).toBe(false);
-      expect(result.errors).toEqual(
+      expect(result.ok).toBe(false);
+      expect(result.conformanceIssues).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             path: expect.stringMatching(/dependsOn/),
@@ -263,35 +263,35 @@ describe('Soustack validation', () => {
       };
       const result = validateRecipe(recipe);
 
-      expect(result.valid).toBe(false);
-      expect(result.errors.some((error) => /cycle|circular/i.test(error.message))).toBe(true);
+      expect(result.ok).toBe(false);
+      expect(result.conformanceIssues.some((issue) => /cycle|circular/i.test(issue.message))).toBe(true);
     });
 
     it('passes for valid dependency graphs with schedule stack', () => {
       const result = validateRecipe(coreScheduleValid);
 
-      expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
+      expect(result.ok).toBe(true);
+      expect(result.schemaErrors).toHaveLength(0);
     });
   });
 
   describe('composed validation with stacks', () => {
     it('validates minimal profile with nutrition stack', () => {
       const result = validateRecipe(minimalNutritionValid);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
+      expect(result.ok).toBe(true);
+      expect(result.schemaErrors).toHaveLength(0);
     });
 
     it('fails when schedule stack is used with minimal profile', () => {
       const result = validateRecipe(minimalScheduleInvalid);
-      expect(result.valid).toBe(false);
+      expect(result.ok).toBe(false);
       // Schedule stack requires core profile, not minimal
     });
 
     it('validates core profile with schedule stack', () => {
       const result = validateRecipe(coreScheduleValid);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
+      expect(result.ok).toBe(true);
+      expect(result.schemaErrors).toHaveLength(0);
     });
 
     it('enforces stack declaration when payload exists (stack contract)', () => {
@@ -303,8 +303,8 @@ describe('Soustack validation', () => {
       const result = validateRecipe(recipe);
 
       // Stack contract: if payload exists, stack must be declared
-      expect(result.valid).toBe(false);
-      expect(result.errors.some(e => 
+      expect(result.ok).toBe(false);
+      expect(result.schemaErrors.some(e => 
         e.message.includes('nutrition') || 
         e.message.includes('stacks') ||
         e.path.includes('stacks')
@@ -320,8 +320,8 @@ describe('Soustack validation', () => {
       const result = validateRecipe(recipe);
 
       // Stack contract: if stack is declared, payload must exist
-      expect(result.valid).toBe(false);
-      expect(result.errors.some(e => 
+      expect(result.ok).toBe(false);
+      expect(result.schemaErrors.some(e => 
         e.message.includes('nutrition') || 
         e.path.includes('nutrition')
       )).toBe(true);
@@ -334,8 +334,8 @@ describe('Soustack validation', () => {
         nutrition: { calories: 100, protein_g: 5 },
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
+      expect(result.ok).toBe(true);
+      expect(result.schemaErrors).toHaveLength(0);
     });
 
     it('infers stacks from payload and enforces declaration requirement', () => {
@@ -347,8 +347,8 @@ describe('Soustack validation', () => {
       const result = validateRecipe(recipe);
 
       // Should infer times: 1 from payload and enforce that it's declared
-      expect(result.valid).toBe(false);
-      expect(result.errors.some(e => 
+      expect(result.ok).toBe(false);
+      expect(result.schemaErrors.some(e => 
         e.message.includes('times') || 
         e.message.includes('stacks') ||
         e.path.includes('stacks')
@@ -363,8 +363,8 @@ describe('Soustack validation', () => {
         times: { prepMinutes: 10, cookMinutes: 20, totalMinutes: 30 }, // times stack uses prepMinutes/cookMinutes/totalMinutes
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
+      expect(result.ok).toBe(true);
+      expect(result.schemaErrors).toHaveLength(0);
     });
 
     it('caches validators by profile and sorted stacks', () => {
@@ -385,8 +385,8 @@ describe('Soustack validation', () => {
       const result2 = validateRecipe(recipe2);
       
       // Both should be valid and use the same cached validator
-      expect(result1.valid).toBe(true);
-      expect(result2.valid).toBe(true);
+      expect(result1.ok).toBe(true);
+      expect(result2.ok).toBe(true);
     });
   });
 
@@ -398,8 +398,8 @@ describe('Soustack validation', () => {
       // Add required fields for validation
       const recipe = { '@type': 'Recipe', profile: 'core', ...validFixture };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
+      expect(result.ok).toBe(true);
+      expect(result.schemaErrors).toHaveLength(0);
     });
 
     it('validates an invalid fixture from spec/fixtures/base/invalid', () => {
@@ -407,8 +407,8 @@ describe('Soustack validation', () => {
         fs.readFileSync(path.join(__dirname, '..', 'spec', 'fixtures', 'base', 'invalid', 'missing-name.json'), 'utf8')
       );
       const result = validateRecipe(invalidFixture);
-      expect(result.valid).toBe(false);
-      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.ok).toBe(false);
+      expect(result.schemaErrors.length).toBeGreaterThan(0);
     });
   });
 });

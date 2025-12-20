@@ -28,19 +28,24 @@ describe('Spec fixture contract tests', () => {
         
         const result = validateRecipe(fixture);
         
-        if (!result.valid) {
+        if (!result.ok) {
           // Provide readable failure output
-          const errorMessages = result.errors.map(e => 
-            `  - ${e.path}: ${e.message}${e.keyword ? ` (${e.keyword})` : ''}`
-          ).join('\n');
+          const errorMessages = [
+            ...result.schemaErrors.map((e) =>
+              `  - ${e.path}: ${e.message}${e.keyword ? ` (${e.keyword})` : ''}`
+            ),
+            ...result.conformanceIssues.map((issue) =>
+              `  - ${issue.path}: ${issue.message} (${issue.code})`
+            ),
+          ].join('\n');
           
           throw new Error(
             `Expected ${fixtureFile} to be valid, but validation failed:\n${errorMessages}`
           );
         }
         
-        expect(result.valid).toBe(true);
-        expect(result.errors).toHaveLength(0);
+        expect(result.ok).toBe(true);
+        expect(result.schemaErrors).toHaveLength(0);
       });
     });
   });
@@ -53,15 +58,15 @@ describe('Spec fixture contract tests', () => {
         
         const result = validateRecipe(fixture);
         
-        if (result.valid) {
+        if (result.ok) {
           throw new Error(
             `Expected ${fixtureFile} to be invalid, but validation passed. ` +
             `This fixture should demonstrate a validation error.`
           );
         }
         
-        expect(result.valid).toBe(false);
-        expect(result.errors.length).toBeGreaterThan(0);
+        expect(result.ok).toBe(false);
+        expect(result.schemaErrors.length + result.conformanceIssues.length).toBeGreaterThan(0);
       });
     });
   });
@@ -71,4 +76,3 @@ describe('Spec fixture contract tests', () => {
     expect(invalidFixtures.length).toBeGreaterThan(0);
   });
 });
-

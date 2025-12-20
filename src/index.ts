@@ -1,6 +1,7 @@
 export * from './types';
 export { scaleRecipe } from './parser';
 export { validateRecipe, detectProfiles } from './validator';
+export type { ValidateMode, ValidateResult } from './validator';
 export { fromSchemaOrg } from './fromSchemaOrg';
 export { normalizeRecipe } from './normalize';
 export type { NormalizationResult } from './normalize';

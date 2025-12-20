@@ -18,7 +18,7 @@ describe('Stack contract unit tests', () => {
         stacks: {},
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
+      expect(result.ok).toBe(false);
     });
 
     it('fails when attribution@1 declared without payload', () => {
@@ -27,7 +27,7 @@ describe('Stack contract unit tests', () => {
         stacks: { attribution: 1 },
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
+      expect(result.ok).toBe(false);
     });
 
     it('passes when both declaration and payload exist', () => {
@@ -37,7 +37,7 @@ describe('Stack contract unit tests', () => {
         attribution: { url: 'https://example.com', author: 'Test Author' },
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(true);
+      expect(result.ok).toBe(true);
     });
   });
 
@@ -49,7 +49,7 @@ describe('Stack contract unit tests', () => {
         stacks: {},
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
+      expect(result.ok).toBe(false);
     });
 
     it('fails when taxonomy@1 declared without payload', () => {
@@ -58,7 +58,7 @@ describe('Stack contract unit tests', () => {
         stacks: { taxonomy: 1 },
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
+      expect(result.ok).toBe(false);
     });
 
     it('passes when both declaration and payload exist', () => {
@@ -68,7 +68,7 @@ describe('Stack contract unit tests', () => {
         taxonomy: { keywords: ['test'], category: 'Dessert' },
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(true);
+      expect(result.ok).toBe(true);
     });
   });
 
@@ -80,7 +80,7 @@ describe('Stack contract unit tests', () => {
         stacks: {},
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
+      expect(result.ok).toBe(false);
     });
 
     it('fails when media@1 declared without payload', () => {
@@ -89,7 +89,7 @@ describe('Stack contract unit tests', () => {
         stacks: { media: 1 },
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
+      expect(result.ok).toBe(false);
     });
 
     it('passes when both declaration and payload exist', () => {
@@ -99,7 +99,7 @@ describe('Stack contract unit tests', () => {
         media: { images: ['https://example.com/image.jpg'] },
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(true);
+      expect(result.ok).toBe(true);
     });
   });
 
@@ -111,7 +111,7 @@ describe('Stack contract unit tests', () => {
         stacks: {},
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
+      expect(result.ok).toBe(false);
     });
 
     it('fails when times@1 declared without payload', () => {
@@ -120,7 +120,7 @@ describe('Stack contract unit tests', () => {
         stacks: { times: 1 },
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
+      expect(result.ok).toBe(false);
     });
 
     it('passes when both declaration and payload exist', () => {
@@ -130,7 +130,7 @@ describe('Stack contract unit tests', () => {
         times: { prepMinutes: 10, cookMinutes: 20, totalMinutes: 30 },
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(true);
+      expect(result.ok).toBe(true);
     });
   });
 
@@ -142,7 +142,7 @@ describe('Stack contract unit tests', () => {
         stacks: {},
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
+      expect(result.ok).toBe(false);
     });
 
     it('fails when nutrition@1 declared without payload', () => {
@@ -151,7 +151,7 @@ describe('Stack contract unit tests', () => {
         stacks: { nutrition: 1 },
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
+      expect(result.ok).toBe(false);
     });
 
     it('passes when both declaration and payload exist', () => {
@@ -161,7 +161,7 @@ describe('Stack contract unit tests', () => {
         nutrition: { calories: 100, protein_g: 5 },
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(true);
+      expect(result.ok).toBe(true);
     });
   });
 
@@ -174,7 +174,7 @@ describe('Stack contract unit tests', () => {
         stacks: {},
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
+      expect(result.ok).toBe(false);
     });
 
     it('fails when schedule@1 declared without payload', () => {
@@ -184,7 +184,7 @@ describe('Stack contract unit tests', () => {
         stacks: { schedule: 1 },
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
+      expect(result.ok).toBe(false);
     });
 
     it('passes when both declaration and payload exist', () => {
@@ -195,7 +195,7 @@ describe('Stack contract unit tests', () => {
         schedule: { tasks: [{ id: 't1', description: 'Test task' }] },
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(true);
+      expect(result.ok).toBe(true);
     });
   });
 
@@ -209,7 +209,7 @@ describe('Stack contract unit tests', () => {
         times: { prepMinutes: 10 },
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(true);
+      expect(result.ok).toBe(true);
     });
 
     it('fails if any stack is missing its payload', () => {
@@ -221,7 +221,7 @@ describe('Stack contract unit tests', () => {
         // times payload missing
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
+      expect(result.ok).toBe(false);
     });
 
     it('fails if any payload is missing its stack declaration', () => {
@@ -233,7 +233,7 @@ describe('Stack contract unit tests', () => {
         times: { prepMinutes: 10 }, // payload exists but stack not declared
       };
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
+      expect(result.ok).toBe(false);
     });
   });
 });

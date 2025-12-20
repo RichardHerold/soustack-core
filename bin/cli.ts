@@ -8,22 +8,25 @@ import { scrapeRecipe } from '../src/scraper/index';
 import {
   validateRecipe,
   type NormalizedError,
-  type NormalizedWarning,
   type ValidateOptions,
+  type ValidateMode,
+  type ValidateResult,
 } from '../src/validator';
 
 interface ValidationOutcome {
   file: string;
   profile?: ProfileName;
-  valid: boolean;
-  warnings: NormalizedWarning[];
-  errors: NormalizedError[];
+  ok: boolean;
+  warnings: string[];
+  schemaErrors: NormalizedError[];
+  conformanceIssues: ValidateResult['conformanceIssues'];
 }
 
 interface ValidationFlags {
   profile?: ProfileName;
   strict: boolean;
   json: boolean;
+  mode: ValidateMode;
 }
 
 interface ValidationSummary {
@@ -44,7 +47,7 @@ type KnownCommand =
   | 'scrape'
   | 'test';
 
-const supportedProfiles: ProfileName[] = ['base', 'cookable', 'scalable', 'quantified', 'illustrated', 'schedulable'];
+const supportedProfiles: ProfileName[] = ['minimal', 'core'];
 
 export async function runCli(argv: string[]): Promise<void> {
   const [command, ...args] = argv;
@@ -81,27 +84,27 @@ export async function runCli(argv: string[]): Promise<void> {
 
 function printUsage() {
   console.log('Usage:');
-  console.log('  soustack validate <fileOrGlob> [--profile <name>] [--strict] [--json]');
+  console.log('  soustack validate <fileOrGlob> [--profile <name>] [--schema-only] [--strict] [--json]');
   console.log('  soustack convert --from <schemaorg|soustack> --to <schemaorg|soustack> <input> [-o <output>]');
   console.log('  soustack import --url <url> [-o <soustack.json>]');
-  console.log('  soustack test [--profile <name>] [--strict] [--json]');
+  console.log('  soustack test [--profile <name>] [--schema-only] [--strict] [--json]');
   console.log('  soustack scale <soustack.json> <multiplier>');
   console.log('  soustack scrape <url> -o <soustack.json>');
 }
 
 async function handleValidate(args: string[]) {
-  const { target, profile, strict, json } = parseValidateArgs(args);
+  const { target, profile, strict, json, mode } = parseValidateArgs(args);
   if (!target) throw new Error('Path or glob to Soustack recipe JSON is required');
 
   const files = expandTargets(target);
   if (files.length === 0) throw new Error(`No files matched pattern: ${target}`);
 
-  const results = files.map((file) => validateFile(file, profile));
-  reportValidation(results, { profile, strict, json });
+  const results = files.map((file) => validateFile(file, profile, mode));
+  reportValidation(results, { profile, strict, json, mode });
 }
 
 async function handleTest(args: string[]) {
-  const { profile, strict, json } = parseValidationFlags(args);
+  const { profile, strict, json, mode } = parseValidationFlags(args);
   const cwd = process.cwd();
   const files = globSync('**/*.soustack.json', {
     cwd,
@@ -115,8 +118,8 @@ async function handleTest(args: string[]) {
     return;
   }
 
-  const results = files.map((file) => validateFile(file, profile));
-  reportValidation(results, { profile, strict, json, context: 'test' });
+  const results = files.map((file) => validateFile(file, profile, mode));
+  reportValidation(results, { profile, strict, json, mode, context: 'test' });
 }
 
 async function handleConvert(args: string[]) {
@@ -181,6 +184,7 @@ function parseValidateArgs(args: string[]): { target?: string } & ValidationFlag
   let profile: ProfileName | undefined;
   let strict = false;
   let json = false;
+  let mode: ValidateMode = 'full';
   let target: string | undefined;
 
   for (let i = 0; i < args.length; i++) {
@@ -189,6 +193,9 @@ function parseValidateArgs(args: string[]): { target?: string } & ValidationFlag
       case '--profile':
         profile = normalizeProfile(args[i + 1]);
         i++;
+        break;
+      case '--schema-only':
+        mode = 'schema';
         break;
       case '--strict':
         strict = true;
@@ -204,12 +211,12 @@ function parseValidateArgs(args: string[]): { target?: string } & ValidationFlag
     }
   }
 
-  return { profile, strict, json, target };
+  return { profile, strict, json, mode, target };
 }
 
 function parseValidationFlags(args: string[]): ValidationFlags {
-  const { profile, strict, json } = parseValidateArgs(args);
-  return { profile, strict, json };
+  const { profile, strict, json, mode } = parseValidateArgs(args);
+  return { profile, strict, json, mode };
 }
 
 function normalizeProfile(value?: string): ProfileName | undefined {
@@ -293,25 +300,27 @@ function expandTargets(target: string): string[] {
   return unique;
 }
 
-function validateFile(file: string, profile?: ProfileName): ValidationOutcome {
+function validateFile(file: string, profile?: ProfileName, mode: ValidateMode = 'full'): ValidationOutcome {
   try {
     const recipe = readJsonFile(file);
-    const result = validateRecipe(recipe, profile ? { profile } : {});
+    const result = validateRecipe(recipe, profile ? { profile, mode } : { mode });
     return {
       file,
       profile,
-      valid: result.valid,
+      ok: result.ok,
       warnings: result.warnings,
-      errors: result.errors,
+      schemaErrors: result.schemaErrors,
+      conformanceIssues: result.conformanceIssues,
     };
   } catch (error: any) {
     // Return validation outcome with error instead of throwing
     return {
       file,
       profile,
-      valid: false,
+      ok: false,
       warnings: [],
-      errors: [{ path: "/", message: error?.message || "Validation failed", keyword: "error" }],
+      schemaErrors: [{ path: "/", message: error?.message || "Validation failed", keyword: "error" }],
+      conformanceIssues: [],
     };
   }
 }
@@ -335,9 +344,10 @@ function reportValidation(
     return {
       file: path.relative(process.cwd(), result.file),
       profile: result.profile,
-      valid: result.valid,
+      ok: result.ok,
       warnings: result.warnings,
-      errors: result.errors,
+      schemaErrors: result.schemaErrors,
+      conformanceIssues: result.conformanceIssues,
       passed,
     };
   });
@@ -348,14 +358,22 @@ function reportValidation(
     serializable.forEach((entry) => {
       const prefix = entry.passed ? '✅' : '❌';
       console.log(`${prefix} ${entry.file}`);
-      if (!entry.passed && entry.errors.length) {
-        entry.errors.forEach((error) => {
+      if (!entry.passed && entry.schemaErrors.length) {
+        console.log('   Schema errors:');
+        entry.schemaErrors.forEach((error) => {
           console.log(`   • [${error.path}] ${error.message}`);
         });
       }
+      if (!entry.passed && entry.conformanceIssues.length) {
+        console.log('   Conformance issues:');
+        entry.conformanceIssues.forEach((issue) => {
+          console.log(`   • [${issue.path}] ${issue.message} (${issue.code})`);
+        });
+      }
       if (!entry.passed && options.strict && entry.warnings.length) {
+        console.log('   Warnings:');
         entry.warnings.forEach((warning) => {
-          console.log(`   • [${warning.path}] ${warning.message} (warning)`);
+          console.log(`   • ${warning} (warning)`);
         });
       }
     });
@@ -370,7 +388,7 @@ function reportValidation(
 }
 
 function isEffectivelyValid(result: ValidationOutcome, strict: boolean): boolean {
-  return result.valid && (!strict || result.warnings.length === 0);
+  return result.ok && (!strict || result.warnings.length === 0);
 }
 
 function readJsonFile(relativePath: string) {

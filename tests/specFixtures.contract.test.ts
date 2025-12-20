@@ -75,11 +75,21 @@ describe('Spec fixture contract tests', () => {
         const fixture = applySchema(JSON.parse(fixtureContent), schemaIdForFixture(fixturePath));
         const result = validateRecipe(fixture);
 
-        if (!result.valid) {
-          throw new Error(`Expected fixture to be valid but validation failed:${formatErrors(fixturePath, result.errors)}`);
+        if (!result.ok) {
+          const combinedErrors = [
+            ...result.schemaErrors,
+            ...result.conformanceIssues.map((issue) => ({
+              path: issue.path,
+              message: issue.message,
+              keyword: issue.code,
+            })),
+          ];
+          throw new Error(
+            `Expected fixture to be valid but validation failed:${formatErrors(fixturePath, combinedErrors)}`,
+          );
         }
 
-        expect(result.valid).toBe(true);
+        expect(result.ok).toBe(true);
       },
     );
   });
@@ -92,15 +102,15 @@ describe('Spec fixture contract tests', () => {
         const fixture = applySchema(JSON.parse(fixtureContent), schemaIdForFixture(fixturePath));
         const result = validateRecipe(fixture);
 
-        if (result.valid) {
+        if (result.ok) {
           const relativePath = path.relative(process.cwd(), fixturePath);
           throw new Error(
-            `Expected fixture to be invalid but validation passed:${formatErrors(fixturePath, result.errors)}`,
+            `Expected fixture to be invalid but validation passed:${formatErrors(fixturePath, [])}`,
           );
         }
 
-        expect(result.valid).toBe(false);
-        expect(result.errors.length).toBeGreaterThan(0);
+        expect(result.ok).toBe(false);
+        expect(result.schemaErrors.length + result.conformanceIssues.length).toBeGreaterThan(0);
       },
     );
   });

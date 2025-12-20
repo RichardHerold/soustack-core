@@ -32,26 +32,31 @@ export interface NormalizedError {
   keyword?: string;
 }
 
-export interface NormalizedWarning {
-  path: string;
-  message: string;
-}
+/**
+ * Validation modes for recipe validation.
+ * - "schema": JSON Schema only
+ * - "full": JSON Schema + semantic conformance checks
+ */
+export type ValidateMode = "schema" | "full";
 
 export interface ValidateOptions {
   profile?: ProfileName;
   schema?: string;
   collectAllErrors?: boolean;
+  mode?: ValidateMode;
+  includeNormalized?: boolean;
 }
 
-export interface ValidationResult {
-  valid: boolean;
-  errors: NormalizedError[];
-  warnings: NormalizedWarning[];
-  normalized?: Recipe;
-  conformance?: {
-    ok: boolean;
-    issues: ConformanceIssue[];
-  };
+/**
+ * Result payload for recipe validation. Schema validation always runs first;
+ * conformance issues are only included when running in full mode.
+ */
+export interface ValidateResult {
+  ok: boolean;
+  schemaErrors: NormalizedError[];
+  conformanceIssues: ConformanceIssue[];
+  warnings: string[];
+  normalizedRecipe?: Recipe;
 }
 
 interface ValidationContext {
@@ -239,7 +244,10 @@ function getComposedValidator(
  * For recipes with profile/stacks, uses composed validation (base + profile + stacks).
  * For recipes without profile/stacks, validates against root schema directly.
  */
-export function validateRecipeSchema(input: unknown): {
+export function validateRecipeSchema(
+  input: unknown,
+  options: { collectAllErrors?: boolean } = {},
+): {
   ok: boolean;
   errors: NormalizedError[];
   warnings: string[];
@@ -248,11 +256,30 @@ export function validateRecipeSchema(input: unknown): {
     !!input && typeof input === "object" && !Array.isArray(input) && "stacks" in (input as any);
   // Normalize the input first
   const { recipe: normalizedInput, warnings: inputWarnings } = normalizeRecipe(input);
-  const normalized = cloneRecipe(normalizedInput);
   const warnings: string[] = [...inputWarnings];
 
+  const { ok, errors } = validateRecipeSchemaNormalized(
+    normalizedInput,
+    inputHasStacks,
+    options.collectAllErrors ?? true,
+  );
+
+  return {
+    ok,
+    errors,
+    warnings,
+  };
+}
+
+function validateRecipeSchemaNormalized(
+  normalizedInput: Recipe,
+  inputHasStacks: boolean,
+  collectAllErrors: boolean,
+): { ok: boolean; errors: NormalizedError[] } {
+  const normalized = cloneRecipe(normalizedInput);
+
   // Get validation context
-  const context = getContext(true);
+  const context = getContext(collectAllErrors);
 
   const schemaId = typeof normalized.$schema === "string" ? normalized.$schema : undefined;
   const isSoustackSchema = schemaId?.includes("soustack.org/schema") ?? false;
@@ -267,7 +294,6 @@ export function validateRecipeSchema(input: unknown): {
             message: `Unknown schema: ${schemaId}`,
           },
         ],
-        warnings,
       };
     }
 
@@ -284,7 +310,6 @@ export function validateRecipeSchema(input: unknown): {
     return {
       ok: !!schemaValid,
       errors: schemaErrors.map(formatAjvError),
-      warnings,
     };
   }
 
@@ -388,17 +413,12 @@ export function validateRecipeSchema(input: unknown): {
           message: `Unknown profile: ${profile}. Supported profiles: minimal, core`,
         },
       ],
-      warnings,
     };
   }
-
-  // Convert warnings to string array format
-  const warningStrings = warnings;
 
   return {
     ok: isValid,
     errors: errors.map(formatAjvError),
-    warnings: warningStrings,
   };
 }
 
@@ -500,54 +520,58 @@ export function checkInstructionGraph(recipe: Recipe): NormalizedError[] {
  * but maintains backward compatibility with profile/stack-based validation
  * Also includes semantic conformance validation.
  */
-export function validateRecipe(input: any, options: ValidateOptions = {}): ValidationResult {
-  // Use the new validateRecipeSchema as the base (it normalizes internally)
-  const { ok, errors: schemaErrors, warnings: schemaWarnings } = validateRecipeSchema(input);
-  
-  // Get normalized recipe for return value
-  const { recipe: normalized } = normalizeRecipe(input);
-  
-  // Convert warnings format
-  const warnings: NormalizedWarning[] = schemaWarnings.map((msg) => ({
-    path: "/",
-    message: msg,
-  }));
+/**
+ * Validates a recipe with explicit validation modes.
+ * - mode="schema": JSON Schema only
+ * - mode="full": schema + semantic conformance (only if schema passes)
+ */
+export function validateRecipe(input: any, options: ValidateOptions = {}): ValidateResult {
+  const { recipe: normalized, warnings } = normalizeRecipe(input);
+  if (options.profile) {
+    (normalized as any).profile = options.profile;
+  }
 
-  // Run conformance validation (semantic checks)
-  // Only run if schema validation passed (or if we want to show both types of errors)
-  const conformanceResult = normalized ? validateConformance(normalized) : { ok: false, issues: [] };
-  
-  // Convert conformance issues to NormalizedError format for backward compatibility
-  // But also include the conformance result separately
-  const conformanceErrors: NormalizedError[] = conformanceResult.issues
-    .filter((issue) => issue.severity === "error")
-    .map((issue) => ({
-      path: issue.path,
-      message: issue.message,
-      keyword: issue.code,
-    }));
+  const inputHasStacks =
+    !!input && typeof input === "object" && !Array.isArray(input) && "stacks" in (input as any);
+  const { ok: schemaOk, errors: schemaErrors } = validateRecipeSchemaNormalized(
+    normalized,
+    inputHasStacks,
+    options.collectAllErrors ?? true,
+  );
 
-  // Combine schema errors and conformance errors
-  // Note: We include conformance errors even if schema validation failed,
-  // but typically we'd only show conformance errors if schema passed
-  const errors = [...schemaErrors, ...conformanceErrors];
+  const mode: ValidateMode = options.mode ?? "full";
+  let conformanceIssues: ConformanceIssue[] = [];
+  let conformanceOk = true;
+
+  if (mode === "full") {
+    if (schemaOk) {
+      const conformanceResult = validateConformance(normalized);
+      conformanceIssues = conformanceResult.issues;
+      conformanceOk = conformanceResult.ok;
+    } else {
+      conformanceOk = false;
+    }
+  }
+
+  const ok = schemaOk && (mode === "schema" ? true : conformanceOk);
+  const normalizedRecipe = ok || options.includeNormalized ? normalized : undefined;
 
   return {
-    valid: errors.length === 0 && conformanceResult.ok,
-    errors,
+    ok,
+    schemaErrors,
+    conformanceIssues,
     warnings,
-    normalized: errors.length === 0 && conformanceResult.ok ? normalized : undefined,
-    conformance: conformanceResult,
+    normalizedRecipe,
   };
 }
 
 export function validateRecipeWithProfile(data: any, profile: ProfileName): data is Recipe {
-  return validateRecipe(data, { profile }).valid;
+  return validateRecipe(data, { profile }).ok;
 }
 
 export function detectProfiles(recipe: any): ProfileName[] {
   const result = validateRecipe(recipe, { collectAllErrors: false });
-  if (!result.valid) return [];
+  if (!result.ok) return [];
 
   // For now, return core as default since we're using root schema validation
   // This can be enhanced later to check against specific profile schemas
