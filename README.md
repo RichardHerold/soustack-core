@@ -76,24 +76,29 @@ const scaled = scaleRecipe(recipe, { multiplier: 2 });
 ### Profile-aware validation
 
 Use profiles to enforce integration contracts. Available profiles:
-- **minimal**: Basic recipe structure with minimal requirements
-- **core**: Enhanced profile with structured ingredients and instructions
+- **base**
+- **equipped**
+- **illustrated**
+- **lite**
+- **prepped**
+- **scalable**
+- **timed**
 
 ```ts
 import { detectProfiles, validateRecipe } from 'soustack';
 
 // Discover which profiles a recipe already satisfies
-const profiles = detectProfiles(recipe); // e.g. ['minimal', 'core']
+const profiles = detectProfiles(recipe);
 
-// Validate with a specific profile (defaults to 'core' if not specified)
-const result = validateRecipe(recipe, { profile: 'minimal' });
+// Validate with a specific profile
+const result = validateRecipe(recipe, { profile: 'base' });
 if (!result.ok) {
   console.error('Profile validation failed', result.schemaErrors);
 }
 
 // Validate with modules
 const recipeWithModules = {
-  profile: 'minimal',
+  profile: 'base',
   modules: ['nutrition@1', 'times@1'],
   name: 'Test Recipe',
   ingredients: ['1 cup flour'],
@@ -102,7 +107,7 @@ const recipeWithModules = {
   times: { prepMinutes: 10, cookMinutes: 20, totalMinutes: 30 }, // v0.3: uses *Minutes fields
 };
 const result2 = validateRecipe(recipeWithModules);
-// Validates using: base + minimal profile + nutrition@1 module + times@1 module
+// Validates using: base + profile + nutrition@1 module + times@1 module
 // Module contract: if module is declared, payload must exist (and vice versa)
 ```
 
@@ -160,11 +165,11 @@ Soustack v0.3.0 uses a **composed validation model** where recipes are validated
 
 The validator:
 - **Base schema**: Defines the core recipe structure (`@type`, `name`, `ingredients`, `instructions`, `profile`, `modules`)
-- **Profile overlay**: Adds profile-specific requirements (e.g., `minimal` or `core`)
+- **Profile overlay**: Adds profile-specific requirements (e.g., `base` or `lite`)
 - **Module overlays**: Each declared module adds its own validation rules
 
 **Defaults:**
-- If `profile` is missing, it defaults to `"core"`
+- If `profile` is missing, it defaults to the schema bundle's configured default
 - If `modules` is missing, it defaults to `[]`
 
 **Module Contract:** Modules enforce a symmetric contract:
@@ -183,7 +188,7 @@ Modules are resolved to schema references using the pattern:
 The module registry (`schemas/registry/modules.json`) defines which modules are available and their properties, including:
 - `schemaOrgMappable`: Whether the module can be converted to Schema.org format
 - `minProfile`: Minimum profile required to use the module
-- `allowedOnMinimal`: Whether the module can be used with the minimal profile
+- `allowedOnLite`: Whether the module can be used with the lite profile
 
 **Available Modules (v0.3.0):**
 - `attribution@1`: Source attribution (url, author, datePublished)
@@ -191,7 +196,7 @@ The module registry (`schemas/registry/modules.json`) defines which modules are 
 - `media@1`: Images and videos (images, videos arrays)
 - `times@1`: Timing information (prepMinutes, cookMinutes, totalMinutes)
 - `nutrition@1`: Nutritional data (calories, protein_g as numbers)
-- `schedule@1`: Task scheduling (requires core profile, includes instruction dependencies)
+- `schedule@1`: Task scheduling (requires timed profile, includes instruction dependencies)
 
 ## Programmatic Usage
 
@@ -210,7 +215,7 @@ import {
 } from 'soustack/scrape';
 
 // Validate a Soustack recipe JSON object with profile enforcement
-const validation = validateRecipe(recipe, { profile: 'core' });
+const validation = validateRecipe(recipe, { profile: 'base' });
 if (!validation.ok) {
   console.error({ schemaErrors: validation.schemaErrors, conformanceIssues: validation.conformanceIssues });
 }
@@ -264,7 +269,7 @@ async function convert(url: string) {
 
 Use the helpers to move between Schema.org JSON-LD and Soustack's structured recipe format. The conversion automatically handles image normalization, supporting multiple image formats from Schema.org.
 
-**BREAKING CHANGE in v0.3.0:** `toSchemaOrg()` now targets the **minimal profile** and only includes modules that are marked as `schemaOrgMappable` in the modules registry. Non-mappable modules (e.g., `nutrition@1`, `schedule@1`) are excluded from the conversion.
+**BREAKING CHANGE in v0.3.0:** `toSchemaOrg()` now targets the **lite profile** and only includes modules that are marked as `schemaOrgMappable` in the modules registry. Non-mappable modules (e.g., `nutrition@1`, `schedule@1`) are excluded from the conversion.
 
 ```ts
 import { fromSchemaOrg, toSchemaOrg, normalizeImage } from 'soustack';
@@ -367,7 +372,7 @@ const parsed = extractRecipeFromHTML(html);
 
 ```bash
 # Validate with profiles (JSON output for pipelines)
-npx soustack validate recipe.soustack.json --profile core --strict --json
+npx soustack validate recipe.soustack.json --profile base --strict --json
 
 # Schema-only validation (skip semantic conformance checks)
 npx soustack validate recipe.soustack.json --schema-only
@@ -376,7 +381,7 @@ npx soustack validate recipe.soustack.json --schema-only
 npx soustack check recipe.soustack.json --json
 
 # Repo-wide test run (validates every *.soustack.json)
-npx soustack test --profile core
+npx soustack test --profile base
 
 # Convert Schema.org ↔ Soustack
 npx soustack convert --from schemaorg --to soustack recipe.jsonld -o recipe.soustack.json
