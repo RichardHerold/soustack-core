@@ -11,7 +11,7 @@ describe('Stack contract unit tests', () => {
   };
 
   describe('attribution stack contract', () => {
-    it('fails when attribution payload exists without module declaration', () => {
+    it('fails when attribution payload exists without stack declaration', () => {
       const recipe = {
         ...baseRecipe,
         attribution: { url: 'https://example.com' },
@@ -42,7 +42,7 @@ describe('Stack contract unit tests', () => {
   });
 
   describe('taxonomy stack contract', () => {
-    it('fails when taxonomy payload exists without module declaration', () => {
+    it('fails when taxonomy payload exists without stack declaration', () => {
       const recipe = {
         ...baseRecipe,
         taxonomy: { keywords: ['test'] },
@@ -73,7 +73,7 @@ describe('Stack contract unit tests', () => {
   });
 
   describe('media stack contract', () => {
-    it('fails when media payload exists without module declaration', () => {
+    it('fails when media payload exists without stack declaration', () => {
       const recipe = {
         ...baseRecipe,
         media: { images: ['https://example.com/image.jpg'] },
@@ -104,7 +104,7 @@ describe('Stack contract unit tests', () => {
   });
 
   describe('times stack contract', () => {
-    it('fails when times payload exists without module declaration', () => {
+    it('fails when times payload exists without stack declaration', () => {
       const recipe = {
         ...baseRecipe,
         times: { prepMinutes: 10 },
@@ -135,7 +135,7 @@ describe('Stack contract unit tests', () => {
   });
 
   describe('nutrition stack contract', () => {
-    it('fails when nutrition payload exists without module declaration', () => {
+    it('fails when nutrition payload exists without stack declaration', () => {
       const recipe = {
         ...baseRecipe,
         nutrition: { calories: 100 },
@@ -166,7 +166,7 @@ describe('Stack contract unit tests', () => {
   });
 
   describe('schedule stack contract', () => {
-    it('fails when schedule payload exists without module declaration', () => {
+    it('fails when schedule payload exists without stack declaration', () => {
       const recipe = {
         ...baseRecipe,
         profile: 'core', // schedule requires core profile
@@ -237,4 +237,3 @@ describe('Stack contract unit tests', () => {
     });
   });
 });
-

@@ -161,20 +161,8 @@ function inferStacksFromPayload(recipe: any): Record<string, number> {
   };
 
   for (const [field, stackName] of Object.entries(payloadToStack)) {
-    if (recipe && typeof recipe === "object" && field in recipe && recipe[field] != null) {
-      // Check if the payload is a non-empty object/array
-      const payload = recipe[field];
-      if (typeof payload === "object" && !Array.isArray(payload)) {
-        // For objects, check if it has any properties
-        if (Object.keys(payload).length > 0) {
-          inferred[stackName] = 1; // Default to version 1, can be enhanced with registry lookup
-        }
-      } else if (Array.isArray(payload) && payload.length > 0) {
-        inferred[stackName] = 1;
-      } else if (payload !== null && payload !== undefined) {
-        // For primitive values, consider it present
-        inferred[stackName] = 1;
-      }
+    if (recipe && typeof recipe === "object" && field in recipe && recipe[field] !== undefined) {
+      inferred[stackName] = 1; // Default to version 1, can be enhanced with registry lookup
     }
   }
 
@@ -323,9 +311,9 @@ export function validateRecipeSchema(input: unknown): {
       if ("profile" in rootCheckCopy) {
         delete (rootCheckCopy as any).profile;
       }
-      // Also remove module payload fields that root schema doesn't have
-      const moduleFields = ["attribution", "taxonomy", "media", "times", "nutrition", "schedule"];
-      for (const field of moduleFields) {
+      // Also remove stack payload fields that root schema doesn't have
+      const stackPayloadFields = ["attribution", "taxonomy", "media", "times", "nutrition", "schedule"];
+      for (const field of stackPayloadFields) {
         if (field in rootCheckCopy) {
           delete (rootCheckCopy as any)[field];
         }
@@ -461,7 +449,7 @@ export function checkInstructionGraph(recipe: Recipe): NormalizedError[] {
 
 /**
  * Legacy validateRecipe function - now uses the new validateRecipeSchema internally
- * but maintains backward compatibility with profile/module-based validation
+ * but maintains backward compatibility with profile/stack-based validation
  * Also includes semantic conformance validation.
  */
 export function validateRecipe(input: any, options: ValidateOptions = {}): ValidationResult {

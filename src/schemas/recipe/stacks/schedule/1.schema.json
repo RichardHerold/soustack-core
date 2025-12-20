@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://soustack.org/schemas/recipe/stacks/schedule/1.schema.json",
-  "title": "Soustack Recipe Module: schedule v1",
-  "description": "Schema for the schedule module. Enforces bidirectional module gating and restricts usage to the core profile.",
+  "title": "Soustack Recipe Stack: schedule v1",
+  "description": "Schema for the schedule stack. Enforces bidirectional stack gating and restricts usage to the core profile.",
   "type": "object",
   "properties": {
     "profile": { "type": "string" },

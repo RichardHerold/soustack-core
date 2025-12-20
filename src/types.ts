@@ -12,15 +12,15 @@ export interface SoustackRecipe {
   profile?: string;
   /** Recipe level: "lite" or "base" */
   level?: "lite" | "base";
-  /** Module stacks as a map: Record<moduleName, versionNumber> */
+  /** Stack declarations as a map: Record<stackName, versionNumber> */
   stacks?: Record<string, number>;
-  /** Attribution module payload */
+  /** Attribution stack payload */
   attribution?: AttributionModule;
-  /** Taxonomy module payload */
+  /** Taxonomy stack payload */
   taxonomy?: TaxonomyModule;
-  /** Media module payload */
+  /** Media stack payload */
   media?: MediaModule;
-  /** Times module payload */
+  /** Times stack payload */
   times?: TimesModule;
   /** Unique identifier (slug or UUID) */
   id?: string;

@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://soustack.org/schemas/recipe/stacks/times/1.schema.json",
-  "title": "Soustack Recipe Module: times v1",
-  "description": "Schema for the times module. Maintains alignment between stack declarations and timing payloads.",
+  "title": "Soustack Recipe Stack: times v1",
+  "description": "Schema for the times stack. Maintains alignment between stack declarations and timing payloads.",
   "type": "object",
   "properties": {
     "stacks": {

@@ -1,4 +1,4 @@
-import { detectProfiles, validateRecipe, ValidationResult } from '../src/validator';
+import { detectProfiles, validateRecipe, validateRecipeSchema, ValidationResult } from '../src/validator';
 import { Recipe } from '../src/types';
 import path from 'path';
 import fs from 'fs';
@@ -54,6 +54,17 @@ describe('Soustack validation', () => {
     expect(() => validateRecipe(recipe)).toThrow(legacyErrorMessage);
   });
 
+  it('rejects legacy field during schema validation', () => {
+    const recipe = {
+      name: 'Legacy Field',
+      ingredients: [],
+      instructions: [],
+      [legacyKey]: ['times@1'],
+    };
+
+    expect(() => validateRecipeSchema(recipe)).toThrow(legacyErrorMessage);
+  });
+
   it('detects unknown top-level keys as errors', () => {
     const recipe = { ...baseValid, unexpected: true };
     const result = validateRecipe(recipe);
@@ -66,7 +77,7 @@ describe('Soustack validation', () => {
       ...baseValid,
       $schema: 'http://soustack.org/schema/recipe/profiles/core.schema.json',
       stacks: { times: 1 }, // Add times stack for times field
-      times: { prepMinutes: 10, cookMinutes: 20, totalMinutes: 30 }, // times module uses prepMinutes/cookMinutes/totalMinutes
+      times: { prepMinutes: 10, cookMinutes: 20, totalMinutes: 30 }, // times stack uses prepMinutes/cookMinutes/totalMinutes
       yield: baseValid.yield || { amount: 1, unit: 'serving' },
     };
 
@@ -220,7 +231,7 @@ describe('Soustack validation', () => {
     expect(profiles).toContain('core');
   });
 
-  describe('schedule module instruction graphs', () => {
+  describe('schedule stack instruction graphs', () => {
     it('fails when dependsOn references a missing node', () => {
       const recipe = {
         ...coreScheduleValid,
@@ -256,7 +267,7 @@ describe('Soustack validation', () => {
       expect(result.errors.some((error) => /cycle|circular/i.test(error.message))).toBe(true);
     });
 
-    it('passes for valid dependency graphs with schedule module', () => {
+    it('passes for valid dependency graphs with schedule stack', () => {
       const result = validateRecipe(coreScheduleValid);
 
       expect(result.valid).toBe(true);
@@ -265,19 +276,19 @@ describe('Soustack validation', () => {
   });
 
   describe('composed validation with stacks', () => {
-    it('validates minimal profile with nutrition module', () => {
+    it('validates minimal profile with nutrition stack', () => {
       const result = validateRecipe(minimalNutritionValid);
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
 
-    it('fails when schedule module is used with minimal profile', () => {
+    it('fails when schedule stack is used with minimal profile', () => {
       const result = validateRecipe(minimalScheduleInvalid);
       expect(result.valid).toBe(false);
-      // Schedule module requires core profile, not minimal
+      // Schedule stack requires core profile, not minimal
     });
 
-    it('validates core profile with schedule module', () => {
+    it('validates core profile with schedule stack', () => {
       const result = validateRecipe(coreScheduleValid);
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
