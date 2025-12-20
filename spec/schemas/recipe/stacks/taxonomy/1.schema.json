@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://soustack.org/schemas/recipe/stacks/taxonomy/1.schema.json",
-  "title": "Soustack Recipe Module: taxonomy v1",
-  "description": "Schema for the taxonomy module. Enforces keyword and categorization data when enabled and ensures module declaration accompanies the namespace block.",
+  "title": "Soustack Recipe Stack: taxonomy v1",
+  "description": "Schema for the taxonomy stack. Enforces keyword and categorization data when enabled and ensures stack declaration accompanies the namespace block.",
   "type": "object",
   "properties": {
     "stacks": {
