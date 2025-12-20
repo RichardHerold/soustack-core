@@ -7,6 +7,12 @@ import rootSchema from "./soustack.schema.json";
 import baseSchema from "./schemas/recipe/base.schema.json";
 import minimalProfileSchema from "./schemas/recipe/profiles/minimal.schema.json";
 import coreProfileSchema from "./schemas/recipe/profiles/core.schema.json";
+import baseProfileSchema from "../spec/profiles/base.schema.json";
+import cookableProfileSchema from "../spec/profiles/cookable.schema.json";
+import illustratedProfileSchema from "../spec/profiles/illustrated.schema.json";
+import quantifiedProfileSchema from "../spec/profiles/quantified.schema.json";
+import scalableProfileSchema from "../spec/profiles/scalable.schema.json";
+import schedulableProfileSchema from "../spec/profiles/schedulable.schema.json";
 import attributionStackSchema from "./schemas/recipe/stacks/attribution/1.schema.json";
 import mediaStackSchema from "./schemas/recipe/stacks/media/1.schema.json";
 import nutritionStackSchema from "./schemas/recipe/stacks/nutrition/1.schema.json";
@@ -67,6 +73,12 @@ function loadAllSchemas(ajv: Ajv2020): void {
     baseSchema,
     minimalProfileSchema,
     coreProfileSchema,
+    baseProfileSchema,
+    cookableProfileSchema,
+    illustratedProfileSchema,
+    quantifiedProfileSchema,
+    scalableProfileSchema,
+    schedulableProfileSchema,
     attributionStackSchema,
     mediaStackSchema,
     nutritionStackSchema,
@@ -232,6 +244,8 @@ export function validateRecipeSchema(input: unknown): {
   errors: NormalizedError[];
   warnings: string[];
 } {
+  const inputHasStacks =
+    !!input && typeof input === "object" && !Array.isArray(input) && "stacks" in (input as any);
   // Normalize the input first
   const { recipe: normalizedInput, warnings: inputWarnings } = normalizeRecipe(input);
   const normalized = cloneRecipe(normalizedInput);
@@ -239,6 +253,40 @@ export function validateRecipeSchema(input: unknown): {
 
   // Get validation context
   const context = getContext(true);
+
+  const schemaId = typeof normalized.$schema === "string" ? normalized.$schema : undefined;
+  const isSoustackSchema = schemaId?.includes("soustack.org/schema") ?? false;
+  if (schemaId && isSoustackSchema) {
+    const schemaValidator = context.ajv.getSchema(schemaId);
+    if (!schemaValidator) {
+      return {
+        ok: false,
+        errors: [
+          {
+            path: "/$schema",
+            message: `Unknown schema: ${schemaId}`,
+          },
+        ],
+        warnings,
+      };
+    }
+
+    const schemaInput = cloneRecipe(normalized);
+    const isLegacySchema = schemaId.startsWith("http://soustack.org/schema/v0.3.0");
+    if (isLegacySchema && "@type" in schemaInput) {
+      delete (schemaInput as any)["@type"];
+    }
+    if (isLegacySchema && !inputHasStacks && "stacks" in schemaInput) {
+      delete (schemaInput as any).stacks;
+    }
+    const schemaValid = schemaValidator(schemaInput);
+    const schemaErrors = schemaValidator.errors || [];
+    return {
+      ok: !!schemaValid,
+      errors: schemaErrors.map(formatAjvError),
+      warnings,
+    };
+  }
 
   // Determine if we should use composed validation or root schema
   const hasProfile = normalized.profile && typeof normalized.profile === "string";
