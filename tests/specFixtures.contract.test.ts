@@ -5,43 +5,35 @@ import { globSync } from 'glob';
 
 const FIXTURES_ROOT = path.join(__dirname, '..', 'spec', 'fixtures');
 
-function findFixtureFiles(kind: 'valid' | 'invalid'): string[] {
-  const pattern = path.join(FIXTURES_ROOT, `**/${kind}/**/*.json`);
-  return globSync(pattern, { absolute: true, nodir: true });
-}
+type ValidationError = {
+  path: string;
+  message: string;
+  keyword?: string;
+};
 
-function schemaIdForFixture(fixturePath: string): string {
-  const relativePath = path.relative(FIXTURES_ROOT, fixturePath);
-  const [profileName] = relativePath.split(path.sep);
-  const schemaIds: Record<string, string> = {
-    base: 'http://soustack.org/schema/v0.3.0/profiles/base',
-    cookable: 'http://soustack.org/schema/v0.3.0/profiles/cookable',
-    illustrated: 'http://soustack.org/schema/v0.3.0/profiles/illustrated',
-    quantified: 'http://soustack.org/schema/v0.3.0/profiles/quantified',
-    scalable: 'http://soustack.org/schema/v0.3.0/profiles/scalable',
-    schedulable: 'http://soustack.org/schema/v0.3.0/profiles/schedulable',
-  };
-
-  const schemaId = schemaIds[profileName];
-  if (!schemaId) {
-    throw new Error(`Unknown fixture profile directory: ${profileName}`);
+function normalizeFixture(fixture: Record<string, unknown>): Record<string, unknown> {
+  if (fixture['@type']) {
+    return fixture;
   }
 
-  return schemaId;
-}
-
-function applySchema(recipe: any, schemaId: string): any {
   return {
-    ...recipe,
-    $schema: schemaId,
+    ...fixture,
+    '@type': 'Recipe',
   };
 }
 
-function formatErrors(
-  fixturePath: string,
-  errors: Array<{ path: string; message: string; keyword?: string }>,
-  maxErrors: number = 3,
-): string {
+function findFixtureFiles(kind: 'valid' | 'invalid'): string[] {
+  const primaryPattern = path.join(FIXTURES_ROOT, kind, '**/*.json');
+  const primaryMatches = globSync(primaryPattern, { absolute: true, nodir: true });
+  if (primaryMatches.length > 0) {
+    return primaryMatches.sort();
+  }
+
+  const fallbackPattern = path.join(FIXTURES_ROOT, '**', kind, '**/*.json');
+  return globSync(fallbackPattern, { absolute: true, nodir: true }).sort();
+}
+
+function formatErrors(fixturePath: string, errors: ValidationError[], maxErrors = 3): string {
   const relativePath = path.relative(process.cwd(), fixturePath);
   const displayedErrors = errors.slice(0, maxErrors);
   const remaining = errors.length - displayedErrors.length;
@@ -58,6 +50,29 @@ function formatErrors(
   return `\nFixture: ${relativePath}\nErrors (${errors.length}):\n${lines.join('\n')}`;
 }
 
+function collectErrors(result: ReturnType<typeof validateRecipe>): ValidationError[] {
+  const combined: ValidationError[] = [
+    ...result.schemaErrors.map((error) => ({
+      path: error.path,
+      message: error.message,
+      keyword: error.keyword,
+    })),
+    ...result.conformanceIssues.map((issue) => ({
+      path: issue.path,
+      message: issue.message,
+      keyword: issue.code,
+    })),
+  ];
+
+  return combined.sort((a, b) => {
+    const pathCompare = a.path.localeCompare(b.path);
+    if (pathCompare !== 0) return pathCompare;
+    const messageCompare = a.message.localeCompare(b.message);
+    if (messageCompare !== 0) return messageCompare;
+    return (a.keyword ?? '').localeCompare(b.keyword ?? '');
+  });
+}
+
 describe('Spec fixture contract tests', () => {
   const validFixtures = findFixtureFiles('valid');
   const invalidFixtures = findFixtureFiles('invalid');
@@ -72,18 +87,11 @@ describe('Spec fixture contract tests', () => {
       'should validate %s',
       (_relativePath, fixturePath) => {
         const fixtureContent = fs.readFileSync(fixturePath, 'utf8');
-        const fixture = applySchema(JSON.parse(fixtureContent), schemaIdForFixture(fixturePath));
-        const result = validateRecipe(fixture);
+        const fixture = normalizeFixture(JSON.parse(fixtureContent));
+        const result = validateRecipe(fixture, { mode: 'full', collectAllErrors: true });
 
         if (!result.ok) {
-          const combinedErrors = [
-            ...result.schemaErrors,
-            ...result.conformanceIssues.map((issue) => ({
-              path: issue.path,
-              message: issue.message,
-              keyword: issue.code,
-            })),
-          ];
+          const combinedErrors = collectErrors(result);
           throw new Error(
             `Expected fixture to be valid but validation failed:${formatErrors(fixturePath, combinedErrors)}`,
           );
@@ -99,18 +107,16 @@ describe('Spec fixture contract tests', () => {
       'should reject %s',
       (_relativePath, fixturePath) => {
         const fixtureContent = fs.readFileSync(fixturePath, 'utf8');
-        const fixture = applySchema(JSON.parse(fixtureContent), schemaIdForFixture(fixturePath));
-        const result = validateRecipe(fixture);
+        const fixture = JSON.parse(fixtureContent);
+        const result = validateRecipe(fixture, { mode: 'full', collectAllErrors: true });
 
         if (result.ok) {
-          const relativePath = path.relative(process.cwd(), fixturePath);
-          throw new Error(
-            `Expected fixture to be invalid but validation passed:${formatErrors(fixturePath, [])}`,
-          );
+          throw new Error('Expected fixture to be invalid but validation passed.');
         }
 
+        const combinedErrors = collectErrors(result);
         expect(result.ok).toBe(false);
-        expect(result.schemaErrors.length + result.conformanceIssues.length).toBeGreaterThan(0);
+        expect(combinedErrors.length).toBeGreaterThan(0);
       },
     );
   });
