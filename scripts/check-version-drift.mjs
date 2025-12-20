@@ -44,7 +44,7 @@ function extractVersionFromSchema(schemaPath) {
     return null; // Skip schemas without $id
   }
 
-  const match = id.match(/(?:^|\/)v?(\d+\.\d+\.\d+)(?:\/|$)/);
+  const match = id.match(/(?:^|[\/@_-])v?(\d+\.\d+\.\d+)(?:[\/._-]|$)/);
   if (!match) {
     return null; // Skip schemas without version in $id (component schemas)
   }
@@ -75,7 +75,11 @@ function findSchemaFiles(dirPath) {
 }
 
 function gatherSchemaPaths() {
-  const paths = [path.join(SPEC_DIR, 'soustack.schema.json')];
+  const paths = [];
+  const rootSchema = path.join(SPEC_DIR, 'soustack.schema.json');
+  if (fs.existsSync(rootSchema)) {
+    paths.push(rootSchema);
+  }
 
   const defsDir = path.join(SPEC_DIR, 'defs');
   paths.push(...findSchemaFiles(defsDir));
@@ -93,6 +97,20 @@ function main() {
   const mismatches = [];
   const schemaPaths = gatherSchemaPaths();
   const shouldListSchemas = process.argv.includes('--list-schemas');
+  const shouldDebugSchemas =
+    process.env.SOUSTACK_SCHEMA_SCAN_DEBUG === '1' || process.env.SOUSTACK_SCHEMA_SCAN_DEBUG === 'true';
+
+  if (shouldDebugSchemas) {
+    const sampleSize = Math.min(5, schemaPaths.length);
+    const sample = schemaPaths
+      .slice(0, sampleSize)
+      .map((schemaPath) => path.relative(ROOT_DIR, schemaPath));
+    console.log(`Schema scan: ${schemaPaths.length} file(s) found.`);
+    if (sample.length > 0) {
+      console.log('Schema sample:');
+      sample.forEach((schemaPath) => console.log(`- ${schemaPath}`));
+    }
+  }
 
   if (shouldListSchemas) {
     console.log('Collected schema paths:');
