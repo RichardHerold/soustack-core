@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://soustack.org/schemas/recipe/stacks/nutrition/1.schema.json",
-  "title": "Soustack Recipe Module: nutrition v1",
-  "description": "Schema for the nutrition module. Keeps nutrition data aligned with module declarations and vice versa.",
+  "title": "Soustack Recipe Stack: nutrition v1",
+  "description": "Schema for the nutrition stack. Keeps nutrition data aligned with stack declarations and vice versa.",
   "type": "object",
   "properties": {
     "stacks": {
