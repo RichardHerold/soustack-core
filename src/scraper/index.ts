@@ -18,34 +18,43 @@ import type { ScrapeRecipeOptions, SchemaOrgRecipe } from './types';
 export async function scrapeRecipe(url: string, options: ScrapeRecipeOptions = {}): Promise<Recipe> {
   // #region agent log
   if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
-    try {
-      const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
-      if (globalFetch) {
-        globalFetch('http://127.0.0.1:7243/ingest/7225c3b5-9ac2-4c94-b561-807ca9003b66',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/index.ts:7',message:'scrapeRecipe entry',data:{url,hasOptions:!!options},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D,E'})}).catch(()=>{});
-      }
-    } catch {}
+    const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
+    if (ingestUrl) {
+      try {
+        const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
+        if (globalFetch) {
+          globalFetch(ingestUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/index.ts:7',message:'scrapeRecipe entry',data:{url,hasOptions:!!options},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D,E'})}).catch(()=>{});
+        }
+      } catch {}
+    }
   }
   // #endregion
   const html = await fetchPage(url, options);
   // #region agent log
   if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
-    try {
-      const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
-      if (globalFetch) {
-        globalFetch('http://127.0.0.1:7243/ingest/7225c3b5-9ac2-4c94-b561-807ca9003b66',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/index.ts:9',message:'HTML fetched',data:{htmlLength:html?.length,htmlPreview:html?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      }
-    } catch {}
+    const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
+    if (ingestUrl) {
+      try {
+        const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
+        if (globalFetch) {
+          globalFetch(ingestUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/index.ts:9',message:'HTML fetched',data:{htmlLength:html?.length,htmlPreview:html?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        }
+      } catch {}
+    }
   }
   // #endregion
   const { recipe } = extractRecipe(html);
   // #region agent log
   if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
-    try {
-      const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
-      if (globalFetch) {
-        globalFetch('http://127.0.0.1:7243/ingest/7225c3b5-9ac2-4c94-b561-807ca9003b66',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/index.ts:11',message:'extractRecipe result',data:{hasRecipe:!!recipe,recipeType:recipe?.['@type'],recipeName:recipe?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,C,D'})}).catch(()=>{});
-      }
-    } catch {}
+    const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
+    if (ingestUrl) {
+      try {
+        const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
+        if (globalFetch) {
+          globalFetch(ingestUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/index.ts:11',message:'extractRecipe result',data:{hasRecipe:!!recipe,recipeType:recipe?.['@type'],recipeName:recipe?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,C,D'})}).catch(()=>{});
+        }
+      } catch {}
+    }
   }
   // #endregion
 
@@ -56,12 +65,15 @@ export async function scrapeRecipe(url: string, options: ScrapeRecipeOptions = {
   const soustackRecipe = fromSchemaOrg(recipe);
   // #region agent log
   if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
-    try {
-      const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
-      if (globalFetch) {
-        globalFetch('http://127.0.0.1:7243/ingest/7225c3b5-9ac2-4c94-b561-807ca9003b66',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/index.ts:17',message:'fromSchemaOrg result',data:{hasSoustackRecipe:!!soustackRecipe,soustackRecipeName:soustackRecipe?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      }
-    } catch {}
+    const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
+    if (ingestUrl) {
+      try {
+        const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
+        if (globalFetch) {
+          globalFetch(ingestUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/index.ts:17',message:'fromSchemaOrg result',data:{hasSoustackRecipe:!!soustackRecipe,soustackRecipeName:soustackRecipe?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        }
+      } catch {}
+    }
   }
   // #endregion
   if (!soustackRecipe) {

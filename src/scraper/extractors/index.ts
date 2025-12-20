@@ -22,12 +22,15 @@ export function extractRecipe(html: string): ExtractionResult {
   const jsonLdRecipe = extractJsonLd(html);
   // #region agent log
   if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
-    try {
-      const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
-      if (globalFetch) {
-        globalFetch('http://127.0.0.1:7243/ingest/7225c3b5-9ac2-4c94-b561-807ca9003b66',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/extractors/index.ts:6',message:'JSON-LD extraction result',data:{hasJsonLd:!!jsonLdRecipe},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,D'})}).catch(()=>{});
-      }
-    } catch {}
+    const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
+    if (ingestUrl) {
+      try {
+        const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
+        if (globalFetch) {
+          globalFetch(ingestUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/extractors/index.ts:6',message:'JSON-LD extraction result',data:{hasJsonLd:!!jsonLdRecipe},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,D'})}).catch(()=>{});
+        }
+      } catch {}
+    }
   }
   // #endregion
   if (jsonLdRecipe) {
@@ -37,12 +40,15 @@ export function extractRecipe(html: string): ExtractionResult {
   const microdataRecipe = extractMicrodata(html);
   // #region agent log
   if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
-    try {
-      const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
-      if (globalFetch) {
-        globalFetch('http://127.0.0.1:7243/ingest/7225c3b5-9ac2-4c94-b561-807ca9003b66',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/extractors/index.ts:12',message:'Microdata extraction result',data:{hasMicrodata:!!microdataRecipe},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      }
-    } catch {}
+    const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
+    if (ingestUrl) {
+      try {
+        const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
+        if (globalFetch) {
+          globalFetch(ingestUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/extractors/index.ts:12',message:'Microdata extraction result',data:{hasMicrodata:!!microdataRecipe},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        }
+      } catch {}
+    }
   }
   // #endregion
   if (microdataRecipe) {
