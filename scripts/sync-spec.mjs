@@ -115,6 +115,16 @@ function copyIntoSpecDirectory(sourceDir) {
     fs.copyFileSync(rootSchema, path.join(SPEC_DIR, 'soustack.schema.json'));
   }
 
+  // Copy registry metadata (new structure)
+  const registryCandidates = [
+    path.join(sourceDir, 'registry.json'),
+    path.join(sourceDir, 'registry', 'registry.json'),
+  ];
+  const registrySource = registryCandidates.find((candidate) => fs.existsSync(candidate));
+  if (registrySource) {
+    fs.copyFileSync(registrySource, path.join(SPEC_DIR, 'registry.json'));
+  }
+
   // Copy defs directory (new structure)
   const defsSource = path.join(sourceDir, 'defs');
   if (fs.existsSync(defsSource)) {
