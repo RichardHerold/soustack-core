@@ -23,8 +23,10 @@ import timesStackSchema from "./schemas/recipe/stacks/times/1.schema.json";
 type ProfileName = "minimal" | "core";
 
 // Schema IDs from the vendored spec
-const ROOT_SCHEMA_ID = "http://soustack.org/schema/v0.3.0";
+const LEGACY_ROOT_SCHEMA_ID = "http://soustack.org/schema/v0.3.0";
+const DEFAULT_ROOT_SCHEMA_ID = "https://soustack.spec/soustack.schema.json";
 const BASE_SCHEMA_ID = "http://soustack.org/schema/recipe/base.schema.json";
+const PROFILE_SCHEMA_PREFIX = "http://soustack.org/schema/recipe/profiles/";
 
 export interface NormalizedError {
   path: string;
@@ -100,6 +102,22 @@ function loadAllSchemas(ajv: Ajv2020): void {
       }
     }
   }
+
+  ajv.addSchema(
+    {
+      $id: DEFAULT_ROOT_SCHEMA_ID,
+      allOf: [
+        { $ref: LEGACY_ROOT_SCHEMA_ID },
+        {
+          type: "object",
+          properties: {
+            $schema: { const: DEFAULT_ROOT_SCHEMA_ID },
+          },
+        },
+      ],
+    },
+    DEFAULT_ROOT_SCHEMA_ID,
+  );
 }
 
 /**
@@ -117,7 +135,7 @@ function createContext(collectAllErrors: boolean): ValidationContext {
   loadAllSchemas(ajv);
 
   // Get validators for root and base schemas
-  const rootValidator = ajv.getSchema(ROOT_SCHEMA_ID);
+  const rootValidator = ajv.getSchema(DEFAULT_ROOT_SCHEMA_ID) || ajv.getSchema(LEGACY_ROOT_SCHEMA_ID);
   const baseValidator = ajv.getSchema(BASE_SCHEMA_ID);
 
   return {
@@ -157,6 +175,15 @@ function formatAjvError(error: ErrorObject): NormalizedError {
     keyword: error.keyword,
     message: error.message || "Validation error",
   };
+}
+
+function isSoustackSchemaId(schemaId: string): boolean {
+  return (
+    schemaId.startsWith("http://soustack.org/schema") ||
+    schemaId.startsWith("https://soustack.org/schema") ||
+    schemaId.startsWith("https://soustack.spec/") ||
+    schemaId.startsWith("https://soustack.org/schemas/")
+  );
 }
 
 /**
@@ -211,7 +238,7 @@ function getComposedValidator(
   }
 
   // Add profile schema
-  const profileSchemaId = `http://soustack.org/schema/recipe/profiles/${profile}.schema.json`;
+  const profileSchemaId = `${PROFILE_SCHEMA_PREFIX}${profile}.schema.json`;
   if (!context.ajv.getSchema(profileSchemaId)) {
     throw new Error(`Profile schema not loaded: ${profileSchemaId}`);
   }
@@ -246,7 +273,7 @@ function getComposedValidator(
  */
 export function validateRecipeSchema(
   input: unknown,
-  options: { collectAllErrors?: boolean } = {},
+  options: { collectAllErrors?: boolean; schema?: string } = {},
 ): {
   ok: boolean;
   errors: NormalizedError[];
@@ -262,6 +289,7 @@ export function validateRecipeSchema(
     normalizedInput,
     inputHasStacks,
     options.collectAllErrors ?? true,
+    options.schema,
   );
 
   return {
@@ -275,14 +303,16 @@ function validateRecipeSchemaNormalized(
   normalizedInput: Recipe,
   inputHasStacks: boolean,
   collectAllErrors: boolean,
+  schemaOverride?: string,
 ): { ok: boolean; errors: NormalizedError[] } {
   const normalized = cloneRecipe(normalizedInput);
 
   // Get validation context
   const context = getContext(collectAllErrors);
 
-  const schemaId = typeof normalized.$schema === "string" ? normalized.$schema : undefined;
-  const isSoustackSchema = schemaId?.includes("soustack.org/schema") ?? false;
+  const schemaId = typeof schemaOverride === "string" ? schemaOverride : typeof normalized.$schema === "string" ? normalized.$schema : undefined;
+  const hasSchemaOverride = typeof schemaOverride === "string";
+  const isSoustackSchema = schemaId ? isSoustackSchemaId(schemaId) : false;
   if (schemaId && isSoustackSchema) {
     const schemaValidator = context.ajv.getSchema(schemaId);
     if (!schemaValidator) {
@@ -298,11 +328,15 @@ function validateRecipeSchemaNormalized(
     }
 
     const schemaInput = cloneRecipe(normalized);
-    const isLegacySchema = schemaId.startsWith("http://soustack.org/schema/v0.3.0");
+    if (hasSchemaOverride && "$schema" in schemaInput && schemaInput.$schema !== schemaId) {
+      delete (schemaInput as any).$schema;
+    }
+    const isLegacySchema = schemaId.startsWith(LEGACY_ROOT_SCHEMA_ID);
+    const shouldRemoveStacks = (isLegacySchema || schemaId === DEFAULT_ROOT_SCHEMA_ID) && !inputHasStacks;
     if (isLegacySchema && "@type" in schemaInput) {
       delete (schemaInput as any)["@type"];
     }
-    if (isLegacySchema && !inputHasStacks && "stacks" in schemaInput) {
+    if (shouldRemoveStacks && "stacks" in schemaInput) {
       delete (schemaInput as any).stacks;
     }
     const schemaValid = schemaValidator(schemaInput);
@@ -397,8 +431,12 @@ function validateRecipeSchemaNormalized(
         const unknownKeyErrors = context.rootValidator.errors.filter(
           (e) => e.keyword === "additionalProperties" && (e.instancePath === "" || e.instancePath === "/")
         );
-        if (unknownKeyErrors.length > 0) {
-          errors.push(...unknownKeyErrors);
+        const schemaConstErrors = context.rootValidator.errors.filter(
+          (e) => e.keyword === "const" && e.instancePath === "/$schema"
+        );
+        const relevantErrors = [...unknownKeyErrors, ...schemaConstErrors];
+        if (relevantErrors.length > 0) {
+          errors.push(...relevantErrors);
           isValid = false;
         }
       }
@@ -537,6 +575,7 @@ export function validateRecipe(input: any, options: ValidateOptions = {}): Valid
     normalized,
     inputHasStacks,
     options.collectAllErrors ?? true,
+    options.schema,
   );
 
   const mode: ValidateMode = options.mode ?? "full";
