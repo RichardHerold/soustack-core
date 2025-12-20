@@ -16,7 +16,6 @@ import type { ScrapeRecipeOptions, SchemaOrgRecipe } from './types';
  * @throws Error if no recipe is found
  */
 export async function scrapeRecipe(url: string, options: ScrapeRecipeOptions = {}): Promise<Recipe> {
-  // #region agent log
   if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
     const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
     if (ingestUrl) {
@@ -28,9 +27,7 @@ export async function scrapeRecipe(url: string, options: ScrapeRecipeOptions = {
       } catch {}
     }
   }
-  // #endregion
   const html = await fetchPage(url, options);
-  // #region agent log
   if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
     const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
     if (ingestUrl) {
@@ -42,9 +39,7 @@ export async function scrapeRecipe(url: string, options: ScrapeRecipeOptions = {
       } catch {}
     }
   }
-  // #endregion
   const { recipe } = extractRecipe(html);
-  // #region agent log
   if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
     const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
     if (ingestUrl) {
@@ -56,14 +51,12 @@ export async function scrapeRecipe(url: string, options: ScrapeRecipeOptions = {
       } catch {}
     }
   }
-  // #endregion
 
   if (!recipe) {
     throw new Error('No Schema.org recipe data found in page');
   }
 
   const soustackRecipe = fromSchemaOrg(recipe);
-  // #region agent log
   if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
     const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
     if (ingestUrl) {
@@ -75,7 +68,6 @@ export async function scrapeRecipe(url: string, options: ScrapeRecipeOptions = {
       } catch {}
     }
   }
-  // #endregion
   if (!soustackRecipe) {
     throw new Error('Schema.org data did not include a valid recipe');
   }

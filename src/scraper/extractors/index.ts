@@ -20,7 +20,6 @@ export function extractRecipe(html: string): ExtractionResult {
   
   // Fallback to cheerio-based extraction for Node.js
   const jsonLdRecipe = extractJsonLd(html);
-  // #region agent log
   if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
     const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
     if (ingestUrl) {
@@ -32,13 +31,11 @@ export function extractRecipe(html: string): ExtractionResult {
       } catch {}
     }
   }
-  // #endregion
   if (jsonLdRecipe) {
     return { recipe: jsonLdRecipe, source: 'jsonld' };
   }
 
   const microdataRecipe = extractMicrodata(html);
-  // #region agent log
   if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
     const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
     if (ingestUrl) {
@@ -50,7 +47,6 @@ export function extractRecipe(html: string): ExtractionResult {
       } catch {}
     }
   }
-  // #endregion
   if (microdataRecipe) {
     return { recipe: microdataRecipe, source: 'microdata' };
   }

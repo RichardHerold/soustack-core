@@ -77,7 +77,6 @@ export async function fetchPage(url: string, options: FetchOptions = {}): Promis
       const response = await resolvedFetch(url, requestInit);
 
       clearTimeout(timeoutId);
-      // #region agent log
       if (response && typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
         const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
         if (ingestUrl) {
@@ -89,7 +88,6 @@ export async function fetchPage(url: string, options: FetchOptions = {}): Promis
           } catch {}
         }
       }
-      // #endregion
 
       if (!response.ok) {
         const error: Error & { status?: number } = new Error(
@@ -100,7 +98,6 @@ export async function fetchPage(url: string, options: FetchOptions = {}): Promis
       }
 
       const html = await response.text();
-      // #region agent log
       if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
         const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
         if (ingestUrl) {
@@ -112,7 +109,6 @@ export async function fetchPage(url: string, options: FetchOptions = {}): Promis
           } catch {}
         }
       }
-      // #endregion
       return html;
     } catch (err) {
       clearTimeout(timeoutId);
