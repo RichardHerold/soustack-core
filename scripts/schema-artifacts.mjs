@@ -15,7 +15,8 @@ function getSchemaFiles(dirPath, basePath = '') {
     return files;
   }
 
-  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true })
+    .sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of entries) {
     const fullPath = path.join(dirPath, entry.name);
     const relativePath = basePath ? path.posix.join(basePath, entry.name) : entry.name;
@@ -42,10 +43,39 @@ function getJsonFiles(dirPath, basePath = '') {
     return files;
   }
 
-  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true })
+    .sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of entries) {
     if (entry.isFile() && entry.name.endsWith('.json')) {
       const relativePath = basePath ? path.posix.join(basePath, entry.name) : entry.name;
+      files.push(relativePath);
+    }
+  }
+
+  return files;
+}
+
+/**
+ * Get all files in a directory recursively.
+ * @param {string} dirPath - Directory to search
+ * @param {string} basePath - Base path for relative paths
+ * @returns {string[]} Array of relative paths to files
+ */
+function getAllFiles(dirPath, basePath = '') {
+  const files = [];
+  if (!fs.existsSync(dirPath)) {
+    return files;
+  }
+
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true })
+    .sort((a, b) => a.name.localeCompare(b.name));
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    const relativePath = basePath ? path.posix.join(basePath, entry.name) : entry.name;
+
+    if (entry.isDirectory()) {
+      files.push(...getAllFiles(fullPath, relativePath));
+    } else if (entry.isFile()) {
       files.push(relativePath);
     }
   }
@@ -92,6 +122,18 @@ export function getRequiredSpecFiles(specDir = null) {
       files.push('schemas/stacks-registry.schema.json');
     }
 
+    // Add registry metadata at the root if present
+    const registryMetadata = path.join(specDir, 'registry.json');
+    if (fs.existsSync(registryMetadata)) {
+      files.push('registry.json');
+    }
+
+    // Add fixtures (valid/invalid or any other fixtures subtrees)
+    const fixturesDir = path.join(specDir, 'fixtures');
+    if (fs.existsSync(fixturesDir)) {
+      files.push(...getAllFiles(fixturesDir, 'fixtures'));
+    }
+
     // Legacy support: if old structure exists, include those files too
     const recipeBaseSchema = path.join(specDir, 'schemas', 'recipe', 'base.schema.json');
     if (fs.existsSync(recipeBaseSchema)) {
@@ -117,6 +159,7 @@ export function getRequiredSpecFiles(specDir = null) {
     // These will be discovered during sync, but we list core ones here
     files.push(
       'stacks/registry.json',
+      'registry.json',
       // Note: defs/* and stacks/*.schema.json files are discovered dynamically
       // during sync based on what exists in the source repository
     );
