@@ -9,12 +9,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./scrape": {
       "types": "./dist/scrape/index.d.ts",
       "import": "./dist/scrape/index.mjs",
-      "require": "./dist/scrape/index.js"
+      "require": "./dist/scrape/index.js",
+      "default": "./dist/scrape/index.js"
     }
   },
   "scripts": {
