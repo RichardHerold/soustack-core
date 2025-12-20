@@ -86,12 +86,23 @@ describe('Soustack validation', () => {
     expect(result.schemaErrors).toHaveLength(0);
   });
 
-  it('ignores non-Soustack $schema hints for profile detection', () => {
+  it('accepts the new root schema id', () => {
+    const recipe: Recipe = {
+      ...baseValidRaw,
+      $schema: 'https://soustack.spec/soustack.schema.json',
+    };
+
+    const result = validateRecipeSchema(recipe);
+    expect(result.ok).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('rejects non-Soustack $schema hints by default', () => {
     const recipe: Recipe = { ...baseValid, $schema: 'http://json-schema.org/draft-07/schema#' };
 
     const result = validateRecipe(recipe);
-    expect(result.ok).toBe(true);
-    expect(result.schemaErrors).toHaveLength(0);
+    expect(result.ok).toBe(false);
+    expect(result.schemaErrors[0]).toMatchObject({ path: '/$schema', keyword: 'const' });
   });
 
   it('accepts an explicit profile selection', () => {
