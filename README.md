@@ -37,7 +37,7 @@ npm install soustack
 
 ## What's Included
 
-- **Validation**: `validateRecipe()` validates Soustack JSON against the bundled schema.
+- **Validation**: `validateRecipe()` validates Soustack JSON against the bundled schema and optional conformance checks.
 - **Scaling & Computation**: `scaleRecipe()` scales a recipe while honoring per-ingredient scaling rules and instruction timing.
 - **Schema.org Conversion**:
   - `fromSchemaOrg()` (Schema.org JSON-LD → Soustack)
@@ -54,13 +54,19 @@ Validate and scale a recipe in just a few lines:
 ```ts
 import { validateRecipe, scaleRecipe } from 'soustack';
 
-// Validate against the bundled Soustack schema
-const { valid, errors, warnings } = validateRecipe(recipe);
-if (!valid) {
-  throw new Error(JSON.stringify(errors, null, 2));
+// Validate against the bundled Soustack schema + conformance rules
+const { ok, schemaErrors, conformanceIssues, warnings } = validateRecipe(recipe);
+if (!ok) {
+  throw new Error(JSON.stringify({ schemaErrors, conformanceIssues }, null, 2));
 }
 if (warnings?.length) {
   console.warn('Non-blocking warnings', warnings);
+}
+
+// Schema-only validation (skip conformance checks)
+const schemaOnly = validateRecipe(recipe, { mode: 'schema' });
+if (!schemaOnly.ok) {
+  console.error(schemaOnly.schemaErrors);
 }
 
 // Scale to a new yield (multiplier, target yield, or servings)
@@ -81,8 +87,8 @@ const profiles = detectProfiles(recipe); // e.g. ['minimal', 'core']
 
 // Validate with a specific profile (defaults to 'core' if not specified)
 const result = validateRecipe(recipe, { profile: 'minimal' });
-if (!result.valid) {
-  console.error('Profile validation failed', result.errors);
+if (!result.ok) {
+  console.error('Profile validation failed', result.schemaErrors);
 }
 
 // Validate with modules
@@ -205,8 +211,8 @@ import {
 
 // Validate a Soustack recipe JSON object with profile enforcement
 const validation = validateRecipe(recipe, { profile: 'core' });
-if (!validation.valid) {
-  console.error(validation.errors);
+if (!validation.ok) {
+  console.error({ schemaErrors: validation.schemaErrors, conformanceIssues: validation.conformanceIssues });
 }
 
 // Scale a recipe to a target yield amount (returns a "computed recipe")
@@ -361,10 +367,13 @@ const parsed = extractRecipeFromHTML(html);
 
 ```bash
 # Validate with profiles (JSON output for pipelines)
-npx soustack validate recipe.soustack.json --profile block --strict --json
+npx soustack validate recipe.soustack.json --profile core --strict --json
+
+# Schema-only validation (skip semantic conformance checks)
+npx soustack validate recipe.soustack.json --schema-only
 
 # Repo-wide test run (validates every *.soustack.json)
-npx soustack test --profile block
+npx soustack test --profile core
 
 # Convert Schema.org ↔ Soustack
 npx soustack convert --from schemaorg --to soustack recipe.jsonld -o recipe.soustack.json

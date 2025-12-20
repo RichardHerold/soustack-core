@@ -19,9 +19,8 @@ describe("Conformance validation", () => {
       } as Recipe;
 
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(true);
-      expect(result.conformance?.ok).toBe(true);
-      expect(result.conformance?.issues).toHaveLength(0);
+      expect(result.ok).toBe(true);
+      expect(result.conformanceIssues).toHaveLength(0);
     });
 
     it("fails when dependsOn references a missing step id", () => {
@@ -39,9 +38,8 @@ describe("Conformance validation", () => {
       } as Recipe;
 
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
-      expect(result.conformance?.ok).toBe(false);
-      expect(result.conformance?.issues).toEqual(
+      expect(result.ok).toBe(false);
+      expect(result.conformanceIssues).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             code: "DAG_MISSING_NODE",
@@ -67,9 +65,8 @@ describe("Conformance validation", () => {
       } as Recipe;
 
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
-      expect(result.conformance?.ok).toBe(false);
-      expect(result.conformance?.issues).toEqual(
+      expect(result.ok).toBe(false);
+      expect(result.conformanceIssues).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             code: "DAG_CYCLE",
@@ -103,9 +100,8 @@ describe("Conformance validation", () => {
       };
 
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(true);
-      expect(result.conformance?.ok).toBe(true);
-      expect(result.conformance?.issues).toHaveLength(0);
+      expect(result.ok).toBe(true);
+      expect(result.conformanceIssues).toHaveLength(0);
     });
 
     it("fails when schedulable recipe has instruction without timing", () => {
@@ -129,17 +125,9 @@ describe("Conformance validation", () => {
       };
 
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
-      expect(result.conformance?.ok).toBe(false);
-      expect(result.conformance?.issues).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            code: "SCHEDULABLE_MISSING_TIMING",
-            message: expect.stringMatching(/timing/i),
-            severity: "error",
-          }),
-        ])
-      );
+      expect(result.ok).toBe(false);
+      expect(result.schemaErrors.length).toBeGreaterThan(0);
+      expect(result.conformanceIssues).toHaveLength(0);
     });
 
     it("fails when schedulable recipe has instruction without id", () => {
@@ -163,17 +151,9 @@ describe("Conformance validation", () => {
       };
 
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
-      expect(result.conformance?.ok).toBe(false);
-      expect(result.conformance?.issues).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            code: "SCHEDULABLE_MISSING_ID",
-            message: expect.stringMatching(/id/i),
-            severity: "error",
-          }),
-        ])
-      );
+      expect(result.ok).toBe(false);
+      expect(result.schemaErrors.length).toBeGreaterThan(0);
+      expect(result.conformanceIssues).toHaveLength(0);
     });
   });
 
@@ -201,9 +181,8 @@ describe("Conformance validation", () => {
       };
 
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(true);
-      expect(result.conformance?.ok).toBe(true);
-      expect(result.conformance?.issues).toHaveLength(0);
+      expect(result.ok).toBe(true);
+      expect(result.conformanceIssues).toHaveLength(0);
     });
 
     it("fails when baker's percentage references missing ingredient id", () => {
@@ -229,9 +208,8 @@ describe("Conformance validation", () => {
       };
 
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
-      expect(result.conformance?.ok).toBe(false);
-      expect(result.conformance?.issues).toEqual(
+      expect(result.ok).toBe(false);
+      expect(result.conformanceIssues).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             code: "SCALING_INVALID_REFERENCE",
@@ -259,9 +237,8 @@ describe("Conformance validation", () => {
       };
 
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
-      expect(result.conformance?.ok).toBe(false);
-      expect(result.conformance?.issues).toEqual(
+      expect(result.ok).toBe(false);
+      expect(result.conformanceIssues).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             code: "SCALING_MISSING_REFERENCE",
@@ -290,14 +267,13 @@ describe("Conformance validation", () => {
       };
 
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(false);
-      
+      expect(result.ok).toBe(false);
+
       // Should have schema errors
-      expect(result.errors.some((e) => e.path.includes("name") || e.message.includes("name"))).toBe(true);
-      
-      // Should have conformance issues
-      expect(result.conformance?.ok).toBe(false);
-      expect(result.conformance?.issues.some((i) => i.code === "DAG_MISSING_NODE")).toBe(true);
+      expect(result.schemaErrors.some((e) => e.path.includes("name") || e.message.includes("name"))).toBe(true);
+
+      // Conformance should be skipped when schema fails
+      expect(result.conformanceIssues).toHaveLength(0);
     });
 
     it("validates a complex valid recipe with all semantic checks", () => {
@@ -335,10 +311,8 @@ describe("Conformance validation", () => {
       };
 
       const result = validateRecipe(recipe);
-      expect(result.valid).toBe(true);
-      expect(result.conformance?.ok).toBe(true);
-      expect(result.conformance?.issues).toHaveLength(0);
+      expect(result.ok).toBe(true);
+      expect(result.conformanceIssues).toHaveLength(0);
     });
   });
 });
-

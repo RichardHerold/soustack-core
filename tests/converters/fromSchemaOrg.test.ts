@@ -444,6 +444,6 @@ describe('minimal profile and stack emission', () => {
       delete recipeForValidation.stacks.nutrition;
     }
     const validation = validateRecipe(recipeForValidation);
-    expect(validation.valid).toBe(true);
+    expect(validation.ok).toBe(true);
   });
 });
