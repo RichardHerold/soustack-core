@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://soustack.org/schemas/recipe/stacks/attribution/1.schema.json",
-  "title": "Soustack Recipe Module: attribution v1",
-  "description": "Schema for the attribution module. Ensures namespace data is present when the module is enabled and vice versa.",
+  "title": "Soustack Recipe Stack: attribution v1",
+  "description": "Schema for the attribution stack. Ensures namespace data is present when the stack is enabled and vice versa.",
   "type": "object",
   "properties": {
     "stacks": {

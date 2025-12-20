@@ -494,7 +494,7 @@ describe('toSchemaOrg integration', () => {
     expect(schema).not.toHaveProperty('nutrition');
   });
 
-  it('converts numeric calories to Schema.org string format when nutrition module is mappable', () => {
+  it('converts numeric calories to Schema.org string format when nutrition stack is mappable', () => {
     // Note: nutrition@1 is currently NOT schemaOrgMappable, so this test
     // directly tests convertNutrition to verify the conversion behavior
     const recipe = buildRecipe({
@@ -535,7 +535,7 @@ describe('round-trip conversion', () => {
 
     expect(roundTrip).not.toBeNull();
     expect(roundTrip?.name).toBe(recipe.name);
-    // category and tags are only included if taxonomy@1 module is present and mappable
+    // category and tags are only included if taxonomy@1 stack is present and mappable
     if (recipe.category) {
       expect(roundTrip?.category).toBe(recipe.category);
     }
@@ -548,7 +548,7 @@ describe('round-trip conversion', () => {
     if (recipe.times && recipe.stacks?.times === 1) {
       expect(roundTrip?.times).toMatchObject(recipe.times);
     }
-    // image is handled by media module
+    // image is handled by media stack
     if (recipe.image) {
       expect(roundTrip?.image || roundTrip?.media?.images).toBeDefined();
     }

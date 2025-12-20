@@ -429,7 +429,7 @@ describe('minimal profile and stack emission', () => {
         videos: ['https://example.com/lasagna.mp4']
       })
     );
-    // v0.3: times module uses prepMinutes/cookMinutes/totalMinutes
+    // v0.3: times stack uses prepMinutes/cookMinutes/totalMinutes
     expect(recipe.times).toEqual({ prepMinutes: 20, cookMinutes: 40, totalMinutes: 60 });
 
     // Remove top-level fields that should be in stacks (fromSchemaOrg puts them at top level for compatibility)

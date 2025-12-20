@@ -16,7 +16,7 @@
     },
     "stacks": {
       "type": "object",
-      "description": "Module stacks as a map: Record<moduleName, versionNumber>",
+      "description": "Stack declarations as a map: Record<stackName, versionNumber>",
       "additionalProperties": {
         "type": "integer",
         "minimum": 1

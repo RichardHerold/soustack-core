@@ -82,19 +82,19 @@ function normalizeStacks(recipe: any, warnings: string[]): void {
 
   // Check legacy stacks array format (only if stacks wasn't already a map)
   if (Array.isArray(recipe.stacks)) {
-    const moduleIdentifiers: string[] = recipe.stacks.filter((s: any) => typeof s === 'string');
-    
-    // Parse module identifiers into stacks map and merge with existing stacks
-    for (const identifier of moduleIdentifiers) {
-      const parsed = parseModuleIdentifier(identifier);
+    const stackIdentifiers: string[] = recipe.stacks.filter((s: any) => typeof s === 'string');
+
+    // Parse stack identifiers into stacks map and merge with existing stacks
+    for (const identifier of stackIdentifiers) {
+      const parsed = parseStackIdentifier(identifier);
       if (parsed) {
         const { name, version } = parsed;
-        // If the same module appears multiple times, keep the highest version
+        // If the same stack appears multiple times, keep the highest version
         if (!stacks[name] || stacks[name] < version) {
           stacks[name] = version;
         }
       } else {
-        warnings.push(`Invalid module identifier '${identifier}': expected format 'name@version' (e.g., 'scaling@1')`);
+        warnings.push(`Invalid stack identifier '${identifier}': expected format 'name@version' (e.g., 'scaling@1')`);
       }
     }
   }
@@ -104,10 +104,10 @@ function normalizeStacks(recipe: any, warnings: string[]): void {
 }
 
 /**
- * Parses a module identifier string like "scaling@1" into { name: "scaling", version: 1 }
+ * Parses a stack identifier string like "scaling@1" into { name: "scaling", version: 1 }
  * Returns null if the format is invalid.
  */
-function parseModuleIdentifier(identifier: string): { name: string; version: number } | null {
+function parseStackIdentifier(identifier: string): { name: string; version: number } | null {
   if (typeof identifier !== 'string' || !identifier.trim()) {
     return null;
   }

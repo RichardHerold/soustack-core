@@ -96,7 +96,7 @@ describe('Spec fixtures contract tests', () => {
         const result = validateRecipeSchema(normalizedRecipe);
         
         // Some invalid fixtures pass schema validation but fail semantic validation
-        // (e.g., DAG cycles, missing module fields, etc.). These require semantic
+        // (e.g., DAG cycles, missing stack fields, etc.). These require semantic
         // checks that are beyond validateRecipeSchema(). Skip them for now.
         if (result.ok) {
           // This fixture passes schema validation but is marked as invalid.
@@ -111,4 +111,3 @@ describe('Spec fixtures contract tests', () => {
     }
   });
 });
-
