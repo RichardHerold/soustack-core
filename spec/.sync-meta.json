@@ -1,6 +1,6 @@
 {
-  "sourceRepo": "https://github.com/RichardHerold/soustack-spec.git",
-  "ref": "v0.3.0",
+  "sourceType": "npm",
+  "version": "0.3.0",
   "specVersion": "0.3.0",
   "syncedAt": "2025-12-20T02:49:01.483Z",
   "files": [

@@ -10,7 +10,7 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 const SPEC_DIR = path.join(ROOT_DIR, 'spec');
 const META_PATH = path.join(SPEC_DIR, '.sync-meta.json');
 const VERSION_FILE_PATH = path.join(SPEC_DIR, 'SOUSTACK_SPEC_VERSION');
-const PACKAGE_JSON_PATH = path.join(ROOT_DIR, 'package.json');
+const NPM_SPEC_PATH = path.join(ROOT_DIR, 'node_modules', 'soustack-spec');
 
 function assert(condition, message) {
   if (!condition) {
@@ -58,35 +58,51 @@ function validateChecksums(files, checksumMap) {
 
 async function main() {
   const metadata = readJson(META_PATH);
-  const pkg = readJson(PACKAGE_JSON_PATH);
   const specVersionFile = fs.readFileSync(VERSION_FILE_PATH, 'utf8').trim();
 
   assert(metadata && typeof metadata === 'object', 'Sync metadata must be an object.');
   assert(
-    typeof metadata.sourceRepo === 'string' && metadata.sourceRepo.length > 0,
-    'metadata.sourceRepo must be a non-empty string.'
+    typeof metadata.sourceType === 'string' && metadata.sourceType.length > 0,
+    'metadata.sourceType must be a non-empty string.'
   );
-  assert(metadata.sourceRepo === SPEC_REPO, `Sync metadata repo mismatch: expected ${SPEC_REPO}.`);
+  assert(
+    ['npm', 'git', 'path'].includes(metadata.sourceType),
+    `metadata.sourceType must be one of npm, git, path (received ${metadata.sourceType}).`
+  );
 
-  assert(typeof metadata.ref === 'string' && metadata.ref.length > 0, 'metadata.ref must be a non-empty string.');
-  if (pkg.soustackSpecTag) {
+  if (metadata.sourceType === 'git') {
     assert(
-      pkg.soustackSpecTag === metadata.ref,
-      `metadata.ref (${metadata.ref}) does not match package.json soustackSpecTag (${pkg.soustackSpecTag}).`
+      typeof metadata.sourceRepo === 'string' && metadata.sourceRepo.length > 0,
+      'metadata.sourceRepo must be a non-empty string for git sources.'
     );
+    assert(metadata.sourceRepo === SPEC_REPO, `Sync metadata repo mismatch: expected ${SPEC_REPO}.`);
+    assert(typeof metadata.ref === 'string' && metadata.ref.length > 0, 'metadata.ref must be a non-empty string.');
+    assert(
+      typeof metadata.commit === 'string' && metadata.commit.length > 0,
+      'metadata.commit must be a non-empty string for git sources.'
+    );
+  }
+
+  if (metadata.sourceType === 'npm') {
+    assert(
+      typeof metadata.version === 'string' && metadata.version.length > 0,
+      'metadata.version must be a non-empty string for npm sources.'
+    );
+    const npmPkg = readJson(path.join(NPM_SPEC_PATH, 'package.json'));
+    assert(
+      npmPkg.version === metadata.version,
+      `metadata.version (${metadata.version}) does not match node_modules/soustack-spec/package.json (${npmPkg.version}).`
+    );
+  }
+
+  if (metadata.sourceType === 'path') {
+    assert(typeof metadata.path === 'string' && metadata.path.length > 0, 'metadata.path must be a non-empty string.');
   }
 
   assert(
     typeof metadata.syncedAt === 'string' && !Number.isNaN(Date.parse(metadata.syncedAt)),
     'metadata.syncedAt must be an ISO 8601 timestamp string.'
   );
-
-  if (metadata.commit !== undefined && metadata.commit !== null) {
-    assert(
-      typeof metadata.commit === 'string' && metadata.commit.length > 0,
-      'metadata.commit must be a string when present.'
-    );
-  }
 
   assert(
     typeof metadata.specVersion === 'string' && metadata.specVersion.length > 0,
@@ -96,12 +112,6 @@ async function main() {
     metadata.specVersion === specVersionFile,
     `metadata.specVersion (${metadata.specVersion}) does not match spec/SOUSTACK_SPEC_VERSION (${specVersionFile}).`
   );
-  if (pkg.soustackSpecVersion) {
-    assert(
-      metadata.specVersion === pkg.soustackSpecVersion,
-      `metadata.specVersion (${metadata.specVersion}) does not match package.json soustackSpecVersion (${pkg.soustackSpecVersion}).`
-    );
-  }
 
   assert(Array.isArray(metadata.files) && metadata.files.length > 0, 'metadata.files must be a non-empty array.');
   metadata.files.forEach((relativePath) => {
@@ -134,7 +144,7 @@ async function main() {
   }
 
   console.log(
-    `Sync metadata verified (ref ${metadata.ref}, version ${metadata.specVersion}, ${metadata.files.length} tracked files).`
+    `Sync metadata verified (${metadata.sourceType}, version ${metadata.specVersion}, ${metadata.files.length} tracked files).`
   );
 }
 
