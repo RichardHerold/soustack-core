@@ -24,11 +24,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install soustack spec package
+      - name: Prepare soustack spec package
         run: |
-          SPEC_TAG=$(node -p "require('./package.json').soustackSpecTag")
-          npm install --no-save "soustack-spec@github:RichardHerold/soustack-spec#${SPEC_TAG}" || \
-            npm install --no-save "soustack-spec@github:RichardHerold/soustack-spec#${SPEC_TAG#v}"
+          SPEC_VERSION=$(cat spec/SOUSTACK_SPEC_VERSION)
+          rm -rf node_modules/soustack-spec
+          mkdir -p node_modules/soustack-spec
+          cp -R spec/. node_modules/soustack-spec
+          cat > node_modules/soustack-spec/package.json <<EOF
+          {
+            "name": "soustack-spec",
+            "version": "${SPEC_VERSION}"
+          }
+          EOF
 
       - name: Sync soustack spec
         run: npm run sync:spec
