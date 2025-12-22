@@ -9,6 +9,8 @@ on:
 jobs:
   contract:
     runs-on: ubuntu-latest
+    env:
+      SOUSTACK_SPEC_SOURCE: npm
 
     steps:
       - uses: actions/checkout@v4
@@ -22,16 +24,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install soustack spec package
+        run: |
+          SPEC_TAG=$(node -p "require('./package.json').soustackSpecTag")
+          npm install --no-save "soustack-spec@github:RichardHerold/soustack-spec#${SPEC_TAG}"
+
       - name: Sync soustack spec
         run: npm run sync:spec
 
       - name: Ensure spec artifacts are committed
         run: |
-          if [[ -n "$(git status --porcelain)" ]]; then
-            echo "Spec artifacts out of date. Run npm run sync:spec and commit changes."
-            git status --porcelain
-            exit 1
-          fi
+          git diff --exit-code
 
       - name: Run tests
         run: npm test
