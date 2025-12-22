@@ -26,7 +26,7 @@ jobs:
 
       - name: Prepare soustack spec package
         run: |
-          SPEC_VERSION=$(cat spec/SOUSTACK_SPEC_VERSION)
+          SPEC_VERSION=$(node -p "require('./package.json').devDependencies['soustack-spec']")
           rm -rf node_modules/soustack-spec
           mkdir -p node_modules/soustack-spec
           cp -R spec/. node_modules/soustack-spec
