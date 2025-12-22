@@ -27,7 +27,8 @@ jobs:
       - name: Install soustack spec package
         run: |
           SPEC_TAG=$(node -p "require('./package.json').soustackSpecTag")
-          npm install --no-save "soustack-spec@github:RichardHerold/soustack-spec#${SPEC_TAG}"
+          npm install --no-save "soustack-spec@github:RichardHerold/soustack-spec#${SPEC_TAG}" || \
+            npm install --no-save "soustack-spec@github:RichardHerold/soustack-spec#${SPEC_TAG#v}"
 
       - name: Sync soustack spec
         run: npm run sync:spec
