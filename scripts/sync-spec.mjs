@@ -217,7 +217,7 @@ function createSha256(filePath) {
   return crypto.createHash('sha256').update(buffer).digest('hex');
 }
 
-function writeSyncMetadata({ repo, ref, version, commit, files }) {
+function writeSyncMetadata({ repo, ref, version, commit, files, source }) {
   ensureSpecFilesExist(files);
   const checksums = files.reduce((acc, relativePath) => {
     const absolutePath = path.join(SPEC_DIR, relativePath);
@@ -226,13 +226,20 @@ function writeSyncMetadata({ repo, ref, version, commit, files }) {
   }, {});
 
   const payload = {
-    sourceRepo: repo,
     ref,
     specVersion: version,
     syncedAt: new Date().toISOString(),
     files,
     checksums,
   };
+
+  if (source) {
+    payload.source = source;
+  }
+
+  if (repo) {
+    payload.sourceRepo = repo;
+  }
 
   if (commit) {
     payload.commit = commit;
@@ -257,59 +264,90 @@ function readSpecVersion(specDir) {
 
 async function main() {
   const pkg = readPackageJson();
-  const tag = determineSpecTag(pkg);
+  const specSource = process.env.SOUSTACK_SPEC_SOURCE;
+  const usingNpmSpec = specSource === 'npm';
   const usingLocalSpec = Boolean(LOCAL_SPEC_PATH);
-  let sourceDir = usingLocalSpec
-    ? path.resolve(ROOT_DIR, LOCAL_SPEC_PATH)
-    : cloneSpecRepository(tag);
+  let tag;
+  let sourceDir;
   let tempLocalCopy;
-  const usingLocalSchemas = !usingLocalSpec && sourceDir === SPEC_DIR;
+  let sourceCommit;
+  let version;
 
-  if (usingLocalSpec && sourceDir === SPEC_DIR && !usingLocalSchemas) {
-    tempLocalCopy = fs.mkdtempSync(path.join(os.tmpdir(), 'soustack-spec-local-'));
-    fs.cpSync(sourceDir, tempLocalCopy, { recursive: true });
-    sourceDir = tempLocalCopy;
-  }
-  
-  // If using local schemas (tag not found but version matches), skip sync
-  if (usingLocalSchemas) {
-    console.log(`Using existing local schemas for version ${tag.replace(/^v/, '')}`);
-    return;
-  }
+  if (usingNpmSpec) {
+    sourceDir = path.join(ROOT_DIR, 'node_modules', 'soustack-spec');
+    if (!fs.existsSync(sourceDir)) {
+      throw new Error(
+        'SOUSTACK_SPEC_SOURCE is set to "npm" but node_modules/soustack-spec was not found. Run npm install.'
+      );
+    }
+    const specPackagePath = path.join(sourceDir, 'package.json');
+    if (!fs.existsSync(specPackagePath)) {
+      throw new Error('soustack-spec package.json not found in node_modules.');
+    }
+    const specPackage = JSON.parse(fs.readFileSync(specPackagePath, 'utf8'));
+    if (!specPackage.version) {
+      throw new Error('soustack-spec package.json is missing a version field.');
+    }
+    version = specPackage.version;
+    tag = `v${version}`;
+    console.log(`Syncing Soustack spec from npm package at ${sourceDir}`);
+  } else {
+    tag = determineSpecTag(pkg);
+    sourceDir = usingLocalSpec
+      ? path.resolve(ROOT_DIR, LOCAL_SPEC_PATH)
+      : cloneSpecRepository(tag);
+    const usingLocalSchemas = !usingLocalSpec && sourceDir === SPEC_DIR;
 
-  console.log(
-    usingLocalSpec
-      ? `Syncing Soustack spec from local path ${sourceDir}`
-      : `Syncing Soustack spec from ${SPEC_REPO} @ ${tag}`
-  );
+    if (usingLocalSpec && sourceDir === SPEC_DIR && !usingLocalSchemas) {
+      tempLocalCopy = fs.mkdtempSync(path.join(os.tmpdir(), 'soustack-spec-local-'));
+      fs.cpSync(sourceDir, tempLocalCopy, { recursive: true });
+      sourceDir = tempLocalCopy;
+    }
 
-  if (usingLocalSpec && !fs.existsSync(sourceDir)) {
-    throw new Error(`Local spec path does not exist: ${sourceDir}`);
+    // If using local schemas (tag not found but version matches), skip sync
+    if (usingLocalSchemas) {
+      console.log(`Using existing local schemas for version ${tag.replace(/^v/, '')}`);
+      return;
+    }
+
+    console.log(
+      usingLocalSpec
+        ? `Syncing Soustack spec from local path ${sourceDir}`
+        : `Syncing Soustack spec from ${SPEC_REPO} @ ${tag}`
+    );
+
+    if (usingLocalSpec && !fs.existsSync(sourceDir)) {
+      throw new Error(`Local spec path does not exist: ${sourceDir}`);
+    }
   }
 
   const tempDir = sourceDir;
-  const sourceCommit = getSourceCommit(tempDir);
+  if (!usingNpmSpec) {
+    sourceCommit = getSourceCommit(tempDir);
+    version = readSpecVersion(tempDir);
+  }
   try {
-    const version = readSpecVersion(tempDir);
     copyIntoSpecDirectory(tempDir);
     writeSpecVersion(version);
     updateSpecVersionModule(version);
     copySchemaIntoSrc();
     updatePackageJson(pkg, version, tag);
-    
+
     // Discover required files from the synced spec directory
     const requiredFiles = getRequiredSpecFiles(SPEC_DIR);
     writeSyncMetadata({
-      repo: SPEC_REPO,
-      ref: tag,
+      repo: usingNpmSpec ? null : SPEC_REPO,
+      ref: usingNpmSpec ? version : tag,
       version,
-      commit: sourceCommit,
+      commit: usingNpmSpec ? null : sourceCommit,
       files: requiredFiles,
+      source: usingNpmSpec ? 'npm' : undefined,
     });
 
     console.log(`Soustack spec synced successfully (version ${version}).`);
   } finally {
-    if (!usingLocalSpec || tempLocalCopy) {
+    const shouldCleanup = (!usingLocalSpec && !usingNpmSpec) || tempLocalCopy;
+    if (shouldCleanup) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   }

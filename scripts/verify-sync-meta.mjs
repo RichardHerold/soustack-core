@@ -60,16 +60,19 @@ async function main() {
   const metadata = readJson(META_PATH);
   const pkg = readJson(PACKAGE_JSON_PATH);
   const specVersionFile = fs.readFileSync(VERSION_FILE_PATH, 'utf8').trim();
+  const isNpmSource = metadata?.source === 'npm';
 
   assert(metadata && typeof metadata === 'object', 'Sync metadata must be an object.');
-  assert(
-    typeof metadata.sourceRepo === 'string' && metadata.sourceRepo.length > 0,
-    'metadata.sourceRepo must be a non-empty string.'
-  );
-  assert(metadata.sourceRepo === SPEC_REPO, `Sync metadata repo mismatch: expected ${SPEC_REPO}.`);
+  if (!isNpmSource) {
+    assert(
+      typeof metadata.sourceRepo === 'string' && metadata.sourceRepo.length > 0,
+      'metadata.sourceRepo must be a non-empty string.'
+    );
+    assert(metadata.sourceRepo === SPEC_REPO, `Sync metadata repo mismatch: expected ${SPEC_REPO}.`);
+  }
 
   assert(typeof metadata.ref === 'string' && metadata.ref.length > 0, 'metadata.ref must be a non-empty string.');
-  if (pkg.soustackSpecTag) {
+  if (pkg.soustackSpecTag && !isNpmSource) {
     assert(
       pkg.soustackSpecTag === metadata.ref,
       `metadata.ref (${metadata.ref}) does not match package.json soustackSpecTag (${pkg.soustackSpecTag}).`
@@ -81,7 +84,7 @@ async function main() {
     'metadata.syncedAt must be an ISO 8601 timestamp string.'
   );
 
-  if (metadata.commit !== undefined && metadata.commit !== null) {
+  if (!isNpmSource && metadata.commit !== undefined && metadata.commit !== null) {
     assert(
       typeof metadata.commit === 'string' && metadata.commit.length > 0,
       'metadata.commit must be a string when present.'
@@ -92,6 +95,12 @@ async function main() {
     typeof metadata.specVersion === 'string' && metadata.specVersion.length > 0,
     'metadata.specVersion must be a non-empty string.'
   );
+  if (isNpmSource) {
+    assert(
+      metadata.ref === metadata.specVersion,
+      `metadata.ref (${metadata.ref}) does not match metadata.specVersion (${metadata.specVersion}) for npm source.`
+    );
+  }
   assert(
     metadata.specVersion === specVersionFile,
     `metadata.specVersion (${metadata.specVersion}) does not match spec/SOUSTACK_SPEC_VERSION (${specVersionFile}).`
