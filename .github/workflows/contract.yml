@@ -25,7 +25,9 @@ jobs:
         run: npm ci
 
       - name: Install soustack spec package
-        run: npm install --no-save "soustack-spec@$(node -p \"require('./package.json').soustackSpecVersion\")"
+        run: |
+          SPEC_VERSION=$(node -p "require('./package.json').soustackSpecVersion")
+          npm install --no-save "soustack-spec@${SPEC_VERSION}"
 
       - name: Sync soustack spec
         run: npm run sync:spec
