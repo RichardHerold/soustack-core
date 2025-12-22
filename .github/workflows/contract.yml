@@ -9,8 +9,6 @@ on:
 jobs:
   contract:
     runs-on: ubuntu-latest
-    env:
-      SOUSTACK_SPEC_SOURCE: npm
 
     steps:
       - uses: actions/checkout@v4
@@ -39,6 +37,8 @@ jobs:
 
       - name: Sync soustack spec
         run: npm run sync:spec
+        env:
+          SOUSTACK_SPEC_SOURCE: npm
 
       - name: Ensure spec artifacts are committed
         run: |
