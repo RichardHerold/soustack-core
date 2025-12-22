@@ -217,7 +217,45 @@ function createSha256(filePath) {
   return crypto.createHash('sha256').update(buffer).digest('hex');
 }
 
-function writeSyncMetadata({ repo, ref, version, commit, files, source }) {
+function readSyncMetadata() {
+  if (!fs.existsSync(SYNC_META_PATH)) {
+    return null;
+  }
+
+  return JSON.parse(fs.readFileSync(SYNC_META_PATH, 'utf8'));
+}
+
+function sortKeysDeep(value) {
+  if (Array.isArray(value)) {
+    return value.map(sortKeysDeep);
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.keys(value)
+      .sort()
+      .reduce((acc, key) => {
+        acc[key] = sortKeysDeep(value[key]);
+        return acc;
+      }, {});
+  }
+
+  return value;
+}
+
+function areSyncMetadataEqual(a, b) {
+  if (!a || !b) {
+    return false;
+  }
+
+  const { syncedAt: _aSyncedAt, ...aRest } = a;
+  const { syncedAt: _bSyncedAt, ...bRest } = b;
+  const normalizedA = sortKeysDeep(aRest);
+  const normalizedB = sortKeysDeep(bRest);
+
+  return JSON.stringify(normalizedA) === JSON.stringify(normalizedB);
+}
+
+function writeSyncMetadata({ repo, ref, version, commit, files, source, previousMeta }) {
   ensureSpecFilesExist(files);
   const checksums = files.reduce((acc, relativePath) => {
     const absolutePath = path.join(SPEC_DIR, relativePath);
@@ -243,6 +281,10 @@ function writeSyncMetadata({ repo, ref, version, commit, files, source }) {
 
   if (commit) {
     payload.commit = commit;
+  }
+
+  if (previousMeta && areSyncMetadataEqual(previousMeta, payload)) {
+    payload.syncedAt = previousMeta.syncedAt;
   }
 
   fs.writeFileSync(SYNC_META_PATH, `${JSON.stringify(payload, null, 2)}\n`);
@@ -327,6 +369,7 @@ async function main() {
     version = readSpecVersion(tempDir);
   }
   try {
+    const previousMeta = readSyncMetadata();
     copyIntoSpecDirectory(tempDir);
     writeSpecVersion(version);
     updateSpecVersionModule(version);
@@ -342,6 +385,7 @@ async function main() {
       commit: usingNpmSpec ? null : sourceCommit,
       files: requiredFiles,
       source: usingNpmSpec ? 'npm' : undefined,
+      previousMeta,
     });
 
     console.log(`Soustack spec synced successfully (version ${version}).`);
