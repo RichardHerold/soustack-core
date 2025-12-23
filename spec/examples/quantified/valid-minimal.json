@@ -1,5 +1,5 @@
 {
-  "$schema": "http://soustack.org/schema/v0.3.0/profiles/quantified",
+  "$schema": "http://soustack.org/schema/v0.0.2/profiles/quantified",
   "name": "Minimal Quantified Recipe",
   "ingredients": [
     {

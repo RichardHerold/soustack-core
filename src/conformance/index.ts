@@ -1,4 +1,5 @@
 import { Recipe, Instruction, Ingredient, IngredientItem, InstructionItem } from "../types";
+import { SOUSTACK_SPEC_VERSION } from "../specVersion";
 
 export type ConformanceSeverity = "error" | "warning";
 
@@ -44,10 +45,11 @@ export function validateConformance(recipe: Recipe): ConformanceResult {
 function hasSchedulableProfile(recipe: Recipe): boolean {
   const schema = (recipe as any).$schema;
   if (typeof schema === "string") {
+    const schedulableSchema = `http://soustack.org/schema/v${SOUSTACK_SPEC_VERSION}/profiles/schedulable`;
     // Check for schedulable profile schema ID
     return (
       schema.includes("schedulable") ||
-      schema === "http://soustack.org/schema/v0.3.0/profiles/schedulable"
+      schema === schedulableSchema
     );
   }
   return false;
@@ -330,4 +332,3 @@ function isIngredientSubsection(item: any): item is { items: any[]; subsection: 
     "subsection" in item
   );
 }
-

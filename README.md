@@ -144,13 +144,13 @@ The converter rounds using “sane” defaults (1 g/ml under 1 kg/1 L, the
 
 ## Spec compatibility & bundled schemas
 
-- Targets Soustack spec **v0.3.0** (`spec/SOUSTACK_SPEC_VERSION`, exported as `SOUSTACK_SPEC_VERSION`).
+- Targets Soustack spec **v0.0.2** (`spec/SOUSTACK_SPEC_VERSION`, exported as `SOUSTACK_SPEC_VERSION`).
 - Ships the base schema, profile schemas, and module schemas in `spec/schemas/recipe/` and mirrors them into `src/schemas/recipe/` for consumers.
 - Vendored fixtures live in `spec/fixtures` so tests can run offline, and version drift can be checked via `npm run validate:version`.
 
 ### Composed Validation Model
 
-Soustack v0.3.0 uses a **composed validation model** where recipes are validated using JSON Schema's `allOf` composition:
+Soustack v0.0.2 uses a **composed validation model** where recipes are validated using JSON Schema's `allOf` composition:
 
 ```json
 {
@@ -190,7 +190,7 @@ The module registry (`schemas/registry/modules.json`) defines which modules are 
 - `minProfile`: Minimum profile required to use the module
 - `allowedOnLite`: Whether the module can be used with the lite profile
 
-**Available Modules (v0.3.0):**
+**Available Modules (v0.0.2):**
 - `attribution@1`: Source attribution (url, author, datePublished)
 - `taxonomy@1`: Classification (keywords, category, cuisine)
 - `media@1`: Images and videos (images, videos arrays)
@@ -269,7 +269,7 @@ async function convert(url: string) {
 
 Use the helpers to move between Schema.org JSON-LD and Soustack's structured recipe format. The conversion automatically handles image normalization, supporting multiple image formats from Schema.org.
 
-**BREAKING CHANGE in v0.3.0:** `toSchemaOrg()` now targets the **lite profile** and only includes modules that are marked as `schemaOrgMappable` in the modules registry. Non-mappable modules (e.g., `nutrition@1`, `schedule@1`) are excluded from the conversion.
+**BREAKING CHANGE in v0.0.2:** `toSchemaOrg()` now targets the **lite profile** and only includes modules that are marked as `schemaOrgMappable` in the modules registry. Non-mappable modules (e.g., `nutrition@1`, `schedule@1`) are excluded from the conversion.
 
 ```ts
 import { fromSchemaOrg, toSchemaOrg, normalizeImage } from 'soustack';

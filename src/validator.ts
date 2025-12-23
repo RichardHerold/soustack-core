@@ -4,15 +4,16 @@ import { Recipe } from "./types";
 import { normalizeRecipe } from "./normalize";
 import { validateConformance, ConformanceIssue } from "./conformance";
 import rootSchema from "./soustack.schema.json";
+import { SOUSTACK_SPEC_VERSION } from "./specVersion";
 import baseSchema from "./schemas/recipe/base.schema.json";
 import minimalProfileSchema from "./schemas/recipe/profiles/minimal.schema.json";
 import coreProfileSchema from "./schemas/recipe/profiles/core.schema.json";
-import baseProfileSchema from "../spec/profiles/base.schema.json";
-import cookableProfileSchema from "../spec/profiles/cookable.schema.json";
-import illustratedProfileSchema from "../spec/profiles/illustrated.schema.json";
-import quantifiedProfileSchema from "../spec/profiles/quantified.schema.json";
-import scalableProfileSchema from "../spec/profiles/scalable.schema.json";
-import schedulableProfileSchema from "../spec/profiles/schedulable.schema.json";
+import baseProfileSchema from "./profiles/base.schema.json";
+import cookableProfileSchema from "./profiles/cookable.schema.json";
+import illustratedProfileSchema from "./profiles/illustrated.schema.json";
+import quantifiedProfileSchema from "./profiles/quantified.schema.json";
+import scalableProfileSchema from "./profiles/scalable.schema.json";
+import schedulableProfileSchema from "./profiles/schedulable.schema.json";
 import attributionStackSchema from "./schemas/recipe/stacks/attribution/1.schema.json";
 import mediaStackSchema from "./schemas/recipe/stacks/media/1.schema.json";
 import nutritionStackSchema from "./schemas/recipe/stacks/nutrition/1.schema.json";
@@ -32,7 +33,7 @@ type ProfileName =
   | "core";
 
 // Schema IDs from the vendored spec
-const LEGACY_ROOT_SCHEMA_ID = "http://soustack.org/schema/v0.3.0";
+const LEGACY_ROOT_SCHEMA_ID = `http://soustack.org/schema/v${SOUSTACK_SPEC_VERSION}`;
 const DEFAULT_ROOT_SCHEMA_ID = "https://soustack.spec/soustack.schema.json";
 const BASE_SCHEMA_ID = "http://soustack.org/schema/recipe/base.schema.json";
 const PROFILE_SCHEMA_PREFIX = "http://soustack.org/schema/recipe/profiles/";

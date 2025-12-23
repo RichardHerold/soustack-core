@@ -11,7 +11,7 @@ describe('Legacy guardrails', () => {
     if (fs.existsSync(legacyDir)) {
       throw new Error(
         `Legacy src/${legacySegment} directory should not exist. ` +
-        `This directory was removed in v0.3.0. All stack schemas should be in src/${legacySchemaRoot}/`
+        `This directory was removed in v0.0.2. All stack schemas should be in src/${legacySchemaRoot}/`
       );
     }
   });
@@ -34,7 +34,7 @@ describe('Legacy guardrails', () => {
     if (found.length > 0) {
       throw new Error(
         `Found legacy schema files that should not exist:\n${found.join('\n')}\n` +
-        `These were removed in v0.3.0. Use src/${legacySchemaRoot}/ instead.`
+        `These were removed in v0.0.2. Use src/${legacySchemaRoot}/ instead.`
       );
     }
   });
@@ -47,7 +47,7 @@ describe('Legacy guardrails', () => {
     if (packageJson.files && packageJson.files.includes(legacyPath)) {
       throw new Error(
         `package.json should not include '${legacyPath}' in files array. ` +
-        `This was removed in v0.3.0.`
+        `This was removed in v0.0.2.`
       );
     }
   });

@@ -1,8 +1,7 @@
 {
-  "sourceRepo": "https://github.com/RichardHerold/soustack-spec.git",
-  "ref": "v0.3.0",
-  "specVersion": "0.3.0",
-  "syncedAt": "2025-12-20T02:49:01.483Z",
+  "ref": "0.0.2",
+  "specVersion": "0.0.2",
+  "syncedAt": "2025-12-23T03:34:05.697Z",
   "files": [
     "SOUSTACK_SPEC_VERSION",
     "fixtures/base/invalid/.gitkeep",
@@ -65,7 +64,7 @@
     "soustack.schema.json"
   ],
   "checksums": {
-    "SOUSTACK_SPEC_VERSION": "d915cc95d6ca8f47ae297713ed46d4e5c5d99ddd29fc3c61e263bdf305f2b5b0",
+    "SOUSTACK_SPEC_VERSION": "a5dd346546a384362936b97a4c2f5da2d3d253043ea9679aa7b97d89550dfdbd",
     "fixtures/base/invalid/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "fixtures/base/invalid/equipment-wrong-type.json": "2d9eb1468fd6321bc0df0019a9778e4b6fb11a19df756a11fb18bc92a76fda66",
     "fixtures/base/invalid/instructions-not-array.json": "9f1cc8be2d4ccf90acdb0187e969c2a76834f533594a40aa2979a975249eaef7",
@@ -83,8 +82,8 @@
     "fixtures/base/valid/time-iso.json": "eeedfcbd5536e4127cc75ed174c785beb6f5afa5e834775d0d9cfba7c872cb0b",
     "fixtures/base/valid/time-mixed.json": "d6bd150fa0b16c927b3762e831910d67f8e7134703c5d7cf244d400b8111edf7",
     "fixtures/base/valid/time-numeric.json": "428dae9d879b6c66389d91a1b07d58d499d8bd0875171a964e0055ad4277a0b8",
-    "fixtures/cookable/invalid/missing-time.json": "213ccdeab2e803c928cbdf12bf16cedba41a37635b943a02bd5a9348a86c1f1f",
-    "fixtures/cookable/valid/minimal.json": "7517967b967c84742fea360d7e9408eaec1eb92a76f1b4fee7f190c803aba48f",
+    "fixtures/cookable/invalid/missing-time.json": "7a25e6b34efdd974f9d089931223586c0b26fc9eaf7dd4936ef9b4ade971cee5",
+    "fixtures/cookable/valid/minimal.json": "e16c368639969ede4e82251e6599d68515afccd2ef80e7faa530a4086aeeac15",
     "fixtures/illustrated/invalid/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "fixtures/illustrated/invalid/no-image-anywhere.json": "fbaea5b1f17cee1fc72e20beba681e8d26f22cecd8d14e0856fdd9e38f9aef5c",
     "fixtures/illustrated/invalid/subsection-without-image.json": "f5c976befada28f84e7c532ac9f06de0b1f0ba890b87736e18b7e5eccf60cd34",
@@ -99,9 +98,9 @@
     "fixtures/quantified/valid/lemonade.json": "aa65a6e7db79a48b69e17507664667126834810aef476985a3a4fcab8aea3dce",
     "fixtures/quantified/valid/sheet-pan-veggies.json": "7ca9434035d6c0ad70be0ab2de1f5ac8ce2d9d531f16d6199669eb6c2a536847",
     "fixtures/quantified/valid/spiced-nuts.json": "f1c0439448efca85d37364511d56ec55b90f9b48d3550e837787790fca6d666b",
-    "fixtures/scalable/invalid/missing-quantity.json": "15a537e0e25dd738520b4b4ee244ed130bc545c2ce34a5420a31639d25c346e0",
-    "fixtures/scalable/valid/minimal.json": "27d42fed4fac117377a2a1f428d56e7d08a9b794298cd5aedf0787558e4b0be6",
-    "fixtures/scalable/valid/scaling-modes.json": "1fa5e3dca679d0eae026c7534556f5209e631f4a8116818d7fe9a0f488b9813a",
+    "fixtures/scalable/invalid/missing-quantity.json": "4d2a9c080314e1e73dde7d9e77232b72e7e68305cb4c07aa7ae1be325fe32523",
+    "fixtures/scalable/valid/minimal.json": "3b15c957d8c250fca9bd1d9396c38eac0af67b45ec5dc4f26dcebf939a9368c6",
+    "fixtures/scalable/valid/scaling-modes.json": "72ab05801b6fa0ad235bc735949bb85d6426eada5faaf503dc8b4ee63c98200b",
     "fixtures/schedulable/invalid/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "fixtures/schedulable/invalid/dag-cycle.json": "159f120ed6790a5477e356caf19fa6c29ad3f22518c59ba1bc3b00cbe74bc46a",
     "fixtures/schedulable/invalid/dag-missing-node.json": "8d79aa031fdcdc2620c16b153077c547e2d68bcca8c01f5ed643795d61d55f5a",
@@ -122,7 +121,8 @@
     "schemas/recipe/stacks/taxonomy/1.schema.json": "d14a0edf7bb73214493801dd1124676bcd574d983031410674f999b1dd62aae2",
     "schemas/recipe/stacks/times/1.schema.json": "58163af28feba1064b2f87a702387b64e14610c213ad7609d0505f503eebd8a6",
     "schemas/registry/profiles.json": "719ad92114c138bd9dcd48bea089d67a6cedd6553a25f48b8ae07679c80abc03",
-    "schemas/registry/stacks.json": "abb25031ba49da56732913821f0a756e7d6b1d936a2d63ad273b0b319a124f0c",
-    "soustack.schema.json": "cf25596c64d7c57847de36dbf670d099bd1e7d37d7a0802bb79737027f0ca8ce"
-  }
+    "schemas/registry/stacks.json": "a5e6ae5571d34e84e0d0de4a9738e8ed958210e498eb4d0bf3cacac39bbd9c2c",
+    "soustack.schema.json": "bed1516125f6caefc1a8317ae2dcb6cad81c20e09a8b861f2ed823c5f538a72f"
+  },
+  "source": "npm"
 }

@@ -323,7 +323,7 @@ function getSchemaOrgMappableStacks(stacks: Record<string, number> = {}): Set<st
 /**
  * Convert a Soustack recipe to Schema.org JSON-LD format.
  * 
- * BREAKING CHANGE in v0.3.0: This function now targets the "minimal" profile
+ * BREAKING CHANGE in v0.0.2: This function now targets the "minimal" profile
  * and only includes stacks that are schemaOrgMappable (as defined in the
  * stacks registry). Non-mappable stacks (e.g., nutrition@1, schedule@1)
  * are excluded from the conversion.
