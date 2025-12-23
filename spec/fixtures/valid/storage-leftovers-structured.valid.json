@@ -1,0 +1,43 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "storage": 1
+  },
+  "name": "Casserole with Structured Reheating",
+  "ingredients": [
+    "casserole ingredients"
+  ],
+  "instructions": [
+    "Prepare the casserole"
+  ],
+  "storage": {
+    "frozen": {
+      "duration": {
+        "iso8601": "P2M"
+      }
+    },
+    "leftovers": {
+      "portioning": {
+        "notes": "Cool completely, then portion into containers."
+      },
+      "reheat": [
+        {
+          "method": "microwave",
+          "duration": {
+            "minMinutes": 2,
+            "maxMinutes": 3
+          },
+          "notes": "Stir halfway."
+        },
+        {
+          "method": "oven",
+          "temp": {
+            "value": 350,
+            "unit": "F"
+          },
+          "notes": "Cover and heat until hot throughout."
+        }
+      ]
+    }
+  }
+}

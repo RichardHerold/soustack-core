@@ -1,0 +1,50 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "structured": 1,
+    "timed": 1
+  },
+  "name": "Rested dough",
+  "yield": {
+    "amount": 2,
+    "unit": "loaves"
+  },
+  "time": {
+    "total": {
+      "minutes": 180
+    }
+  },
+  "ingredients": [
+    {
+      "id": "f",
+      "name": "flour"
+    },
+    {
+      "id": "w",
+      "name": "water"
+    }
+  ],
+  "instructions": [
+    {
+      "id": "mix",
+      "text": "Mix flour and water",
+      "timing": {
+        "activity": "active",
+        "duration": {
+          "minutes": 10
+        }
+      }
+    },
+    {
+      "id": "rest",
+      "text": "Let the dough rest",
+      "dependsOn": [
+        "mix"
+      ],
+      "timing": {
+        "activity": "passive",
+        "completionCue": "doubled in size"
+      }
+    }
+  ]
+}

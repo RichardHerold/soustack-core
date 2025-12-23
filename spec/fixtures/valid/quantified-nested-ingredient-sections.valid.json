@@ -1,0 +1,61 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "quantified": 1
+  },
+  "name": "Nested Ingredient Sections",
+  "yield": {
+    "amount": 1,
+    "unit": "batch"
+  },
+  "time": {
+    "total": {
+      "minutes": 30
+    }
+  },
+  "ingredients": [
+    {
+      "section": "Dough",
+      "ingredients": [
+        {
+          "section": "Dry",
+          "ingredients": [
+            {
+              "id": "flour",
+              "name": "Flour",
+              "quantity": {
+                "amount": 500,
+                "unit": "g"
+              }
+            },
+            {
+              "id": "salt",
+              "name": "Salt",
+              "quantity": {
+                "amount": 10,
+                "unit": "g"
+              }
+            }
+          ]
+        },
+        {
+          "section": "Wet",
+          "ingredients": [
+            {
+              "id": "water",
+              "name": "Water",
+              "quantity": {
+                "amount": 300,
+                "unit": "ml"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "instructions": [
+    "Mix ingredients",
+    "Knead dough"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "profile": "lite",
+  "stacks": {},
+  "name": "Simple Toast",
+  "ingredients": [
+    "bread slice",
+    "butter"
+  ],
+  "instructions": [
+    "toast bread",
+    "spread butter"
+  ]
+}

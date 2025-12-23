@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://soustack.spec/defs/ingredientQuantified.schema.json",
+  "title": "Quantified Ingredient",
+  "allOf": [
+    { "$ref": "./entities.schema.json#/$defs/IngredientBase" },
+    { "required": ["id", "quantity"] }
+  ]
+}

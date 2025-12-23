@@ -1,0 +1,84 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "structured": 1,
+    "timed": 1
+  },
+  "name": "Nested Step Sections",
+  "yield": {
+    "amount": 1,
+    "unit": "dish"
+  },
+  "time": {
+    "total": {
+      "minutes": 90
+    }
+  },
+  "ingredients": [
+    {
+      "id": "flour",
+      "name": "Flour"
+    },
+    {
+      "id": "water",
+      "name": "Water"
+    }
+  ],
+  "instructions": [
+    {
+      "section": "Main",
+      "steps": [
+        {
+          "section": "Prep",
+          "steps": [
+            {
+              "id": "prep1",
+              "text": "Prepare ingredients",
+              "timing": {
+                "activity": "active",
+                "duration": {
+                  "minutes": 10
+                }
+              }
+            },
+            {
+              "id": "prep2",
+              "text": "Measure everything",
+              "timing": {
+                "activity": "active",
+                "duration": {
+                  "minutes": 5
+                }
+              }
+            }
+          ]
+        },
+        {
+          "section": "Cooking",
+          "steps": [
+            {
+              "id": "cook1",
+              "text": "Mix everything together",
+              "timing": {
+                "activity": "active",
+                "duration": {
+                  "minutes": 15
+                }
+              }
+            },
+            {
+              "id": "cook2",
+              "text": "Cook until done",
+              "timing": {
+                "activity": "active",
+                "duration": {
+                  "minutes": 30
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

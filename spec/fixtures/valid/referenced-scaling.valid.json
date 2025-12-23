@@ -1,0 +1,67 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "quantified": 1,
+    "scaling": 1,
+    "structured": 1,
+    "referenced": 1
+  },
+  "name": "Referenced with Scaling",
+  "yield": {
+    "amount": 1,
+    "unit": "loaf"
+  },
+  "time": {
+    "total": {
+      "minutes": 60
+    }
+  },
+  "ingredients": [
+    {
+      "id": "flour",
+      "name": "Bread flour",
+      "quantity": {
+        "amount": 500,
+        "unit": "g"
+      }
+    },
+    {
+      "id": "water",
+      "name": "Water",
+      "quantity": {
+        "amount": 325,
+        "unit": "g"
+      },
+      "scaling": {
+        "mode": "bakersPercent",
+        "percent": 65,
+        "of": "flour"
+      }
+    }
+  ],
+  "instructions": [
+    {
+      "id": "mix",
+      "text": "Mix flour and water",
+      "inputs": [
+        "flour",
+        "water"
+      ]
+    },
+    {
+      "id": "bake",
+      "text": "Bake the bread",
+      "inputs": [
+        "flour",
+        "water"
+      ]
+    }
+  ],
+  "scaling": {
+    "discrete": {
+      "min": 1,
+      "max": 4,
+      "step": 1
+    }
+  }
+}

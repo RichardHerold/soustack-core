@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://soustack.spec/defs/entities.schema.json",
+  "title": "Soustack entity bases",
+  "type": "object",
+  "$defs": {
+    "IngredientBase": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "quantity": { "$ref": "./quantity.schema.json" },
+        "temperature": { "$ref": "./temperature.schema.json" },
+        "notes": { "type": "string" },
+        "prep": {
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "anyOf": [
+                  { "type": "string", "minLength": 1 },
+                  { "$ref": "../stacks/prep.schema.json#/$defs/prepItem" }
+                ]
+              }
+            }
+          ]
+        },
+        "metadata": { "type": "object", "additionalProperties": true },
+        "scaling": { "$ref": "./scalingRule.schema.json" }
+      },
+      "required": ["name"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": { "$ref": "./common.schema.json#/properties/extensionLaneValue" }
+      }
+    },
+    "StepBase": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "dependsOn": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "inputs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "techniqueIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "usesEquipment": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]+$"
+          },
+          "uniqueItems": true
+        },
+        "temperature": { "$ref": "./temperature.schema.json" },
+        "timing": {
+          "type": "object",
+          "properties": {
+            "activity": { "type": "string", "enum": ["active", "passive"] },
+            "duration": {
+              "type": "object",
+              "oneOf": [
+                { "$ref": "./duration.schema.json#/properties/DurationMinutes" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "minMinutes": { "type": "number", "exclusiveMinimum": 0 },
+                    "maxMinutes": { "type": "number", "exclusiveMinimum": 0 }
+                  },
+                  "required": ["minMinutes", "maxMinutes"],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "completionCue": { "type": "string" },
+            "metadata": { "type": "object", "additionalProperties": true }
+          },
+          "anyOf": [
+            { "required": ["duration"] },
+            { "required": ["completionCue"] }
+          ],
+          "additionalProperties": false,
+          "patternProperties": {
+            "^x-": { "$ref": "./common.schema.json#/properties/extensionLaneValue" }
+          }
+        },
+        "images": { "type": "array", "items": { "$ref": "./common.schema.json#/properties/uri" } },
+        "videos": { "type": "array", "items": { "$ref": "./common.schema.json#/properties/uri" } },
+        "metadata": { "type": "object", "additionalProperties": true }
+      },
+      "required": ["text"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": { "$ref": "./common.schema.json#/properties/extensionLaneValue" }
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "structured": 1,
+    "referenced": 1
+  },
+  "name": "Missing Input",
+  "yield": {
+    "amount": 1,
+    "unit": "dish"
+  },
+  "time": {
+    "total": {
+      "minutes": 20
+    }
+  },
+  "ingredients": [
+    {
+      "id": "i1",
+      "name": "Thing"
+    }
+  ],
+  "instructions": [
+    {
+      "id": "s1",
+      "text": "Do it",
+      "inputs": [
+        "i2"
+      ]
+    }
+  ]
+}

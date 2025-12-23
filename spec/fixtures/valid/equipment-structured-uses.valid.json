@@ -1,0 +1,47 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "equipment": 1,
+    "structured": 1
+  },
+  "name": "Recipe with Structured Equipment Usage",
+  "yield": {
+    "amount": 1,
+    "unit": "serving"
+  },
+  "time": {
+    "total": {
+      "minutes": 30
+    }
+  },
+  "equipment": [
+    {
+      "id": "skillet",
+      "name": "8-inch skillet"
+    },
+    {
+      "id": "spatula",
+      "name": "Spatula"
+    }
+  ],
+  "ingredients": [
+    {
+      "id": "meat",
+      "name": "Meat"
+    }
+  ],
+  "instructions": [
+    {
+      "id": "sear",
+      "text": "Sear the meat in the skillet",
+      "usesEquipment": [
+        "skillet",
+        "spatula"
+      ]
+    },
+    {
+      "id": "rest",
+      "text": "Let rest for 5 minutes"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "scaling": 1
+  },
+  "name": "Incomplete Scaling",
+  "yield": {
+    "amount": 2,
+    "unit": "loaves"
+  },
+  "time": {
+    "total": {
+      "minutes": 30
+    }
+  },
+  "ingredients": [
+    {
+      "id": "starter",
+      "name": "Starter",
+      "quantity": {
+        "amount": 150,
+        "unit": "g"
+      },
+      "scaling": {
+        "mode": "bakersPercent",
+        "percent": 30,
+        "of": "flour"
+      }
+    }
+  ],
+  "instructions": [
+    "mix"
+  ],
+  "scaling": {
+    "discrete": {
+      "min": 1,
+      "max": 3
+    }
+  }
+}

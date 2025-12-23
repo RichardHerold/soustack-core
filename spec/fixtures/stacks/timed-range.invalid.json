@@ -1,0 +1,33 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "structured": 1,
+    "timed": 1
+  },
+  "name": "Bad Range",
+  "yield": {
+    "amount": 2,
+    "unit": "servings"
+  },
+  "time": {
+    "total": {
+      "minutes": 15
+    }
+  },
+  "ingredients": [
+    "water"
+  ],
+  "instructions": [
+    {
+      "id": "s1",
+      "text": "Wait",
+      "timing": {
+        "activity": "passive",
+        "duration": {
+          "minMinutes": 10,
+          "maxMinutes": 5
+        }
+      }
+    }
+  ]
+}

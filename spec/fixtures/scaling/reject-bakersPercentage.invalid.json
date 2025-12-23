@@ -1,0 +1,50 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "quantified": 1,
+    "scaling": 1
+  },
+  "name": "Reject Legacy Bakers Percentage",
+  "yield": {
+    "amount": 1,
+    "unit": "loaf"
+  },
+  "time": {
+    "total": {
+      "minutes": 45
+    }
+  },
+  "ingredients": [
+    {
+      "id": "flour",
+      "name": "Bread flour",
+      "quantity": {
+        "amount": 500,
+        "unit": "g"
+      }
+    },
+    {
+      "id": "water",
+      "name": "Water",
+      "quantity": {
+        "amount": 325,
+        "unit": "g"
+      },
+      "bakersPercentage": {
+        "of": "flour",
+        "percent": 65
+      }
+    }
+  ],
+  "instructions": [
+    "mix",
+    "bake"
+  ],
+  "scaling": {
+    "discrete": {
+      "min": 1,
+      "max": 4,
+      "step": 1
+    }
+  }
+}

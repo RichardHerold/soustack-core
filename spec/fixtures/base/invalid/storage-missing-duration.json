@@ -1,8 +1,0 @@
-{
-  "name": "Bad Storage",
-  "ingredients": ["Soup"],
-  "instructions": ["Chill"],
-  "storage": {
-    "roomTemp": { "method": "Leave covered" }
-  }
-}

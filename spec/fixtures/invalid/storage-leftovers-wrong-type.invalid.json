@@ -1,0 +1,23 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "storage": 1
+  },
+  "name": "Recipe with Wrong Reheat Type",
+  "ingredients": [
+    "food"
+  ],
+  "instructions": [
+    "Cook the food"
+  ],
+  "storage": {
+    "refrigerated": {
+      "duration": {
+        "iso8601": "P3D"
+      }
+    },
+    "leftovers": {
+      "reheat": "Microwave 2\u20133 minutes"
+    }
+  }
+}

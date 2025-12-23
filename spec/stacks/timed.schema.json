@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://soustack.spec/stacks/timed.schema.json",
+  "title": "Timed Stack",
+  "type": "object",
+  "properties": {
+    "instructions": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          { "$ref": "#/$defs/timedStep" },
+          { "$ref": "#/$defs/timedStepSection" }
+        ]
+      }
+    }
+  },
+  "required": ["instructions"],
+  "allOf": [
+    { "$ref": "./structured.schema.json" }
+  ],
+  "$defs": {
+    "timedStep": {
+      "allOf": [
+        { "$ref": "../defs/entities.schema.json#/$defs/StepBase" },
+        {
+          "properties": {
+            "timing": {
+              "allOf": [
+                { "$ref": "../defs/entities.schema.json#/$defs/StepBase/properties/timing" },
+                { "required": ["activity"], "anyOf": [ { "required": ["duration"] }, { "required": ["completionCue"] } ] }
+              ]
+            }
+          },
+          "required": ["id", "timing"]
+        }
+      ]
+    },
+    "timedStepSection": {
+      "type": "object",
+      "properties": {
+        "section": { "type": "string" },
+        "steps": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              { "$ref": "#/$defs/timedStep" },
+              { "$ref": "#/$defs/timedStepSection" }
+            ]
+          }
+        },
+        "metadata": { "type": "object", "additionalProperties": true }
+      },
+      "required": ["section", "steps"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": { "$ref": "../defs/common.schema.json#/properties/extensionLaneValue" }
+      }
+    }
+  }
+}
