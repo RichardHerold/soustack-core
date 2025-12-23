@@ -110,6 +110,19 @@ describe('Soustack validation', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('reports unmet profile requirements when a profile is declared', () => {
+    const recipe: Recipe = {
+      '@type': 'Recipe',
+      profile: 'core',
+      name: '',
+      ingredients: [],
+      instructions: [],
+    };
+    const result = validateRecipe(recipe);
+    expect(result.ok).toBe(false);
+    expect(result.schemaErrors.some((error) => error.message.includes("requires profile 'minimal'"))).toBe(true);
+  });
+
   it('defaults to core profile if profile is missing', () => {
     const recipe = { ...baseValid };
     delete (recipe as any).profile;
@@ -297,6 +310,7 @@ describe('Soustack validation', () => {
       const result = validateRecipe(minimalScheduleInvalid);
       expect(result.ok).toBe(false);
       // Schedule stack requires core profile, not minimal
+      expect(result.schemaErrors.some((error) => error.message.includes("requires profile 'core'"))).toBe(true);
     });
 
     it('validates core profile with schedule stack', () => {

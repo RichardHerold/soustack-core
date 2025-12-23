@@ -21,6 +21,7 @@ import scheduleStackSchema from "./schemas/recipe/stacks/schedule/1.schema.json"
 import taxonomyStackSchema from "./schemas/recipe/stacks/taxonomy/1.schema.json";
 import timesStackSchema from "./schemas/recipe/stacks/times/1.schema.json";
 import stacksRegistry from "./schemas/registry/stacks.json";
+import profilesRegistry from "./schemas/registry/profiles.json";
 
 type ProfileName =
   | "base"
@@ -83,12 +84,28 @@ interface StackRegistryInfo {
   latestMajor: number;
   versions: number[];
   requires: string[];
+  minProfile?: string;
 }
 
 // Cache for validation contexts
 const validationContexts: Map<boolean, ValidationContext> = new Map();
 const stackRegistryById = buildStackRegistryById();
 const stackRegistryIds = Array.from(stackRegistryById.keys());
+const profileRegistryById = buildProfileRegistryById();
+const profileRegistryOrder = (profilesRegistry.profiles || [])
+  .map((entry) => (entry && typeof (entry as any).id === "string" ? (entry as any).id : undefined))
+  .filter((entry): entry is string => typeof entry === "string");
+const profileRegistryIndex = new Map(profileRegistryOrder.map((profile, index) => [profile, index]));
+
+interface StackRequirement {
+  id: string;
+  majors?: number[];
+}
+
+interface ProfileRegistryInfo {
+  requiresProfiles: string[];
+  requiresStacks: StackRequirement[];
+}
 
 /**
  * Loads all bundled schema files and registers them with Ajv.
@@ -228,9 +245,182 @@ function buildStackRegistryById(): Map<string, StackRegistryInfo> {
       latestMajor,
       versions: versions.length > 0 ? versions : [latestMajor],
       requires,
+      minProfile: typeof (entry as any).minProfile === "string" ? (entry as any).minProfile : undefined,
     });
   }
   return registry;
+}
+
+function parseStackRequirement(entry: unknown): StackRequirement | null {
+  if (typeof entry === "string") {
+    return { id: entry };
+  }
+
+  if (entry && typeof entry === "object" && !Array.isArray(entry)) {
+    const record = entry as { id?: unknown; majors?: unknown; versions?: unknown };
+    if (typeof record.id !== "string") {
+      return null;
+    }
+    const majorsRaw: unknown[] = Array.isArray(record.majors)
+      ? record.majors
+      : Array.isArray(record.versions)
+        ? record.versions
+        : [];
+    const majors = majorsRaw.filter(
+      (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value >= 1,
+    );
+    return {
+      id: record.id,
+      majors: majors.length > 0 ? majors : undefined,
+    };
+  }
+
+  return null;
+}
+
+function buildProfileRegistryById(): Map<string, ProfileRegistryInfo> {
+  const registry = new Map<string, ProfileRegistryInfo>();
+  for (const entry of profilesRegistry.profiles || []) {
+    if (!entry || typeof (entry as any).id !== "string") continue;
+    const requiresProfiles = Array.isArray((entry as any).requiresProfiles)
+      ? (entry as any).requiresProfiles.filter((value: unknown): value is string => typeof value === "string")
+      : [];
+    const requiresStacksRaw: unknown[] = Array.isArray((entry as any).requiresStacks)
+      ? (entry as any).requiresStacks
+      : [];
+    const requiresStacks = requiresStacksRaw
+      .map(parseStackRequirement)
+      .filter((value: StackRequirement | null): value is StackRequirement => value !== null);
+    registry.set((entry as any).id, { requiresProfiles, requiresStacks });
+  }
+  return registry;
+}
+
+function isProfileAtLeast(profile: string, requiredProfile: string | undefined): boolean {
+  if (!requiredProfile) return true;
+  const profileRank = profileRegistryIndex.get(profile);
+  const requiredRank = profileRegistryIndex.get(requiredProfile);
+  if (profileRank === undefined || requiredRank === undefined) {
+    return false;
+  }
+  return profileRank >= requiredRank;
+}
+
+function collectRequiredProfiles(profile: string): string[] {
+  const visited = new Set<string>();
+  const result: string[] = [];
+
+  const visit = (current: string) => {
+    if (visited.has(current)) return;
+    visited.add(current);
+    const entry = profileRegistryById.get(current);
+    if (!entry) return;
+    for (const requirement of entry.requiresProfiles) {
+      if (!visited.has(requirement)) {
+        result.push(requirement);
+        visit(requirement);
+      }
+    }
+  };
+
+  visit(profile);
+  return result;
+}
+
+function getProfileRequirementErrors(
+  profile: string,
+  recipe: Recipe,
+  declaredStacks: Record<string, number>,
+  context: ValidationContext,
+): NormalizedError[] {
+  const errors: NormalizedError[] = [];
+  const entry = profileRegistryById.get(profile);
+  if (!entry) {
+    return [
+      {
+        path: "/profile",
+        message: `Unknown profile: ${profile}`,
+      },
+    ];
+  }
+
+  for (const requirement of entry.requiresStacks) {
+    const declaredVersion = declaredStacks[requirement.id];
+    if (!declaredVersion) {
+      errors.push({
+        path: `/stacks/${requirement.id}`,
+        message: `Profile '${profile}' requires stack '${requirement.id}'.`,
+      });
+      continue;
+    }
+
+    const stackEntry = stackRegistryById.get(requirement.id);
+    if (!stackEntry) {
+      errors.push({
+        path: `/stacks/${requirement.id}`,
+        message: `Profile '${profile}' requires stack '${requirement.id}', but it is not registered.`,
+      });
+      continue;
+    }
+
+    if (!stackEntry.versions.includes(declaredVersion)) {
+      errors.push({
+        path: `/stacks/${requirement.id}`,
+        message: `Profile '${profile}' requires stack '${requirement.id}' with a supported major version. Found ${declaredVersion}.`,
+      });
+      continue;
+    }
+
+    if (requirement.majors && !requirement.majors.includes(declaredVersion)) {
+      errors.push({
+        path: `/stacks/${requirement.id}`,
+        message: `Profile '${profile}' requires stack '${requirement.id}' with major version(s) ${requirement.majors.join(
+          ", ",
+        )}. Found ${declaredVersion}.`,
+      });
+    }
+  }
+
+  for (const [stackName] of Object.entries(declaredStacks)) {
+    const stackEntry = stackRegistryById.get(stackName);
+    if (!stackEntry?.minProfile) continue;
+    if (!isProfileAtLeast(profile, stackEntry.minProfile)) {
+      errors.push({
+        path: `/stacks/${stackName}`,
+        message: `Stack '${stackName}' requires profile '${stackEntry.minProfile}'.`,
+      });
+    }
+  }
+
+  const requiredProfiles = collectRequiredProfiles(profile);
+  for (const requirement of requiredProfiles) {
+    const requiredSchemaId = `${PROFILE_SCHEMA_PREFIX}${requirement}.schema.json`;
+    const validator = context.ajv.getSchema(requiredSchemaId);
+    if (!validator) {
+      errors.push({
+        path: "/profile",
+        message: `Profile schema not loaded: ${requiredSchemaId}`,
+      });
+      continue;
+    }
+
+    const validationCopy = cloneRecipe(recipe);
+    (validationCopy as any).profile = requirement;
+    const valid = validator(validationCopy);
+    const validationErrors = validator.errors || [];
+    if (!valid && validationErrors.length > 0) {
+      for (const error of validationErrors) {
+        const formatted = formatAjvError(error);
+        errors.push({
+          path: formatted.path,
+          keyword: formatted.keyword,
+          message: `Profile '${profile}' requires profile '${requirement}' to be satisfied: ${formatted.message}`,
+        });
+      }
+    }
+  }
+
+  return errors;
 }
 
 function validateDeclaredStacksAgainstRegistry(declaredStacks: Record<string, number>): NormalizedError[] {
@@ -287,6 +477,27 @@ function inferStacksFromPayload(recipe: any): Record<string, number> {
   }
 
   return inferred;
+}
+
+function inferProfileFromRegistry(
+  recipe: Recipe,
+  declaredStacks: Record<string, number>,
+  context: ValidationContext,
+): ProfileName {
+  let inferred: string | undefined;
+  for (const profileId of profileRegistryOrder) {
+    const requirementErrors = getProfileRequirementErrors(profileId, recipe, declaredStacks, context);
+    if (requirementErrors.length > 0) {
+      continue;
+    }
+    inferred = profileId;
+  }
+
+  if (inferred && typeof inferred === "string") {
+    return inferred as ProfileName;
+  }
+
+  return "core";
 }
 
 /**
@@ -454,11 +665,19 @@ function validateRecipeSchemaNormalized(
   let isValid: boolean;
   let errors: ErrorObject[] = [];
 
-  // Default to core profile if no profile specified
+  // Infer profile if none specified, using declared stacks only
   // Always use composed validation (base + profile + stacks) instead of root schema
   const profile: ProfileName = hasProfile
     ? ((normalized.profile as string).toLowerCase() as ProfileName)
-    : "core";
+    : inferProfileFromRegistry(normalized, declaredStacks, context);
+
+  const requirementErrors = getProfileRequirementErrors(profile, normalized, declaredStacks, context);
+  if (requirementErrors.length > 0) {
+    return {
+      ok: false,
+      errors: requirementErrors,
+    };
+  }
 
   // Always use composed validation for recipes (base + profile + stacks)
   // Root schema validation is only for standalone validation without profiles
