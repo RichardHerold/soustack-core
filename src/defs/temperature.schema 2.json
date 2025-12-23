@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://soustack.spec/defs/temperature.schema.json",
+  "title": "Temperature",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "string",
+          "enum": ["oven", "stovetop", "pan", "oil", "water", "grill", "broiler", "internal", "ambient", "surface"]
+        },
+        "level": {
+          "type": "string",
+          "enum": ["veryLow", "low", "medium", "mediumHigh", "high", "veryHigh"]
+        },
+        "metadata": { "type": "object", "additionalProperties": true }
+      },
+      "required": ["target", "level"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": { "$ref": "./common.schema.json#/properties/extensionLaneValue" }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "string",
+          "enum": ["oven", "stovetop", "pan", "oil", "water", "grill", "broiler", "internal", "ambient", "surface"]
+        },
+        "unit": { "type": "string", "enum": ["celsius", "fahrenheit"] },
+        "value": { "type": "number" },
+        "approximate": { "type": "boolean" },
+        "metadata": { "type": "object", "additionalProperties": true }
+      },
+      "required": ["target", "unit", "value"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": { "$ref": "./common.schema.json#/properties/extensionLaneValue" }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "string",
+          "enum": ["oven", "stovetop", "pan", "oil", "water", "grill", "broiler", "internal", "ambient", "surface"]
+        },
+        "unit": { "type": "string", "enum": ["celsius", "fahrenheit"] },
+        "minValue": { "type": "number" },
+        "maxValue": { "type": "number" },
+        "metadata": { "type": "object", "additionalProperties": true }
+      },
+      "required": ["target", "unit", "minValue", "maxValue"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": { "$ref": "./common.schema.json#/properties/extensionLaneValue" }
+      }
+    }
+  ]
+}
