@@ -1,16 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "http://soustack.org/schema/v0.3.0/profiles/scalable",
+  "$id": "http://soustack.org/schema/v0.0.2/profiles/scalable",
   "title": "Soustack Scalable Profile Schema",
   "description": "Extends the base schema to guarantee quantified ingredients plus a structured yield for deterministic scaling.",
   "allOf": [
-    { "$ref": "http://soustack.org/schema/v0.3.0" },
+    { "$ref": "http://soustack.org/schema/v0.0.2" },
     {
       "required": ["yield", "ingredients"],
       "properties": {
         "yield": {
           "allOf": [
-            { "$ref": "http://soustack.org/schema/v0.3.0#/definitions/yield" },
+            { "$ref": "http://soustack.org/schema/v0.0.2#/definitions/yield" },
             { "properties": { "amount": { "type": "number", "exclusiveMinimum": 0 } } }
           ]
         },
@@ -30,13 +30,13 @@
   "definitions": {
     "scalableIngredient": {
       "allOf": [
-        { "$ref": "http://soustack.org/schema/v0.3.0#/definitions/ingredient" },
+        { "$ref": "http://soustack.org/schema/v0.0.2#/definitions/ingredient" },
         { "required": ["item", "quantity"] },
         {
           "properties": {
             "quantity": {
               "allOf": [
-                { "$ref": "http://soustack.org/schema/v0.3.0#/definitions/quantity" },
+                { "$ref": "http://soustack.org/schema/v0.0.2#/definitions/quantity" },
                 { "properties": { "amount": { "type": "number", "exclusiveMinimum": 0 } } }
               ]
             }
@@ -59,7 +59,7 @@
     },
     "scalableIngredientSubsection": {
       "allOf": [
-        { "$ref": "http://soustack.org/schema/v0.3.0#/definitions/ingredientSubsection" },
+        { "$ref": "http://soustack.org/schema/v0.0.2#/definitions/ingredientSubsection" },
         {
           "properties": {
             "items": {

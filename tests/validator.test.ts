@@ -29,7 +29,7 @@ describe('Soustack validation', () => {
     stacks: baseValidRaw.stacks || {}
   };
   
-  // Load example fixtures for v0.3.0
+  // Load example fixtures for v0.0.2
   const minimalValid = loadExampleFixture('minimal.valid.json');
   const minimalNutritionValid = loadExampleFixture('minimal+nutrition.valid.json');
   const minimalScheduleInvalid = loadExampleFixture('minimal+schedule.invalid.json');

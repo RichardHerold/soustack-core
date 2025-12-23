@@ -36,8 +36,8 @@
     "type": "git",
     "url": "git+https://github.com/RichardHerold/soustack-core.git"
   },
-  "soustackSpecVersion": "0.3.0",
-  "soustackSpecTag": "v0.3.0",
+  "soustackSpecVersion": "0.0.2",
+  "soustackSpecTag": "v0.0.2",
   "bin": {
     "soustack": "dist/cli/index.js",
     "soustack-convert": "dist/cli/index.js"
@@ -83,7 +83,7 @@
     "@types/jest": "^30.0.0",
     "husky": "^9.1.7",
     "jest": "^30.2.0",
-    "soustack-spec": "0.0.1",
+    "soustack-spec": "0.0.2",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "tsup": "^8.3.5",

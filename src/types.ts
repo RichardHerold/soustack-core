@@ -1,5 +1,5 @@
 /**
- * Soustack Recipe Schema v0.3.0
+ * Soustack Recipe Schema v0.0.2
  * A portable, scalable, interoperable recipe format.
  */
 
@@ -22,6 +22,8 @@ export interface SoustackRecipe {
   media?: MediaModule;
   /** Times stack payload */
   times?: TimesModule;
+  /** Schedule stack payload */
+  schedule?: ScheduleModule;
   /** Unique identifier (slug or UUID) */
   id?: string;
   /** Optional display title */
@@ -296,4 +298,8 @@ export interface TimesModule {
   prepMinutes?: number;
   cookMinutes?: number;
   totalMinutes?: number;
+}
+
+export interface ScheduleModule {
+  tasks: unknown[];
 }

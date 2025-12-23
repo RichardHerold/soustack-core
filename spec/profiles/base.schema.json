@@ -1,9 +1,0 @@
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "http://soustack.org/schema/v0.3.0/profiles/base",
-  "title": "Soustack Base Profile Schema",
-  "description": "Wrapper schema that exposes the unmodified Soustack base schema.",
-  "allOf": [
-    { "$ref": "http://soustack.org/schema/v0.3.0" }
-  ]
-}

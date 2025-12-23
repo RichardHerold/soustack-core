@@ -82,7 +82,7 @@ describe("Conformance validation", () => {
     it("passes for schedulable recipe with all timing requirements met", () => {
       const recipe: Recipe = {
         "@type": "Recipe",
-        $schema: "http://soustack.org/schema/v0.3.0/profiles/schedulable",
+        $schema: "http://soustack.org/schema/v0.0.2/profiles/schedulable",
         name: "Schedulable Recipe",
         ingredients: ["Tea bag"],
         instructions: [
@@ -107,7 +107,7 @@ describe("Conformance validation", () => {
     it("fails when schedulable recipe has instruction without timing", () => {
       const recipe: Recipe = {
         "@type": "Recipe",
-        $schema: "http://soustack.org/schema/v0.3.0/profiles/schedulable",
+        $schema: "http://soustack.org/schema/v0.0.2/profiles/schedulable",
         name: "Schedulable Recipe",
         ingredients: ["Tea bag"],
         instructions: [
@@ -133,7 +133,7 @@ describe("Conformance validation", () => {
     it("fails when schedulable recipe has instruction without id", () => {
       const recipe: Recipe = {
         "@type": "Recipe",
-        $schema: "http://soustack.org/schema/v0.3.0/profiles/schedulable",
+        $schema: "http://soustack.org/schema/v0.0.2/profiles/schedulable",
         name: "Schedulable Recipe",
         ingredients: ["Tea bag"],
         instructions: [
@@ -279,7 +279,7 @@ describe("Conformance validation", () => {
     it("validates a complex valid recipe with all semantic checks", () => {
       const recipe: Recipe = {
         "@type": "Recipe",
-        $schema: "http://soustack.org/schema/v0.3.0/profiles/schedulable",
+        $schema: "http://soustack.org/schema/v0.0.2/profiles/schedulable",
         name: "Complex Recipe",
         ingredients: [
           {
