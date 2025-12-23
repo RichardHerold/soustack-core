@@ -296,29 +296,29 @@ describe('parseIngredient edge cases', () => {
 
 describe('scaling inference', () => {
   const cases = [
-    { input: '3 large eggs', type: 'discrete' },
-    { input: '2 cloves garlic', type: 'discrete' },
-    { input: '1 tsp salt', type: 'proportional' },
-    { input: '1 tbsp paprika', type: 'proportional' },
-    { input: 'Olive oil for greasing', type: 'fixed' },
-    { input: 'Butter for greasing', type: 'fixed' },
-    { input: '2 cups flour', type: 'linear' },
-    { input: '1 tsp garlic powder', type: 'proportional' },
-    { input: 'Salt and pepper to taste', type: 'proportional' },
-    { input: '1 cup milk', type: 'linear' }
+    { input: '3 large eggs', mode: 'discrete' },
+    { input: '2 cloves garlic', mode: 'discrete' },
+    { input: '1 tsp salt', mode: 'proportional' },
+    { input: '1 tbsp paprika', mode: 'proportional' },
+    { input: 'Olive oil for greasing', mode: 'fixed' },
+    { input: 'Butter for greasing', mode: 'fixed' },
+    { input: '2 cups flour', mode: 'linear' },
+    { input: '1 tsp garlic powder', mode: 'proportional' },
+    { input: 'Salt and pepper to taste', mode: 'proportional' },
+    { input: '1 cup milk', mode: 'linear' }
   ];
 
-  test.each(cases)('infers scaling for %s', ({ input, type }) => {
+  test.each(cases)('infers scaling for %s', ({ input, mode }) => {
     const result = parseIngredient(input);
-    expect(result.scaling?.type).toBe(type);
+    expect(result.scaling?.mode).toBe(mode);
   });
 });
 
 describe('parseIngredients fixtures', () => {
   test.each(fixtures)('parses "%s" without errors', input => {
     const result = parseIngredient(input);
-    expect(result.item).toBe(input);
-    expect(result.scaling?.type).toBeDefined();
+    expect(result.name).toBeDefined();
+    expect(result.scaling?.mode).toBeDefined();
   });
 
   it('bulk parses arrays of ingredients', () => {

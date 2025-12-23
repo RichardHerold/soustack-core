@@ -8,22 +8,10 @@ export interface SoustackRecipe {
   '@type'?: 'Recipe';
   /** Optional $schema pointer for profile-aware validation */
   $schema?: string;
-  /** Optional declared validation profile */
-  profile?: string;
-  /** Recipe level: "lite" or "base" */
-  level?: "lite" | "base";
+  /** Optional declared validation profile (vNext only) */
+  profile?: "base" | "equipped" | "illustrated" | "lite" | "prepped" | "scalable" | "timed";
   /** Stack declarations as a map: Record<stackName, versionNumber> */
   stacks?: Record<string, number>;
-  /** Attribution stack payload */
-  attribution?: AttributionModule;
-  /** Taxonomy stack payload */
-  taxonomy?: TaxonomyModule;
-  /** Media stack payload */
-  media?: MediaModule;
-  /** Times stack payload */
-  times?: TimesModule;
-  /** Schedule stack payload */
-  schedule?: ScheduleModule;
   /** Unique identifier (slug or UUID) */
   id?: string;
   /** Optional display title */
@@ -83,21 +71,19 @@ export interface ParsedYield {
 }
 
 /**
- * Time can be structured (machine-readable) or simple (strings).
- * Structured time takes precedence if both exist.
+ * Time uses DurationMinutes format (vNext).
+ * Required total field with minutes.
  */
-export type Time = StructuredTime | SimpleTime;
-
-export interface StructuredTime {
-  prep?: number;
-  active?: number;
-  passive?: number;
-  total?: number;
+export interface Time {
+  total: DurationMinutes;
+  metadata?: Record<string, unknown>;
+  [k: `x-${string}`]: unknown;
 }
 
-export interface SimpleTime {
-  prepTime?: string;
-  cookTime?: string;
+export interface DurationMinutes {
+  minutes: number;
+  metadata?: Record<string, unknown>;
+  [k: `x-${string}`]: unknown;
 }
 
 export interface Equipment {
@@ -121,36 +107,33 @@ export interface Quantity {
 export type IngredientItem = string | Ingredient | IngredientSubsection;
 
 export interface IngredientSubsection {
-  subsection: string;
-  items: (string | Ingredient)[];
+  section: string;
+  ingredients: IngredientItem[];
 }
 
 export interface Ingredient {
   id?: string;
-  /** Full human-readable text (e.g. "2 cups flour") */
-  item: string;
+  /** Ingredient name (required in vNext) */
+  name: string;
   quantity?: Quantity;
-  name?: string;
-  aisle?: string;
-  /** Required prep state (e.g. "diced") */
-  prep?: string;
-  prepAction?: string;
-  prepTime?: number;
+  /** Required prep state (e.g. "diced") or array of prep items */
+  prep?: string | string[];
   /** ID of equipment where this ingredient goes */
   destination?: string;
   scaling?: Scaling;
-  critical?: boolean;
   optional?: boolean;
   notes?: string;
+  temperature?: Temperature;
+  metadata?: Record<string, unknown>;
+  [k: `x-${string}`]: unknown;
 }
 
 export interface ParsedIngredient {
-  item: string;
+  name: string;
   quantity?: {
     amount: number | null;
     unit: string | null;
   };
-  name?: string;
   prep?: string;
   optional?: boolean;
   notes?: string;
@@ -158,7 +141,7 @@ export interface ParsedIngredient {
 }
 
 /**
- * Intelligent Scaling Logic
+ * Intelligent Scaling Logic (vNext format)
  * Defines how an ingredient behaves when the recipe yield changes.
  */
 export type Scaling =
@@ -166,6 +149,7 @@ export type Scaling =
   | ScalingDiscrete
   | ScalingProportional
   | ScalingFixed
+  | ScalingToTaste
   | ScalingBakersPercentage;
 
 export interface ScalingBase {
@@ -174,29 +158,34 @@ export interface ScalingBase {
 }
 
 export interface ScalingLinear extends ScalingBase {
-  type: "linear";
+  mode: "linear";
 }
 
 export interface ScalingDiscrete extends ScalingBase {
-  type: "discrete";
-  roundTo?: number;
+  mode: "discrete";
+  step?: number;
+  rounding?: "nearest" | "ceil" | "floor";
 }
 
 export interface ScalingProportional extends ScalingBase {
-  type: "proportional";
+  mode: "proportional";
   factor?: number;
 }
 
 export interface ScalingFixed extends ScalingBase {
-  type: "fixed";
+  mode: "fixed";
 }
 
-export interface ScalingBakersPercentage extends ScalingBase {
-  type: 'bakers_percentage';
+export interface ScalingToTaste {
+  mode: "toTaste";
+}
+
+export interface ScalingBakersPercentage {
+  mode: "bakersPercent";
+  /** The percentage relative to the reference (e.g. 2 for 2%) */
+  percent: number;
   /** The ID of the flour/base ingredient this is relative to */
-  referenceId: string;
-  /** The percentage relative to the reference (e.g. 0.02 for 2%) */
-  factor?: number; // <--- ADD THIS LINE
+  of: string;
 }
 
 // --- Instruction Logic ---
@@ -204,29 +193,44 @@ export interface ScalingBakersPercentage extends ScalingBase {
 export type InstructionItem = string | Instruction | InstructionSubsection;
 
 export interface InstructionSubsection {
-  subsection: string;
-  items: (string | Instruction)[];
+  section: string;
+  steps: InstructionItem[];
 }
 
 export interface SoustackInstruction {
   id?: string;
   text: string;
-  destination?: string;
   /** IDs of steps that must complete before this one starts */
   dependsOn?: string[];
   /** IDs of ingredients used in this step */
   inputs?: string[];
+  /** IDs of techniques used in this step */
+  techniqueIds?: string[];
+  /** IDs of equipment used in this step */
+  usesEquipment?: string[];
   timing?: StepTiming;
-  /** Optional image URL for this instruction */
-  image?: string;
+  temperature?: Temperature;
+  images?: string[];
+  videos?: string[];
+  metadata?: Record<string, unknown>;
+  [k: `x-${string}`]: unknown;
 }
 
 export type Instruction = SoustackInstruction;
 
 export interface StepTiming {
-  duration: number | string;
-  type: "active" | "passive";
-  scaling?: "linear" | "fixed" | "sqrt";
+  activity: "active" | "passive";
+  duration?: DurationMinutes | DurationRange;
+  completionCue?: string;
+  metadata?: Record<string, unknown>;
+  [k: `x-${string}`]: unknown;
+}
+
+export interface DurationRange {
+  minMinutes: number;
+  maxMinutes: number;
+  metadata?: Record<string, unknown>;
+  [k: `x-${string}`]: unknown;
 }
 
 // --- Advanced Metadata ---
@@ -275,31 +279,9 @@ export interface NutritionFacts {
   protein_g?: number;
 }
 
-// --- Modules ---
-
-export interface AttributionModule {
-  url?: string;
-  author?: string;
-  datePublished?: string;
-}
-
-export interface TaxonomyModule {
-  keywords?: string[];
-  category?: string;
-  cuisine?: string;
-}
-
-export interface MediaModule {
-  images?: string[];
-  videos?: string[];
-}
-
-export interface TimesModule {
-  prepMinutes?: number;
-  cookMinutes?: number;
-  totalMinutes?: number;
-}
-
-export interface ScheduleModule {
-  tasks: unknown[];
+export interface Temperature {
+  value: number;
+  unit: "celsius" | "fahrenheit";
+  metadata?: Record<string, unknown>;
+  [k: `x-${string}`]: unknown;
 }

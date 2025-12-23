@@ -23,14 +23,16 @@ function normalizeFixture(fixture: Record<string, unknown>): Record<string, unkn
 }
 
 function findFixtureFiles(kind: 'valid' | 'invalid'): string[] {
-  const primaryPattern = path.join(FIXTURES_ROOT, kind, '**/*.json');
-  const primaryMatches = globSync(primaryPattern, { absolute: true, nodir: true });
-  if (primaryMatches.length > 0) {
-    return primaryMatches.sort();
-  }
-
-  const fallbackPattern = path.join(FIXTURES_ROOT, '**', kind, '**/*.json');
-  return globSync(fallbackPattern, { absolute: true, nodir: true }).sort();
+  // vNext fixtures are discovered by filename pattern: .valid. or .invalid.
+  // Search recursively under spec/fixtures/**
+  // Pattern matches files containing .valid. or .invalid. in the filename
+  // Use a more specific pattern to avoid matching "invalid" when looking for "valid"
+  const pattern = kind === 'valid' 
+    ? path.join(FIXTURES_ROOT, '**', '*.valid.json')
+    : path.join(FIXTURES_ROOT, '**', '*.invalid.json');
+  
+  const matches = globSync(pattern, { absolute: true, nodir: true });
+  return matches.sort();
 }
 
 function formatErrors(fixturePath: string, errors: ValidationError[], maxErrors = 3): string {

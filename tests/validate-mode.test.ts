@@ -3,16 +3,20 @@ import { validateRecipe } from '../src/validator';
 describe('validateRecipe modes', () => {
   const baseRecipe = {
     '@type': 'Recipe',
-    profile: 'core',
+    profile: 'lite',
     name: 'Mode Test',
+    yield: { amount: 1, unit: 'serving' },
+    time: { total: { minutes: 10 } },
     ingredients: ['Flour'],
     instructions: [{ id: 'step-1', text: 'First step' }],
   };
 
   const conformanceRecipe = {
     '@type': 'Recipe',
-    profile: 'core',
+    profile: 'lite',
     name: 'Conformance Test',
+    yield: { amount: 1, unit: 'serving' },
+    time: { total: { minutes: 10 } },
     ingredients: ['Flour'],
     instructions: [
       { id: 'step-1', text: 'First step' },
@@ -52,8 +56,17 @@ describe('validateRecipe modes', () => {
       },
     ],
     "name": "Mode Test",
-    "profile": "core",
+    "profile": "lite",
     "stacks": {},
+    "time": {
+      "total": {
+        "minutes": 10,
+      },
+    },
+    "yield": {
+      "amount": 1,
+      "unit": "serving",
+    },
   },
   "ok": true,
   "schemaErrors": [],

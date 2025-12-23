@@ -4,13 +4,9 @@ import {
   InstructionItem,
   Recipe,
   Source,
-  AttributionModule,
-  TaxonomyModule,
-  MediaModule,
-  TimesModule,
   NutritionFacts,
   StepTiming,
-  StructuredTime
+  Time
 } from './types';
 import { parseYield } from './converters/yield';
 import { smartParseDuration } from './parsers/duration';
@@ -40,22 +36,13 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
   const dateModified = recipeNode.dateModified || undefined;
   const nutrition = convertNutrition(recipeNode.nutrition);
 
-  const attribution = convertAttribution(recipeNode);
-  const taxonomy = convertTaxonomy(tags, category, extractFirst(recipeNode.recipeCuisine));
-  const media = convertMedia(recipeNode.image, recipeNode.video);
-  const times = convertTimes(time);
-
-  // Build stacks map from payloads
+  // Legacy stack conversions removed - vNext doesn't support attribution/taxonomy/media/times/nutrition stacks
+  // Schema.org data is mapped to vNext properties directly
   const stacks: Record<string, number> = {};
-  if (attribution) stacks.attribution = 1;
-  if (taxonomy) stacks.taxonomy = 1;
-  if (media) stacks.media = 1;
-  if (nutrition) stacks.nutrition = 1;
-  if (times) stacks.times = 1;
 
   const rawRecipe = {
     '@type': 'Recipe',
-    profile: 'minimal',
+    profile: 'lite',
     stacks,
     name: recipeNode.name.trim(),
     description: recipeNode.description?.trim() || undefined,
@@ -69,11 +56,7 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
     ingredients,
     instructions,
     ...(dateModified ? { dateModified } : {}),
-    ...(nutrition ? { nutrition } : {}),
-    ...(attribution ? { attribution } : {}),
-    ...(taxonomy ? { taxonomy } : {}),
-    ...(media ? { media } : {}),
-    ...(times ? { times } : {})
+    ...(nutrition ? { nutrition } : {})
   };
 
   // Normalize the recipe to ensure it's in the correct format
@@ -163,8 +146,8 @@ function convertInstructions(
       const subsectionItems = extractSectionItems(entry.itemListElement);
       if (subsectionItems.length) {
         result.push({
-          subsection: entry.name?.trim() || 'Section',
-          items: subsectionItems
+          section: entry.name?.trim() || 'Section',
+          steps: subsectionItems
         });
       }
       continue;
@@ -237,7 +220,7 @@ function convertHowToStep(step: HowToStep): string | Instruction | undefined {
 
   const instruction: Instruction = { text };
   if (id) instruction.id = id;
-  if (image) instruction.image = image;
+  if (image) instruction.images = Array.isArray(image) ? image : [image];
   if (timing) instruction.timing = timing;
 
   return instruction;
@@ -252,7 +235,14 @@ function extractInstructionTiming(step: HowToStep): StepTiming | undefined {
   }
 
   const parsed = smartParseDuration(duration);
-  return { duration: parsed ?? duration, type: 'active' };
+  if (parsed === null || parsed === undefined) {
+    return undefined;
+  }
+  
+  return {
+    activity: 'active',
+    duration: { minutes: parsed }
+  };
 }
 
 function extractInstructionId(step: HowToStep): string | undefined {
@@ -281,17 +271,17 @@ function isHowToSection(value: unknown): value is HowToSection {
   );
 }
 
-function convertTime(recipe: SchemaOrgRecipe): StructuredTime | undefined {
-  const prep = smartParseDuration(recipe.prepTime ?? '');
-  const cook = smartParseDuration(recipe.cookTime ?? '');
+function convertTime(recipe: SchemaOrgRecipe): Time | undefined {
   const total = smartParseDuration(recipe.totalTime ?? '');
-
-  const structured: StructuredTime = {};
-  if (prep !== null && prep !== undefined) structured.prep = prep;
-  if (cook !== null && cook !== undefined) structured.active = cook;
-  if (total !== null && total !== undefined) structured.total = total;
-
-  return Object.keys(structured).length ? structured : undefined;
+  
+  // vNext Time format requires total with DurationMinutes
+  if (total !== null && total !== undefined) {
+    return {
+      total: { minutes: total }
+    };
+  }
+  
+  return undefined;
 }
 
 function collectTags(cuisine: unknown, keywords: unknown): string[] {
@@ -374,31 +364,7 @@ function extractEntityName(
   return undefined;
 }
 
-function convertAttribution(recipe: SchemaOrgRecipe): AttributionModule | undefined {
-  const attribution: AttributionModule = {};
-  const url = (recipe.url || recipe.mainEntityOfPage)?.trim();
-  const author = extractEntityName(recipe.author);
-  const datePublished = recipe.datePublished?.trim();
-
-  if (url) attribution.url = url;
-  if (author) attribution.author = author;
-  if (datePublished) attribution.datePublished = datePublished;
-
-  return Object.keys(attribution).length ? attribution : undefined;
-}
-
-function convertTaxonomy(
-  keywords: string[],
-  category?: string,
-  cuisine?: string
-): TaxonomyModule | undefined {
-  const taxonomy: TaxonomyModule = {};
-  if (keywords.length) taxonomy.keywords = keywords;
-  if (category) taxonomy.category = category;
-  if (cuisine) taxonomy.cuisine = cuisine;
-
-  return Object.keys(taxonomy).length ? taxonomy : undefined;
-}
+// Legacy stack conversion functions removed - vNext doesn't support attribution/taxonomy stacks
 
 function normalizeMediaList(value: SchemaOrgImage | undefined): string[] {
   if (!value) return [];
@@ -421,35 +387,8 @@ function extractMediaUrl(value: unknown): string | undefined {
   return undefined;
 }
 
-function convertMedia(
-  image: SchemaOrgImage | undefined,
-  video: SchemaOrgImage | undefined
-): MediaModule | undefined {
-  const normalizedImage = normalizeImage(image);
-  const images = normalizedImage
-    ? Array.isArray(normalizedImage)
-      ? normalizedImage
-      : [normalizedImage]
-    : [];
-  const videos = normalizeMediaList(video);
-
-  const media: MediaModule = {};
-  if (images.length) media.images = images;
-  if (videos.length) media.videos = videos;
-
-  return Object.keys(media).length ? media : undefined;
-}
-
-function convertTimes(time?: StructuredTime): TimesModule | undefined {
-  if (!time) return undefined;
-  const times: TimesModule = {};
-
-  if (typeof time.prep === 'number') times.prepMinutes = time.prep;
-  if (typeof time.active === 'number') times.cookMinutes = time.active;
-  if (typeof time.total === 'number') times.totalMinutes = time.total;
-
-  return Object.keys(times).length ? times : undefined;
-}
+// Legacy stack conversion functions removed - vNext doesn't support media/times stacks
+// Media is handled via image property, time via time property
 
 function convertNutrition(
   nutrition: SchemaOrgRecipe['nutrition']

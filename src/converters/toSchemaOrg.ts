@@ -3,9 +3,7 @@ import {
   Instruction,
   InstructionItem,
   Recipe,
-  StructuredTime,
-  Time,
-  TimesModule
+  Time
 } from '../types';
 import { formatDuration } from '../parsers/duration';
 import { formatYield } from './yield';
@@ -15,7 +13,7 @@ import {
   SchemaOrgInstruction,
   SchemaOrgRecipe
 } from '../types/schemaOrg';
-import stacksRegistry from '../schemas/registry/stacks.json';
+import stacksRegistry from '../stacks/registry.json';
 
 export function convertBasicMetadata(recipe: Recipe): Partial<SchemaOrgRecipe> {
   return cleanOutput({
@@ -46,8 +44,8 @@ export function convertIngredients(ingredients: IngredientItem[] = []): string[]
       return;
     }
 
-    if ('subsection' in ingredient) {
-      ingredient.items.forEach(item => {
+    if ('section' in ingredient) {
+      ingredient.ingredients.forEach((item: IngredientItem) => {
         if (!item) {
           return;
         }
@@ -56,8 +54,8 @@ export function convertIngredients(ingredients: IngredientItem[] = []): string[]
           if (value) {
             result.push(value);
           }
-        } else if (item.item) {
-          const value = item.item.trim();
+        } else if ('name' in item && item.name) {
+          const value = item.name.trim();
           if (value) {
             result.push(value);
           }
@@ -66,7 +64,7 @@ export function convertIngredients(ingredients: IngredientItem[] = []): string[]
       return;
     }
 
-    const value = ingredient.item?.trim();
+    const value = 'name' in ingredient ? ingredient.name?.trim() : undefined;
     if (value) {
       result.push(value);
     }
@@ -93,9 +91,9 @@ function convertInstruction(entry: InstructionItem): SchemaOrgInstruction | null
     return value || null;
   }
 
-  if ('subsection' in entry) {
-    const steps = entry.items
-      .map(item => convertInstruction(item))
+  if ('section' in entry) {
+    const steps = entry.steps
+      .map((item: InstructionItem) => convertInstruction(item))
       .filter((step): step is SchemaOrgInstruction => Boolean(step));
 
     if (!steps.length) {
@@ -104,7 +102,7 @@ function convertInstruction(entry: InstructionItem): SchemaOrgInstruction | null
 
     return {
       '@type': 'HowToSection',
-      name: entry.subsection,
+      name: entry.section,
       itemListElement: steps
     };
   }
@@ -140,16 +138,17 @@ function createHowToStep(
     step['@id'] = entry.id;
   }
 
-  if (entry.timing) {
-    if (typeof entry.timing.duration === 'number') {
-      step.performTime = formatDuration(entry.timing.duration);
-    } else if (entry.timing.duration) {
-      step.performTime = entry.timing.duration;
+  if (entry.timing?.duration) {
+    const duration = entry.timing.duration;
+    if (typeof duration === 'object' && 'minutes' in duration) {
+      step.performTime = formatDuration(duration.minutes);
+    } else if (typeof duration === 'number') {
+      step.performTime = formatDuration(duration);
     }
   }
 
-  if (entry.image) {
-    step.image = entry.image;
+  if (entry.images && entry.images.length > 0) {
+    step.image = entry.images[0]; // Use first image for Schema.org
   }
 
   if (step['@id'] || step.performTime || step.image) {
@@ -164,44 +163,10 @@ export function convertTime(time?: Time): Partial<SchemaOrgRecipe> {
     return {};
   }
 
-  if (isStructuredTime(time)) {
-    const result: Partial<SchemaOrgRecipe> = {};
-    if (time.prep !== undefined) {
-      result.prepTime = formatDuration(time.prep);
-    }
-    if (time.active !== undefined) {
-      result.cookTime = formatDuration(time.active);
-    }
-    if (time.total !== undefined) {
-      result.totalTime = formatDuration(time.total);
-    }
-    return result;
-  }
-
+  // vNext Time format: { total: { minutes: number } }
   const result: Partial<SchemaOrgRecipe> = {};
-  if (time.prepTime) {
-    result.prepTime = time.prepTime;
-  }
-  if (time.cookTime) {
-    result.cookTime = time.cookTime;
-  }
-  return result;
-}
-
-export function convertTimesModule(times?: TimesModule): Partial<SchemaOrgRecipe> {
-  if (!times) {
-    return {};
-  }
-
-  const result: Partial<SchemaOrgRecipe> = {};
-  if (times.prepMinutes !== undefined) {
-    result.prepTime = formatDuration(times.prepMinutes);
-  }
-  if (times.cookMinutes !== undefined) {
-    result.cookTime = formatDuration(times.cookMinutes);
-  }
-  if (times.totalMinutes !== undefined) {
-    result.totalTime = formatDuration(times.totalMinutes);
+  if (time.total && typeof time.total === 'object' && 'minutes' in time.total) {
+    result.totalTime = formatDuration(time.total.minutes);
   }
   return result;
 }
@@ -304,16 +269,22 @@ export function cleanOutput<T extends Record<string, unknown>>(obj: T): T {
 function getSchemaOrgMappableStacks(stacks: Record<string, number> = {}): Set<string> {
   const mappableStackIds = new Set<string>();
   
-  // Get list of mappable stack identifiers from registry
-  const mappableFromRegistry = stacksRegistry.stacks
-    .filter((stack) => stack.schemaOrgMappable)
-    .map((stack) => `${stack.id}@${stack.latest}`);
-  
+  // The new registry structure doesn't have schemaOrgMappable field
+  // Use a hardcoded list of stacks that have Schema.org equivalents
+  // These correspond to Schema.org Recipe properties
+  const mappableStackNames = new Set([
+    // Note: Old stack names that may still be in use
+    'attribution', // maps to author/publisher
+    'taxonomy',   // maps to recipeCategory/keywords
+    // Legacy times stack removed - time is now a base property
+    // New stack names (if they map to Schema.org)
+    // Add new mappable stacks here as they're identified
+  ]);
+
   // Check which stacks in the recipe are mappable
   for (const [name, version] of Object.entries(stacks)) {
-    const stackId = `${name}@${version}`;
-    if (mappableFromRegistry.includes(stackId)) {
-      mappableStackIds.add(stackId);
+    if (mappableStackNames.has(name) && typeof version === "number" && version >= 1) {
+      mappableStackIds.add(`${name}@${version}`);
     }
   }
   
@@ -344,12 +315,8 @@ export function toSchemaOrg(recipe: Recipe): SchemaOrgRecipe {
   const hasMappableNutrition = mappableStacks.has('nutrition@1');
   const nutrition = hasMappableNutrition ? convertNutrition(recipe.nutrition) : undefined;
 
-  // Convert time if times stack is mappable (times@1 is mappable)
-  // Prefer recipe.times (TimesModule) over recipe.time (legacy Time)
-  const hasMappableTimes = mappableStacks.has('times@1');
-  const timeData = hasMappableTimes
-    ? (recipe.times ? convertTimesModule(recipe.times) : convertTime(recipe.time))
-    : {};
+  // Convert time - vNext uses recipe.time (Time format)
+  const timeData = convertTime(recipe.time);
 
   // Convert attribution if attribution stack is mappable (attribution@1 is mappable)
   const hasMappableAttribution = mappableStacks.has('attribution@1');
@@ -373,11 +340,4 @@ export function toSchemaOrg(recipe: Recipe): SchemaOrgRecipe {
   }) as SchemaOrgRecipe;
 }
 
-function isStructuredTime(time: Time): time is StructuredTime {
-  return (
-    typeof (time as StructuredTime).prep !== 'undefined' ||
-    typeof (time as StructuredTime).active !== 'undefined' ||
-    typeof (time as StructuredTime).passive !== 'undefined' ||
-    typeof (time as StructuredTime).total !== 'undefined'
-  );
-}
+// Legacy isStructuredTime removed - vNext uses Time format with DurationMinutes

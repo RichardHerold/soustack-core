@@ -86,19 +86,16 @@ describe('metadata mapping', () => {
     expect(recipe.tags).toEqual(expect.arrayContaining(['Italian', 'pasta', 'vegetarian', 'easy']));
   });
 
-  it('converts nutrition to v0.3 format (numbers only)', () => {
+  it('converts nutrition to vNext format', () => {
     const withNutrition = getRecipe({ nutrition: { calories: '200 cal' } });
     const withoutNutrition = getRecipe({ nutrition: 'invalid' });
     const missingNutrition = getRecipe();
 
-    // v0.3: nutrition values are parsed as numbers
+    // vNext: nutrition is directly on recipe, parsed as numbers
     expect(withNutrition.nutrition).toEqual({ calories: 200 });
-    expect(withNutrition.stacks?.nutrition).toBe(1);
     expect(withoutNutrition.nutrition).toBeUndefined();
     expect(withoutNutrition).not.toHaveProperty('nutrition');
-    expect(withoutNutrition.stacks?.nutrition).toBeUndefined();
     expect(missingNutrition).not.toHaveProperty('nutrition');
-    expect(missingNutrition.stacks?.nutrition).toBeUndefined();
   });
 });
 
@@ -212,7 +209,7 @@ describe('instruction conversion', () => {
     expect(instructions).toEqual(['Preheat oven', 'Mix batter']);
   });
 
-  it('creates subsections for HowToSection entries', () => {
+  it('creates sections for HowToSection entries', () => {
     const instructions = convert({
       recipeInstructions: [
         {
@@ -228,8 +225,8 @@ describe('instruction conversion', () => {
 
     expect(instructions).toEqual([
       {
-        subsection: 'Prep',
-        items: ['Gather tools', 'Chop veggies']
+        section: 'Prep',
+        steps: ['Gather tools', 'Chop veggies']
       }
     ]);
   });
@@ -254,8 +251,8 @@ describe('instruction conversion', () => {
 
     expect(instructions).toEqual([
       {
-        subsection: 'Main',
-        items: ['Inner step']
+        section: 'Main',
+        steps: ['Inner step']
       }
     ]);
   });
@@ -272,7 +269,7 @@ describe('instruction conversion', () => {
     });
 
     expect(recipe.instructions).toEqual([
-      { text: 'Snap photo', image: 'https://example.com/step.jpg' }
+      { text: 'Snap photo', images: ['https://example.com/step.jpg'] }
     ]);
   });
 
@@ -289,7 +286,7 @@ describe('instruction conversion', () => {
     });
 
     expect(recipe.instructions).toEqual([
-      { text: 'Let rest', timing: { duration: 30, type: 'active' }, id: 'step1' }
+      { text: 'Let rest', timing: { activity: 'active', duration: { minutes: 30 } }, id: 'step1' }
     ]);
   });
 
@@ -311,7 +308,7 @@ describe('instruction conversion', () => {
     });
 
     expect(recipe.instructions).toEqual([
-      { text: 'Prep', image: 'https://example.com/prep.jpg' },
+      { text: 'Prep', images: ['https://example.com/prep.jpg'] },
       'Cook',
       'Serve'
     ]);
@@ -358,8 +355,9 @@ describe('time and yield parsing', () => {
       recipeYield: '24 cookies'
     });
 
-    expect(recipe.times).toEqual({ prepMinutes: 20, cookMinutes: 60, totalMinutes: 80 });
-    expect(recipe.yield).toEqual({ amount: 24, unit: 'cookies', description: '24 cookies' });
+    // vNext: time uses DurationMinutes format
+    expect(recipe.time).toMatchObject({ total: { minutes: 80 } });
+    expect(recipe.yield).toMatchObject({ amount: 24, unit: 'cookies' });
   });
 
   it('omits time when no values parse', () => {
@@ -368,11 +366,11 @@ describe('time and yield parsing', () => {
   });
 });
 
-describe('minimal profile and stack emission', () => {
+describe('lite profile and vNext format', () => {
   const schemaOrgSample = {
     '@context': 'https://schema.org',
     '@type': 'Recipe',
-    name: 'Minimal Profile Lasagna',
+    name: 'Lite Profile Lasagna',
     description: 'A hearty lasagna.',
     url: 'https://example.com/lasagna',
     author: { '@type': 'Person', name: 'Chef Example' },
@@ -393,57 +391,38 @@ describe('minimal profile and stack emission', () => {
     }
   } as const;
 
-  it('defaults to minimal profile with selective stacks and validates', () => {
+  it('defaults to lite profile with vNext format and validates', () => {
     const soustack = fromSchemaOrg(schemaOrgSample);
     expect(soustack).not.toBeNull();
     const recipe = soustack as Recipe;
 
-    expect(recipe.profile).toBe('minimal');
-    expect(recipe.stacks).toEqual(
-      expect.objectContaining({
-        attribution: 1,
-        taxonomy: 1,
-        media: 1,
-        nutrition: 1,
-        times: 1
-      })
-    );
+    expect(recipe.profile).toBe('lite');
+    // vNext: no legacy stacks
+    expect(recipe.stacks).toEqual({});
 
-    expect(recipe.attribution).toEqual(
+    // vNext: source is directly on recipe
+    expect(recipe.source).toEqual(
       expect.objectContaining({
         url: 'https://example.com/lasagna',
-        author: 'Chef Example',
-        datePublished: '2024-04-20T12:00:00Z'
+        author: 'Chef Example'
       })
     );
-    expect(recipe.taxonomy).toEqual(
-      expect.objectContaining({
-        category: 'Dinner',
-        cuisine: 'Italian',
-        keywords: expect.arrayContaining(['pasta', 'cheese', 'baked'])
-      })
-    );
-    expect(recipe.media).toEqual(
-      expect.objectContaining({
-        images: ['https://example.com/lasagna.jpg'],
-        videos: ['https://example.com/lasagna.mp4']
-      })
-    );
-    // v0.3: times stack uses prepMinutes/cookMinutes/totalMinutes
-    expect(recipe.times).toEqual({ prepMinutes: 20, cookMinutes: 40, totalMinutes: 60 });
+    // vNext: category and tags are directly on recipe
+    expect(recipe.category).toBe('Dinner');
+    expect(recipe.tags).toEqual(expect.arrayContaining(['Italian', 'pasta', 'cheese', 'baked']));
+    // vNext: image is directly on recipe (may be string or array)
+    expect(recipe.image).toBeDefined();
+    if (Array.isArray(recipe.image)) {
+      expect(recipe.image).toEqual(expect.arrayContaining(['https://example.com/lasagna.jpg']));
+    } else {
+      expect(recipe.image).toBe('https://example.com/lasagna.jpg');
+    }
+    // vNext: time uses DurationMinutes format
+    expect(recipe.time).toMatchObject({ total: { minutes: 60 } });
+    // vNext: nutrition is directly on recipe
+    expect(recipe.nutrition).toMatchObject({ calories: 400 });
 
-    // Remove top-level fields that should be in stacks (fromSchemaOrg puts them at top level for compatibility)
-    // Also remove nutrition since Schema.org format doesn't match Soustack nutrition stack format exactly
-    const { description, image, category, tags, nutrition, ...recipeForValidation } = recipe as any;
-    // Remove nutrition from stacks if nutrition was removed (stack contract requires payload if declared)
-    if (recipeForValidation.stacks && recipeForValidation.stacks.nutrition) {
-      delete recipeForValidation.stacks.nutrition;
-    }
-    // Also remove from stacks if present
-    if (recipeForValidation.stacks && typeof recipeForValidation.stacks === 'object') {
-      delete recipeForValidation.stacks.nutrition;
-    }
-    const validation = validateRecipe(recipeForValidation);
+    const validation = validateRecipe(recipe);
     expect(validation.ok).toBe(true);
   });
 });

@@ -5,8 +5,8 @@ export function parseIngredientLine(line: string): Ingredient {
   const parsed = parseIngredient(line);
 
   const ingredient: Ingredient = {
-    item: parsed.item,
-    scaling: parsed.scaling ?? { type: 'linear' }
+    name: parsed.name || line,
+    scaling: parsed.scaling ?? { mode: 'linear' }
   };
 
   if (parsed.name) {
