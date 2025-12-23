@@ -2,11 +2,15 @@
   "profiles": [
     {
       "id": "minimal",
-      "schema": "http://soustack.org/schema/recipe/profiles/minimal.schema.json"
+      "schema": "http://soustack.org/schema/recipe/profiles/minimal.schema.json",
+      "requiresProfiles": [],
+      "requiresStacks": []
     },
     {
       "id": "core",
-      "schema": "http://soustack.org/schema/recipe/profiles/core.schema.json"
+      "schema": "http://soustack.org/schema/recipe/profiles/core.schema.json",
+      "requiresProfiles": ["minimal"],
+      "requiresStacks": []
     }
   ]
 }
