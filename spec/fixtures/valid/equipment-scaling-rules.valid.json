@@ -1,0 +1,76 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "equipment": 1
+  },
+  "name": "Recipe with Scaling-Aware Equipment",
+  "yield": {
+    "amount": 1,
+    "unit": "serving"
+  },
+  "time": {
+    "total": {
+      "minutes": 30
+    }
+  },
+  "equipment": [
+    {
+      "id": "pan",
+      "name": "8-inch skillet",
+      "count": 1,
+      "countScaling": "fixed"
+    },
+    {
+      "id": "bowl",
+      "name": "Mixing bowl",
+      "count": 2,
+      "countScaling": "linear"
+    },
+    {
+      "id": "sheet_pan",
+      "name": "Baking sheet",
+      "count": 1,
+      "countScaling": {
+        "mode": "threshold",
+        "steps": [
+          {
+            "maxFactor": 1.0,
+            "count": 1
+          },
+          {
+            "maxFactor": 2.0,
+            "count": 2
+          },
+          {
+            "maxFactor": 4.0,
+            "count": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "skillet_small",
+      "name": "8-inch skillet",
+      "upgrades": [
+        {
+          "minFactor": 2.0,
+          "use": "skillet_large"
+        }
+      ]
+    },
+    {
+      "id": "skillet_large",
+      "name": "12-inch skillet"
+    }
+  ],
+  "ingredients": [
+    {
+      "id": "flour",
+      "name": "Flour"
+    }
+  ],
+  "instructions": [
+    "Mix ingredients",
+    "Bake"
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "prep": 1,
+    "quantified": 1
+  },
+  "name": "Recipe with Ingredient Prep Strings",
+  "yield": {
+    "amount": 1,
+    "unit": "serving"
+  },
+  "time": {
+    "total": {
+      "minutes": 30
+    }
+  },
+  "ingredients": [
+    {
+      "id": "onion",
+      "name": "Onion",
+      "quantity": {
+        "amount": 1,
+        "unit": "medium"
+      },
+      "prep": "finely diced"
+    },
+    {
+      "id": "garlic",
+      "name": "Garlic",
+      "quantity": {
+        "amount": 2,
+        "unit": "cloves"
+      },
+      "prep": [
+        "peeled",
+        "minced"
+      ]
+    }
+  ],
+  "instructions": [
+    "Cook the ingredients"
+  ],
+  "miseEnPlace": [
+    {
+      "text": "Prepare ingredients as specified"
+    }
+  ]
+}

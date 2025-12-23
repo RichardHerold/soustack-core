@@ -1,9 +1,0 @@
-{
-  "name": "Cyclic DAG",
-  "ingredients": ["Thing"],
-  "instructions": [
-    { "id": "a", "text": "Step A", "dependsOn": ["c"], "timing": { "duration": 1, "type": "active" } },
-    { "id": "b", "text": "Step B", "dependsOn": ["a"], "timing": { "duration": 1, "type": "active" } },
-    { "id": "c", "text": "Step C", "dependsOn": ["b"], "timing": { "duration": 1, "type": "active" } }
-  ]
-}

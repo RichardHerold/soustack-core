@@ -1,0 +1,16 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "storage": 1
+  },
+  "name": "Bad Storage",
+  "ingredients": [
+    "food"
+  ],
+  "instructions": [
+    "store"
+  ],
+  "storage": {
+    "frozen": {}
+  }
+}

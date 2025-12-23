@@ -1,0 +1,38 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "equipment": 1,
+    "structured": 1
+  },
+  "name": "Recipe with Invalid Equipment Reference",
+  "yield": {
+    "amount": 1,
+    "unit": "serving"
+  },
+  "time": {
+    "total": {
+      "minutes": 30
+    }
+  },
+  "equipment": [
+    {
+      "id": "skillet",
+      "name": "8-inch skillet"
+    }
+  ],
+  "ingredients": [
+    {
+      "id": "meat",
+      "name": "Meat"
+    }
+  ],
+  "instructions": [
+    {
+      "id": "sear",
+      "text": "Sear the meat",
+      "usesEquipment": [
+        "nonexistent"
+      ]
+    }
+  ]
+}

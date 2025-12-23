@@ -1,0 +1,32 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "quantified": 1,
+    "compute": 1
+  },
+  "name": "Compute Without Timed",
+  "yield": {
+    "amount": 1,
+    "unit": "dish"
+  },
+  "time": {
+    "total": {
+      "minutes": 10
+    }
+  },
+  "ingredients": [
+    {
+      "id": "i1",
+      "name": "item",
+      "quantity": {
+        "amount": 1,
+        "unit": "cup"
+      }
+    }
+  ],
+  "instructions": [
+    {
+      "text": "do"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "prep": 1,
+    "referenced": 1,
+    "structured": 1
+  },
+  "name": "Recipe with Unknown Input Reference",
+  "yield": {
+    "amount": 1,
+    "unit": "serving"
+  },
+  "time": {
+    "total": {
+      "minutes": 30
+    }
+  },
+  "ingredients": [
+    {
+      "id": "onion",
+      "name": "Onion"
+    }
+  ],
+  "instructions": [
+    {
+      "id": "cook",
+      "text": "Cook",
+      "inputs": [
+        "onion"
+      ]
+    }
+  ],
+  "miseEnPlace": [
+    {
+      "text": "Prepare the missing ingredient",
+      "inputs": [
+        "missing-ingredient"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "prep": 1,
+    "quantified": 1
+  },
+  "name": "Recipe with Structured Prep Items",
+  "yield": {
+    "amount": 1,
+    "unit": "serving"
+  },
+  "time": {
+    "total": {
+      "minutes": 30
+    }
+  },
+  "ingredients": [
+    {
+      "id": "tomato",
+      "name": "Tomato",
+      "quantity": {
+        "amount": 2,
+        "unit": "medium"
+      },
+      "prep": [
+        {
+          "verb": "dice",
+          "detail": "fine"
+        },
+        {
+          "verb": "reserve",
+          "detail": "half for garnish"
+        }
+      ]
+    }
+  ],
+  "instructions": [
+    "Use the prepared ingredients"
+  ],
+  "miseEnPlace": [
+    {
+      "text": "Prepare ingredients as specified"
+    }
+  ]
+}

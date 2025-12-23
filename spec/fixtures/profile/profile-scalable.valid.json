@@ -1,0 +1,49 @@
+{
+  "profile": "scalable",
+  "stacks": {
+    "quantified": 1,
+    "scaling": 1
+  },
+  "name": "Scaled Bread",
+  "yield": {
+    "amount": 2,
+    "unit": "loaf"
+  },
+  "time": {
+    "total": {
+      "minutes": 180
+    }
+  },
+  "ingredients": [
+    {
+      "id": "flour",
+      "name": "Bread flour",
+      "quantity": {
+        "amount": 500,
+        "unit": "g"
+      }
+    },
+    {
+      "id": "water",
+      "name": "Water",
+      "quantity": {
+        "amount": 325,
+        "unit": "g"
+      }
+    }
+  ],
+  "scaling": {
+    "discrete": {
+      "min": 1,
+      "max": 5,
+      "step": 1
+    }
+  },
+  "instructions": [
+    {
+      "text": "Combine ingredients and knead until smooth.",
+      "dependsOn": [],
+      "id": "step-1"
+    }
+  ]
+}

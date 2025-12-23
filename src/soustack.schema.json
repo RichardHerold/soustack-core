@@ -1,105 +1,99 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "http://soustack.org/schema/v0.0.2",
-  "title": "Soustack Recipe Schema v0.0.2",
-  "description": "A portable, scalable, interoperable recipe format.",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://soustack.spec/soustack.schema.json",
+  "title": "Soustack Specification",
   "type": "object",
-  "required": ["name", "ingredients", "instructions"],
-  "additionalProperties": false,
-  "patternProperties": {
-    "^x-": {}
-  },
   "properties": {
     "$schema": {
       "type": "string",
-      "format": "uri",
-      "description": "Optional schema hint for tooling compatibility"
+      "const": "https://soustack.spec/soustack.schema.json"
     },
-    "id": {
+    "profile": {
       "type": "string",
-      "description": "Unique identifier (slug or UUID)"
-    },
-    "name": {
-      "type": "string",
-      "description": "The title of the recipe"
-    },
-    "title": {
-      "type": "string",
-      "description": "Optional display title; alias for name"
-    },
-    "version": {
-      "type": "string",
-      "pattern": "^\\d+\\.\\d+\\.\\d+$",
-      "description": "DEPRECATED: use recipeVersion for authoring revisions"
-    },
-    "recipeVersion": {
-      "type": "string",
-      "pattern": "^\\d+\\.\\d+\\.\\d+$",
-      "description": "Recipe content revision (semantic versioning, e.g., 1.0.0)"
-    },
-    "description": {
-      "type": "string"
-    },
-    "category": {
-      "type": "string",
-      "examples": ["Main Course", "Dessert"]
-    },
-    "tags": {
-      "type": "array",
-      "items": { "type": "string" }
-    },
-    "image": {
-      "description": "Recipe-level hero image(s)",
       "anyOf": [
         {
-          "type": "string",
-          "format": "uri"
+          "enum": [
+            "base",
+            "equipped",
+            "illustrated",
+            "lite",
+            "prepped",
+            "scalable",
+            "timed"
+          ]
         },
         {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "string",
-            "format": "uri"
-          }
+          "pattern": "^x-[a-z0-9-]+(?:\\.[a-z0-9-]+)*$"
         }
       ]
     },
-    "dateAdded": {
-      "type": "string",
-      "format": "date-time"
+    "stacks": {
+      "$ref": "#/$defs/stacksMap"
     },
-    "metadata": {
-      "type": "object",
-      "additionalProperties": true,
-      "description": "Free-form vendor metadata"
-    },
-    "source": {
-      "type": "object",
-      "properties": {
-        "author": { "type": "string" },
-        "url": { "type": "string", "format": "uri" },
-        "name": { "type": "string" },
-        "adapted": { "type": "boolean" }
-      }
+    "name": {
+      "type": "string"
     },
     "yield": {
-      "$ref": "#/definitions/yield"
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "amount",
+        "unit"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "./defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
     },
     "time": {
-      "$ref": "#/definitions/time"
-    },
-    "equipment": {
-      "type": "array",
-      "items": { "$ref": "#/definitions/equipment" }
+      "type": "object",
+      "properties": {
+        "total": {
+          "$ref": "./defs/duration.schema.json#/properties/DurationMinutes"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "total"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "./defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
     },
     "ingredients": {
       "type": "array",
       "items": {
         "anyOf": [
-          { "type": "string" },
-          { "$ref": "#/definitions/ingredient" },
-          { "$ref": "#/definitions/ingredientSubsection" }
+          {
+            "type": "string"
+          },
+          {
+            "$ref": "#/$defs/ingredient"
+          },
+          {
+            "$ref": "#/$defs/ingredientSection"
+          }
         ]
       }
     },
@@ -107,248 +101,2277 @@
       "type": "array",
       "items": {
         "anyOf": [
-          { "type": "string" },
-          { "$ref": "#/definitions/instruction" },
-          { "$ref": "#/definitions/instructionSubsection" }
+          {
+            "type": "string"
+          },
+          {
+            "$ref": "#/$defs/step"
+          },
+          {
+            "$ref": "#/$defs/stepSection"
+          }
         ]
       }
     },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "$ref": "./defs/common.schema.json#/properties/uri"
+      }
+    },
+    "videos": {
+      "type": "array",
+      "items": {
+        "$ref": "./defs/common.schema.json#/properties/uri"
+      }
+    },
+    "dietary": {
+      "$ref": "./stacks/dietary.schema.json#/properties/dietary"
+    },
     "storage": {
-      "$ref": "#/definitions/storage"
+      "$ref": "./stacks/storage.schema.json#/properties/storage"
     },
     "substitutions": {
-      "type": "array",
-      "items": { "$ref": "#/definitions/substitution" }
-    }
-  },
-  "definitions": {
-    "yield": {
-      "type": "object",
-      "required": ["amount", "unit"],
-      "properties": {
-        "amount": { "type": "number" },
-        "unit": { "type": "string" },
-        "servings": { "type": "number" },
-        "description": { "type": "string" }
-      }
+      "$ref": "./stacks/substitutions.schema.json#/properties/substitutions"
     },
-    "time": {
-      "type": "object",
-      "properties": {
-        "prep": { "type": "number" },
-        "active": { "type": "number" },
-        "passive": { "type": "number" },
-        "total": { "type": "number" },
-        "prepTime": { "type": "string", "format": "duration" },
-        "cookTime": { "type": "string", "format": "duration" }
-      },
-      "minProperties": 1
-    },
-    "quantity": {
-      "type": "object",
-      "required": ["amount"],
-      "properties": {
-        "amount": { "type": "number" },
-        "unit": {
-          "type": ["string", "null"],
-          "description": "Display-friendly unit text; implementations may normalize or canonicalize units separately."
-        }
-      }
+    "techniques": {
+      "$ref": "./stacks/techniques.schema.json#/properties/techniques"
     },
     "scaling": {
-      "type": "object",
-      "required": ["type"],
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": ["linear", "discrete", "proportional", "fixed", "bakers_percentage"]
-        },
-        "factor": { "type": "number" },
-        "referenceId": { "type": "string" },
-        "roundTo": { "type": "number" },
-        "min": { "type": "number" },
-        "max": { "type": "number" }
-      },
+      "$ref": "./stacks/scaling.schema.json#/properties/scaling"
+    }
+  },
+  "patternProperties": {
+    "^x-": {
+      "$ref": "./defs/common.schema.json#/properties/extensionLaneValue"
+    }
+  },
+  "required": [
+    "stacks",
+    "name",
+    "ingredients",
+    "instructions"
+  ],
+  "allOf": [
+    {
       "if": {
-        "properties": { "type": { "const": "bakers_percentage" } }
-      },
-      "then": {
-        "required": ["referenceId"]
-      }
-    },
-    "ingredient": {
-      "type": "object",
-      "required": ["item"],
-      "properties": {
-        "id": { "type": "string" },
-        "item": { "type": "string" },
-        "quantity": { "$ref": "#/definitions/quantity" },
-        "name": { "type": "string" },
-        "aisle": { "type": "string" },
-        "prep": { "type": "string" },
-        "prepAction": { "type": "string" },
-        "prepActions": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Structured prep verbs (e.g., peel, dice) for mise en place workflows."
-        },
-        "prepTime": { "type": "number" },
-        "form": {
-          "type": "string",
-          "description": "State of the ingredient as used (packed, sifted, melted, room_temperature, etc.)."
-        },
-        "destination": { "type": "string" },
-        "scaling": { "$ref": "#/definitions/scaling" },
-        "critical": { "type": "boolean" },
-        "optional": { "type": "boolean" },
-        "notes": { "type": "string" }
-      }
-    },
-    "ingredientSubsection": {
-      "type": "object",
-      "required": ["subsection", "items"],
-      "properties": {
-        "subsection": { "type": "string" },
-        "items": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/ingredient" }
-        }
-      }
-    },
-    "equipment": {
-      "type": "object",
-      "required": ["name"],
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "required": { "type": "boolean" },
-        "label": { "type": "string" },
-        "capacity": { "$ref": "#/definitions/quantity" },
-        "scalingLimit": { "type": "number" },
-        "alternatives": {
-          "type": "array",
-          "items": { "type": "string" }
-        }
-      }
-    },
-    "instruction": {
-      "type": "object",
-      "required": ["text"],
-      "properties": {
-        "id": { "type": "string" },
-        "text": { "type": "string" },
-        "image": {
-          "type": "string",
-          "format": "uri",
-          "description": "Optional image that illustrates this instruction"
-        },
-        "destination": { "type": "string" },
-        "dependsOn": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "inputs": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "timing": {
-          "type": "object",
-          "required": ["duration", "type"],
-          "properties": {
-            "duration": {
-              "anyOf": [
-                { "type": "number" },
-                { "type": "string", "pattern": "^P" }
-              ],
-              "description": "Minutes as a number or ISO8601 duration string"
-            },
-            "type": { "type": "string", "enum": ["active", "passive"] },
-            "scaling": { "type": "string", "enum": ["linear", "fixed", "sqrt"] }
-          }
-        }
-      }
-    },
-    "instructionSubsection": {
-      "type": "object",
-      "required": ["subsection", "items"],
-      "properties": {
-        "subsection": { "type": "string" },
-        "items": {
-          "type": "array",
-          "items": {
-            "anyOf": [
-              { "type": "string" },
-              { "$ref": "#/definitions/instruction" }
+        "required": [
+          "profile"
+        ],
+        "properties": {
+          "profile": {
+            "enum": [
+              "base",
+              "equipped",
+              "illustrated",
+              "prepped",
+              "scalable",
+              "timed"
             ]
           }
         }
+      },
+      "then": {
+        "required": [
+          "yield",
+          "time"
+        ]
       }
     },
-    "storage": {
-      "type": "object",
-      "properties": {
-        "roomTemp": { "$ref": "#/definitions/storageMethod" },
-        "refrigerated": { "$ref": "#/definitions/storageMethod" },
-        "frozen": {
-          "allOf": [
-            { "$ref": "#/definitions/storageMethod" },
-            {
-              "type": "object",
-              "properties": { "thawing": { "type": "string" } }
+    {
+      "$comment": "BEGIN GENERATED STACK GATING"
+    },
+    {
+      "if": {
+        "required": [
+          "profile"
+        ],
+        "properties": {
+          "profile": {
+            "const": "equipped"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "stacks"
+        ],
+        "properties": {
+          "stacks": {
+            "required": [
+              "equipment"
+            ],
+            "properties": {
+              "equipment": {
+                "type": "integer",
+                "enum": [
+                  1
+                ]
+              }
             }
-          ]
-        },
-        "reheating": { "type": "string" },
-        "makeAhead": {
-          "type": "array",
-          "items": {
-            "allOf": [
-              { "$ref": "#/definitions/storageMethod" },
-              {
-                "type": "object",
-                "required": ["component", "storage"],
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "profile"
+        ],
+        "properties": {
+          "profile": {
+            "const": "illustrated"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "stacks"
+        ],
+        "properties": {
+          "stacks": {
+            "required": [
+              "illustrated"
+            ],
+            "properties": {
+              "illustrated": {
+                "type": "integer",
+                "enum": [
+                  1
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "profile"
+        ],
+        "properties": {
+          "profile": {
+            "const": "prepped"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "stacks"
+        ],
+        "properties": {
+          "stacks": {
+            "required": [
+              "prep"
+            ],
+            "properties": {
+              "prep": {
+                "type": "integer",
+                "enum": [
+                  1
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "profile"
+        ],
+        "properties": {
+          "profile": {
+            "const": "scalable"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "stacks"
+        ],
+        "properties": {
+          "stacks": {
+            "required": [
+              "quantified",
+              "scaling"
+            ],
+            "properties": {
+              "quantified": {
+                "type": "integer",
+                "enum": [
+                  1
+                ]
+              },
+              "scaling": {
+                "type": "integer",
+                "enum": [
+                  1
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "profile"
+        ],
+        "properties": {
+          "profile": {
+            "const": "timed"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "stacks"
+        ],
+        "properties": {
+          "stacks": {
+            "required": [
+              "structured",
+              "timed"
+            ],
+            "properties": {
+              "structured": {
+                "type": "integer",
+                "enum": [
+                  1
+                ]
+              },
+              "timed": {
+                "type": "integer",
+                "enum": [
+                  1
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "compute"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stacks": {
                 "properties": {
-                  "component": { "type": "string" },
-                  "storage": { "type": "string", "enum": ["roomTemp", "refrigerated", "frozen"] }
+                  "compute": {
+                    "enum": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "compute"
+                ],
+                "properties": {
+                  "compute": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "allOf": [
+              {
+                "properties": {
+                  "stacks": {
+                    "required": [
+                      "quantified"
+                    ],
+                    "properties": {
+                      "quantified": {
+                        "enum": [
+                          1
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "stacks": {
+                    "required": [
+                      "timed"
+                    ],
+                    "properties": {
+                      "timed": {
+                        "enum": [
+                          1
+                        ]
+                      }
+                    }
+                  }
                 }
               }
             ]
           }
         }
-      }
+      ]
     },
-    "storageMethod": {
-      "type": "object",
-      "required": ["duration"],
-      "properties": {
-        "duration": { "type": "string", "pattern": "^P" },
-        "method": { "type": "string" },
-        "notes": { "type": "string" }
-      }
-    },
-    "substitution": {
-      "type": "object",
-      "required": ["ingredient"],
-      "properties": {
-        "ingredient": { "type": "string" },
-        "critical": { "type": "boolean" },
-        "notes": { "type": "string" },
-        "alternatives": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["name", "ratio"],
+    {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
             "properties": {
-              "name": { "type": "string" },
-              "ratio": { "type": "string" },
-              "notes": { "type": "string" },
-              "impact": { "type": "string" },
-              "dietary": {
-                "type": "array",
-                "items": { "type": "string" }
+              "stacks": {
+                "required": [
+                  "dietary"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stacks": {
+                "properties": {
+                  "dietary": {
+                    "enum": [
+                      1
+                    ]
+                  }
+                }
               }
             }
           }
+        },
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "dietary"
+                ],
+                "properties": {
+                  "dietary": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "dietary": {
+                "type": "object",
+                "properties": {
+                  "basis": {
+                    "type": "string",
+                    "enum": [
+                      "perServing",
+                      "perRecipe"
+                    ]
+                  },
+                  "calories": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "macros": {
+                    "type": "object",
+                    "properties": {
+                      "protein": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "fat": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "carbohydrates": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "metadata": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    },
+                    "minProperties": 1,
+                    "additionalProperties": false,
+                    "patternProperties": {
+                      "^x-": {
+                        "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                      }
+                    }
+                  },
+                  "diets": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "allergens": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                },
+                "required": [
+                  "basis"
+                ],
+                "additionalProperties": false,
+                "anyOf": [
+                  {
+                    "required": [
+                      "calories"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "macros"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "diets"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "allergens"
+                    ]
+                  }
+                ],
+                "patternProperties": {
+                  "^x-": {
+                    "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                  }
+                }
+              }
+            },
+            "required": [
+              "dietary"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "equipment"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stacks": {
+                "properties": {
+                  "equipment": {
+                    "enum": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "equipment"
+                ],
+                "properties": {
+                  "equipment": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "equipment": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "$ref": "#/$defs/equipment@1_equipmentItem"
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "equipment"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "illustrated"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stacks": {
+                "properties": {
+                  "illustrated": {
+                    "enum": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "illustrated"
+                ],
+                "properties": {
+                  "illustrated": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "images": {
+                "type": "array",
+                "items": {
+                  "$ref": "https://soustack.spec/defs/common.schema.json#/properties/uri"
+                }
+              },
+              "videos": {
+                "type": "array",
+                "items": {
+                  "$ref": "https://soustack.spec/defs/common.schema.json#/properties/uri"
+                }
+              },
+              "instructions": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/illustrated@1_illustratedStep"
+                    },
+                    {
+                      "$ref": "#/$defs/illustrated@1_illustratedSection"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "prep"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stacks": {
+                "properties": {
+                  "prep": {
+                    "enum": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "prep"
+                ],
+                "properties": {
+                  "prep": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "miseEnPlace": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/prep@1_miseEnPlaceTask"
+                }
+              }
+            },
+            "required": [
+              "miseEnPlace"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "quantified"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stacks": {
+                "properties": {
+                  "quantified": {
+                    "enum": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "quantified"
+                ],
+                "properties": {
+                  "quantified": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ingredients": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/quantified@1_ingredient"
+                    },
+                    {
+                      "$ref": "#/$defs/quantified@1_ingredientSection"
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "ingredients"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "referenced"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stacks": {
+                "properties": {
+                  "referenced": {
+                    "enum": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "referenced"
+                ],
+                "properties": {
+                  "referenced": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "allOf": [
+              {
+                "properties": {
+                  "stacks": {
+                    "required": [
+                      "structured"
+                    ],
+                    "properties": {
+                      "structured": {
+                        "enum": [
+                          1
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "ingredients": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/referenced@1_ingredient"
+                        },
+                        {
+                          "$ref": "#/$defs/referenced@1_ingredientSection"
+                        }
+                      ]
+                    }
+                  },
+                  "instructions": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/referenced@1_referencedStep"
+                        },
+                        {
+                          "$ref": "#/$defs/referenced@1_referencedSection"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "ingredients",
+                  "instructions"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "scaling"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stacks": {
+                "properties": {
+                  "scaling": {
+                    "enum": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "scaling"
+                ],
+                "properties": {
+                  "scaling": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "allOf": [
+              {
+                "properties": {
+                  "stacks": {
+                    "required": [
+                      "quantified"
+                    ],
+                    "properties": {
+                      "quantified": {
+                        "enum": [
+                          1
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "ingredients": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/scaling@1_ingredient"
+                        },
+                        {
+                          "$ref": "#/$defs/scaling@1_ingredientSection"
+                        }
+                      ]
+                    }
+                  },
+                  "scaling": {
+                    "type": "object",
+                    "properties": {
+                      "discrete": {
+                        "type": "object",
+                        "properties": {
+                          "min": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "max": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "step": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "metadata": {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        },
+                        "required": [
+                          "min",
+                          "max"
+                        ],
+                        "additionalProperties": false,
+                        "patternProperties": {
+                          "^x-": {
+                            "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    },
+                    "required": [
+                      "discrete"
+                    ],
+                    "additionalProperties": false,
+                    "patternProperties": {
+                      "^x-": {
+                        "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "ingredients",
+                  "scaling"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "storage"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stacks": {
+                "properties": {
+                  "storage": {
+                    "enum": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "storage"
+                ],
+                "properties": {
+                  "storage": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "storage": {
+                "type": "object",
+                "properties": {
+                  "roomTemp": {
+                    "$ref": "#/$defs/storage@1_storageMethod"
+                  },
+                  "refrigerated": {
+                    "$ref": "#/$defs/storage@1_storageMethod"
+                  },
+                  "frozen": {
+                    "$ref": "#/$defs/storage@1_storageMethod"
+                  },
+                  "leftovers": {
+                    "$ref": "#/$defs/storage@1_leftovers"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                },
+                "anyOf": [
+                  {
+                    "required": [
+                      "roomTemp"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "refrigerated"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "frozen"
+                    ]
+                  }
+                ],
+                "additionalProperties": false,
+                "patternProperties": {
+                  "^x-": {
+                    "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                  }
+                }
+              }
+            },
+            "required": [
+              "storage"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "structured"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stacks": {
+                "properties": {
+                  "structured": {
+                    "enum": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "structured"
+                ],
+                "properties": {
+                  "structured": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "instructions": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/structured@1_step"
+                    },
+                    {
+                      "$ref": "#/$defs/structured@1_stepSection"
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "instructions"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "substitutions"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stacks": {
+                "properties": {
+                  "substitutions": {
+                    "enum": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "substitutions"
+                ],
+                "properties": {
+                  "substitutions": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "allOf": [
+              {
+                "properties": {
+                  "stacks": {
+                    "required": [
+                      "referenced"
+                    ],
+                    "properties": {
+                      "referenced": {
+                        "enum": [
+                          1
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "substitutions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "for": {
+                          "type": "string"
+                        },
+                        "alternatives": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "ratio": {
+                                "type": "string"
+                              },
+                              "metadata": {
+                                "type": "object",
+                                "additionalProperties": true
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "ratio"
+                            ],
+                            "additionalProperties": false,
+                            "patternProperties": {
+                              "^x-": {
+                                "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                              }
+                            }
+                          },
+                          "minItems": 1
+                        },
+                        "metadata": {
+                          "type": "object",
+                          "additionalProperties": true
+                        }
+                      },
+                      "required": [
+                        "for",
+                        "alternatives"
+                      ],
+                      "additionalProperties": false,
+                      "patternProperties": {
+                        "^x-": {
+                          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                        }
+                      }
+                    },
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "substitutions"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "techniques"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stacks": {
+                "properties": {
+                  "techniques": {
+                    "enum": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "techniques"
+                ],
+                "properties": {
+                  "techniques": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "techniques": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "additionalProperties": false,
+                  "patternProperties": {
+                    "^x-": {
+                      "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                    }
+                  }
+                },
+                "minItems": 1
+              }
+            },
+            "required": [
+              "techniques"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "timed"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stacks": {
+                "properties": {
+                  "timed": {
+                    "enum": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "stacks"
+            ],
+            "properties": {
+              "stacks": {
+                "required": [
+                  "timed"
+                ],
+                "properties": {
+                  "timed": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "allOf": [
+              {
+                "properties": {
+                  "stacks": {
+                    "required": [
+                      "structured"
+                    ],
+                    "properties": {
+                      "structured": {
+                        "enum": [
+                          1
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "instructions": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/timed@1_timedStep"
+                        },
+                        {
+                          "$ref": "#/$defs/timed@1_timedStepSection"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "instructions"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "$comment": "END GENERATED STACK GATING"
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "stackName": {
+      "type": "string",
+      "pattern": "^(?:[a-z][a-z0-9-]*|x-[a-z0-9-]+(?:\\.[a-z0-9-]+)*)$"
+    },
+    "stackMajor": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "stacksMap": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/stackName"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/stackMajor"
+      }
+    },
+    "ingredient": {
+      "allOf": [
+        {
+          "$ref": "./defs/entities.schema.json#/$defs/IngredientBase"
+        }
+      ]
+    },
+    "ingredientSection": {
+      "type": "object",
+      "properties": {
+        "section": {
+          "type": "string"
+        },
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/ingredient"
+              },
+              {
+                "$ref": "#/$defs/ingredientSection"
+              }
+            ]
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "section",
+        "ingredients"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "./defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
+    },
+    "step": {
+      "$ref": "./defs/entities.schema.json#/$defs/StepBase"
+    },
+    "stepSection": {
+      "type": "object",
+      "properties": {
+        "section": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/step"
+              },
+              {
+                "$ref": "#/$defs/stepSection"
+              }
+            ]
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "section",
+        "steps"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "./defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
+    },
+    "illustrated@1_illustratedStep": {
+      "allOf": [
+        {
+          "$ref": "https://soustack.spec/defs/entities.schema.json#/$defs/StepBase"
+        },
+        {
+          "required": [
+            "id"
+          ]
+        }
+      ]
+    },
+    "illustrated@1_illustratedSection": {
+      "type": "object",
+      "properties": {
+        "section": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "https://soustack.spec/stacks/illustrated.schema.json#/$defs/illustratedStep"
+              },
+              {
+                "$ref": "https://soustack.spec/stacks/illustrated.schema.json#/$defs/illustratedSection"
+              }
+            ]
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "section",
+        "steps"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
+    },
+    "quantified@1_ingredient": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "quantity": {
+          "$ref": "https://soustack.spec/defs/quantity.schema.json"
+        },
+        "temperature": {
+          "$ref": "https://soustack.spec/defs/temperature.schema.json"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "prep": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "$ref": "https://soustack.spec/stacks/prep.schema.json#/$defs/prepItem"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "scaling": {
+          "$ref": "https://soustack.spec/defs/scalingRule.schema.json"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "quantity"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
+    },
+    "quantified@1_ingredientSection": {
+      "type": "object",
+      "properties": {
+        "section": {
+          "type": "string"
+        },
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "https://soustack.spec/stacks/quantified.schema.json#/$defs/ingredient"
+              },
+              {
+                "$ref": "https://soustack.spec/stacks/quantified.schema.json#/$defs/ingredientSection"
+              }
+            ]
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "section",
+        "ingredients"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
+    },
+    "referenced@1_ingredient": {
+      "allOf": [
+        {
+          "$ref": "https://soustack.spec/defs/entities.schema.json#/$defs/IngredientBase"
+        },
+        {
+          "required": [
+            "id"
+          ]
+        }
+      ]
+    },
+    "referenced@1_ingredientSection": {
+      "type": "object",
+      "properties": {
+        "section": {
+          "type": "string"
+        },
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "https://soustack.spec/stacks/referenced.schema.json#/$defs/ingredient"
+              },
+              {
+                "$ref": "https://soustack.spec/stacks/referenced.schema.json#/$defs/ingredientSection"
+              }
+            ]
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "section",
+        "ingredients"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
+    },
+    "referenced@1_referencedStep": {
+      "allOf": [
+        {
+          "$ref": "https://soustack.spec/defs/entities.schema.json#/$defs/StepBase"
+        },
+        {
+          "properties": {
+            "inputs": {
+              "allOf": [
+                {
+                  "$ref": "https://soustack.spec/defs/entities.schema.json#/$defs/StepBase/properties/inputs"
+                },
+                {
+                  "minItems": 1
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "inputs"
+          ]
+        }
+      ]
+    },
+    "referenced@1_referencedSection": {
+      "type": "object",
+      "properties": {
+        "section": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "https://soustack.spec/stacks/referenced.schema.json#/$defs/referencedStep"
+              },
+              {
+                "$ref": "https://soustack.spec/stacks/referenced.schema.json#/$defs/referencedSection"
+              }
+            ]
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "section",
+        "steps"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
+    },
+    "scaling@1_ingredient": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "quantity": {
+          "$ref": "https://soustack.spec/defs/quantity.schema.json"
+        },
+        "temperature": {
+          "$ref": "https://soustack.spec/defs/temperature.schema.json"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "prep": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "$ref": "https://soustack.spec/stacks/prep.schema.json#/$defs/prepItem"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "scaling": {
+          "$ref": "https://soustack.spec/defs/scalingRule.schema.json"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "quantity"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
+    },
+    "scaling@1_ingredientSection": {
+      "type": "object",
+      "properties": {
+        "section": {
+          "type": "string"
+        },
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "https://soustack.spec/stacks/scaling.schema.json#/$defs/ingredient"
+              },
+              {
+                "$ref": "https://soustack.spec/stacks/scaling.schema.json#/$defs/ingredientSection"
+              }
+            ]
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "section",
+        "ingredients"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
+    },
+    "storage@1_storageMethod": {
+      "type": "object",
+      "properties": {
+        "duration": {
+          "$ref": "https://soustack.spec/defs/duration.schema.json#/properties/StorageDuration"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "duration"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
+    },
+    "structured@1_step": {
+      "allOf": [
+        {
+          "$ref": "https://soustack.spec/defs/entities.schema.json#/$defs/StepBase"
+        },
+        {
+          "required": [
+            "id"
+          ]
+        }
+      ]
+    },
+    "structured@1_stepSection": {
+      "type": "object",
+      "properties": {
+        "section": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "https://soustack.spec/stacks/structured.schema.json#/$defs/step"
+              },
+              {
+                "$ref": "https://soustack.spec/stacks/structured.schema.json#/$defs/stepSection"
+              }
+            ]
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "section",
+        "steps"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
+    },
+    "timed@1_timedStep": {
+      "allOf": [
+        {
+          "$ref": "https://soustack.spec/defs/entities.schema.json#/$defs/StepBase"
+        },
+        {
+          "properties": {
+            "timing": {
+              "allOf": [
+                {
+                  "$ref": "https://soustack.spec/defs/entities.schema.json#/$defs/StepBase/properties/timing"
+                },
+                {
+                  "required": [
+                    "activity"
+                  ],
+                  "anyOf": [
+                    {
+                      "required": [
+                        "duration"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "completionCue"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "timing"
+          ]
+        }
+      ]
+    },
+    "timed@1_timedStepSection": {
+      "type": "object",
+      "properties": {
+        "section": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "https://soustack.spec/stacks/timed.schema.json#/$defs/timedStep"
+              },
+              {
+                "$ref": "https://soustack.spec/stacks/timed.schema.json#/$defs/timedStepSection"
+              }
+            ]
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "section",
+        "steps"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
+    },
+    "equipment@1_equipmentItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]+$",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "countScaling": {
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "fixed",
+                "linear"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "const": "threshold"
+                },
+                "steps": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "maxFactor": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "count": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    },
+                    "required": [
+                      "maxFactor",
+                      "count"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "mode",
+                "steps"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "upgrades": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "minFactor": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "use": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._-]+$",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "minFactor",
+              "use"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
+    },
+    "prep@1_miseEnPlaceTask": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]+$"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "usesEquipment": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]+$"
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+        }
+      }
+    },
+    "storage@1_leftovers": {
+      "type": "object",
+      "properties": {
+        "notes": {
+          "type": "string"
+        },
+        "reheat": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "https://soustack.spec/stacks/storage.schema.json#/$defs/reheatInstruction"
+              },
+              "minItems": 1
+            }
+          ]
+        },
+        "portioning": {
+          "$ref": "https://soustack.spec/stacks/storage.schema.json#/$defs/portioning"
+        }
+      },
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {
+          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
         }
       }
     }

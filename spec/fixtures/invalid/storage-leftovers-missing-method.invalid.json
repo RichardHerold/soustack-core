@@ -1,0 +1,31 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "storage": 1
+  },
+  "name": "Recipe with Invalid Reheat Instruction",
+  "ingredients": [
+    "food"
+  ],
+  "instructions": [
+    "Cook the food"
+  ],
+  "storage": {
+    "refrigerated": {
+      "duration": {
+        "iso8601": "P3D"
+      }
+    },
+    "leftovers": {
+      "reheat": [
+        {
+          "duration": {
+            "minMinutes": 2,
+            "maxMinutes": 3
+          },
+          "notes": "Missing required method field"
+        }
+      ]
+    }
+  }
+}

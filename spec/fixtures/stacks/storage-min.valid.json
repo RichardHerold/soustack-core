@@ -1,0 +1,20 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "storage": 1
+  },
+  "name": "Leftover Soup",
+  "ingredients": [
+    "soup"
+  ],
+  "instructions": [
+    "reheat when ready"
+  ],
+  "storage": {
+    "refrigerated": {
+      "duration": {
+        "iso8601": "P3D"
+      }
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "prep": 1,
+    "referenced": 1,
+    "structured": 1,
+    "equipment": 1
+  },
+  "name": "Recipe with Mise En Place References",
+  "yield": {
+    "amount": 1,
+    "unit": "serving"
+  },
+  "time": {
+    "total": {
+      "minutes": 30
+    }
+  },
+  "equipment": [
+    {
+      "id": "knife",
+      "name": "Chef's knife"
+    }
+  ],
+  "ingredients": [
+    {
+      "id": "onion",
+      "name": "Onion"
+    }
+  ],
+  "instructions": [
+    {
+      "id": "cook",
+      "text": "Cook the onion",
+      "inputs": [
+        "onion"
+      ]
+    }
+  ],
+  "miseEnPlace": [
+    {
+      "text": "Dice the onion with a sharp knife",
+      "inputs": [
+        "onion"
+      ],
+      "usesEquipment": [
+        "knife"
+      ]
+    }
+  ]
+}

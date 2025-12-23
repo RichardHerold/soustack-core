@@ -1,0 +1,37 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "prep": 1,
+    "equipment": 1
+  },
+  "name": "Recipe with Unknown Equipment Reference",
+  "yield": {
+    "amount": 1,
+    "unit": "serving"
+  },
+  "time": {
+    "total": {
+      "minutes": 30
+    }
+  },
+  "equipment": [
+    {
+      "id": "knife",
+      "name": "Chef's knife"
+    }
+  ],
+  "ingredients": [
+    "onion"
+  ],
+  "instructions": [
+    "Cook"
+  ],
+  "miseEnPlace": [
+    {
+      "text": "Use the missing equipment",
+      "usesEquipment": [
+        "missing-equipment"
+      ]
+    }
+  ]
+}

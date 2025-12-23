@@ -1,0 +1,162 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "profile": "base",
+  "stacks": {
+    "quantified": 1,
+    "structured": 1,
+    "timed": 1,
+    "referenced": 1,
+    "compute": 1,
+    "storage": 1,
+    "dietary": 1,
+    "substitutions": 1,
+    "techniques": 1,
+    "illustrated": 1
+  },
+  "name": "Garlic Pasta",
+  "yield": {
+    "amount": 4,
+    "unit": "servings"
+  },
+  "time": {
+    "total": {
+      "minutes": 45
+    }
+  },
+  "ingredients": [
+    {
+      "id": "i1",
+      "name": "pasta",
+      "quantity": {
+        "amount": 500,
+        "unit": "g"
+      }
+    },
+    {
+      "id": "i2",
+      "name": "garlic",
+      "quantity": {
+        "amount": 4,
+        "unit": "clove"
+      }
+    }
+  ],
+  "instructions": [
+    {
+      "id": "s1",
+      "text": "Boil water",
+      "timing": {
+        "activity": "active",
+        "duration": {
+          "minutes": 10
+        }
+      },
+      "inputs": [
+        "i1"
+      ],
+      "techniqueIds": [
+        "t1"
+      ],
+      "images": [
+        "http://example.com/step1.jpg"
+      ]
+    },
+    {
+      "id": "s2",
+      "text": "Cook pasta",
+      "timing": {
+        "activity": "active",
+        "duration": {
+          "minMinutes": 8,
+          "maxMinutes": 10
+        }
+      },
+      "dependsOn": [
+        "s1"
+      ],
+      "inputs": [
+        "i1"
+      ],
+      "techniqueIds": [
+        "t2"
+      ],
+      "temperature": {
+        "target": "water",
+        "level": "high"
+      },
+      "videos": [
+        "http://example.com/v1.mp4"
+      ]
+    },
+    {
+      "id": "s3",
+      "text": "Saute garlic",
+      "timing": {
+        "activity": "active",
+        "duration": {
+          "minutes": 5
+        },
+        "completionCue": "fragrant"
+      },
+      "dependsOn": [
+        "s2"
+      ],
+      "inputs": [
+        "i2"
+      ],
+      "techniqueIds": [
+        "t1",
+        "t3"
+      ],
+      "temperature": {
+        "target": "stovetop",
+        "level": "medium"
+      }
+    }
+  ],
+  "images": [
+    "http://example.com/cover.jpg"
+  ],
+  "videos": [
+    "http://example.com/cover.mp4"
+  ],
+  "dietary": {
+    "basis": "perServing",
+    "calories": 400,
+    "diets": [
+      "vegetarian"
+    ]
+  },
+  "storage": {
+    "refrigerated": {
+      "duration": {
+        "iso8601": "P2D"
+      }
+    }
+  },
+  "substitutions": [
+    {
+      "for": "garlic",
+      "alternatives": [
+        {
+          "name": "shallot",
+          "ratio": "1:1"
+        }
+      ]
+    }
+  ],
+  "techniques": [
+    {
+      "id": "t1",
+      "name": "Boil"
+    },
+    {
+      "id": "t2",
+      "name": "Simmer"
+    },
+    {
+      "id": "t3",
+      "name": "Saute"
+    }
+  ]
+}

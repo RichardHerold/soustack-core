@@ -1,0 +1,13 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "illustrated": 1
+  },
+  "name": "No Media",
+  "ingredients": [
+    "thing"
+  ],
+  "instructions": [
+    "step"
+  ]
+}

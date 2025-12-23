@@ -1,0 +1,20 @@
+{
+  "profile": "base",
+  "stacks": {},
+  "name": "Boiled Egg",
+  "yield": {
+    "amount": 1,
+    "unit": "serving"
+  },
+  "time": {
+    "total": {
+      "minutes": 10
+    }
+  },
+  "ingredients": [
+    "Egg"
+  ],
+  "instructions": [
+    "Boil the egg for 10 minutes."
+  ]
+}

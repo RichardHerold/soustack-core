@@ -1,8 +1,0 @@
-{
-  "name": "Broken DAG",
-  "ingredients": ["Item"],
-  "instructions": [
-    { "id": "start", "text": "Start", "timing": { "duration": 1, "type": "active" } },
-    { "id": "finish", "text": "Finish", "dependsOn": ["missing"], "timing": { "duration": 1, "type": "active" } }
-  ]
-}

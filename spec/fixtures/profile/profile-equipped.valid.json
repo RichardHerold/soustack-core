@@ -1,0 +1,28 @@
+{
+  "profile": "equipped",
+  "stacks": {
+    "equipment": 1
+  },
+  "name": "Equipped Recipe",
+  "yield": {
+    "amount": 2,
+    "unit": "servings"
+  },
+  "time": {
+    "total": {
+      "minutes": 15
+    }
+  },
+  "equipment": [
+    "mixing bowl",
+    "spatula"
+  ],
+  "ingredients": [
+    "flour",
+    "eggs"
+  ],
+  "instructions": [
+    "Mix ingredients in a bowl.",
+    "Stir until smooth."
+  ]
+}

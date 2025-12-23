@@ -1,0 +1,29 @@
+{
+  "profile": "scalable",
+  "stacks": {
+    "quantified": 1
+  },
+  "name": "Scaled Bread",
+  "yield": {
+    "amount": 2,
+    "unit": "loaf"
+  },
+  "time": {
+    "total": {
+      "minutes": 180
+    }
+  },
+  "ingredients": [
+    {
+      "id": "flour",
+      "name": "Bread flour",
+      "quantity": {
+        "amount": 500,
+        "unit": "g"
+      }
+    }
+  ],
+  "instructions": [
+    "Mix ingredients."
+  ]
+}
