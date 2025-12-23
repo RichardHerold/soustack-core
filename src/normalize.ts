@@ -48,6 +48,8 @@ export function normalizeRecipe(input: unknown): NormalizationResult {
     typeof (recipe as any).version === 'string'
   ) {
     (recipe as any).recipeVersion = (recipe as any).version;
+    // Remove the deprecated version field after normalizing to avoid validation errors
+    delete (recipe as any).version;
     warnings.push("'version' is deprecated; mapped to 'recipeVersion'.");
   }
 

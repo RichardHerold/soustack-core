@@ -249,8 +249,8 @@ export function parseIngredient(text: string): ParsedIngredient {
   const normalized = normalizeIngredientInput(original);
   if (!normalized) {
     return {
-      item: original,
-      scaling: { type: 'linear' }
+      name: original,
+      scaling: { mode: 'linear' }
     };
   }
 
@@ -343,9 +343,8 @@ export function parseIngredient(text: string): ParsedIngredient {
   const mergedNotes = formatNotes(notes);
 
   const parsed: ParsedIngredient = {
-    item: original,
+    name: name || original,
     quantity,
-    ...(name ? { name } : {}),
     ...(nameExtraction.prep ? { prep: nameExtraction.prep } : {}),
     ...(optional ? { optional: true } : {}),
     scaling
@@ -719,15 +718,15 @@ function inferScaling(
     descriptorLower === 'cloves' ||
     normalizedNotes.some(note => note.includes('clove'))
   ) {
-    return { type: 'discrete', roundTo: 1 };
+    return { mode: 'discrete', step: 1, rounding: 'nearest' };
   }
 
   if (descriptorLower === 'stick' || descriptorLower === 'sticks') {
-    return { type: 'discrete', roundTo: 1 };
+    return { mode: 'discrete', step: 1, rounding: 'nearest' };
   }
 
   if (normalizedNotes.some(note => PURPOSE_KEYWORDS.some(keyword => note.includes(keyword)))) {
-    return { type: 'fixed' };
+    return { mode: 'fixed' };
   }
 
   const isSpice = SPICE_KEYWORDS.some(keyword => lowerName.includes(keyword));
@@ -736,10 +735,10 @@ function inferScaling(
     normalizedNotes.some(note => note.includes('to taste')) ||
     (isSpice && (smallUnit || (amount !== null && amount <= 1)))
   ) {
-    return { type: 'proportional', factor: 0.7 };
+    return { mode: 'proportional', factor: 0.7 };
   }
 
-  return { type: 'linear' };
+  return { mode: 'linear' };
 }
 
 function formatNotes(notes: string[]): string | undefined {

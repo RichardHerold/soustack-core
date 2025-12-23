@@ -32,35 +32,43 @@ export function scaleRecipe(recipe: Recipe, options: ScaleRecipeOptions = {}): R
   collectIngredients(scaled.ingredients || [], orderedIngredients);
 
   orderedIngredients
-    .filter(ing => (ing.scaling?.type || 'linear') !== 'bakers_percentage')
+    .filter(ing => {
+      const mode = (ing.scaling as any)?.mode || (ing.scaling as any)?.type || 'linear';
+      return mode !== 'bakersPercent' && mode !== 'bakers_percentage';
+    })
     .forEach(ing => {
       const key = getIngredientKey(ing);
       scaledAmounts.set(key, calculateIndependentIngredient(ing, multiplier));
     });
 
   orderedIngredients
-    .filter(ing => ing.scaling?.type === 'bakers_percentage')
+    .filter(ing => {
+      const mode = (ing.scaling as any)?.mode || (ing.scaling as any)?.type;
+      return mode === 'bakersPercent' || mode === 'bakers_percentage';
+    })
     .forEach(ing => {
       const key = getIngredientKey(ing);
-      const scaling = ing.scaling as { referenceId?: string; factor?: number } | undefined;
+      const scaling = ing.scaling as any;
+      const referenceId = scaling?.of || scaling?.referenceId;
+      const percent = scaling?.percent || scaling?.factor;
 
-      if (!scaling?.referenceId) {
-        throw new Error(`Baker's percentage ingredient "${key}" is missing a referenceId`);
+      if (!referenceId) {
+        throw new Error(`Baker's percentage ingredient "${key}" is missing a reference (of/referenceId)`);
       }
 
-      const referenceAmount = scaledAmounts.get(scaling.referenceId);
+      const referenceAmount = scaledAmounts.get(referenceId);
       if (referenceAmount === undefined) {
-        throw new Error(`Reference ingredient "${scaling.referenceId}" not found for baker's percentage item "${key}"`);
+        throw new Error(`Reference ingredient "${referenceId}" not found for baker's percentage item "${key}"`);
       }
 
       const baseAmount = ing.quantity?.amount || 0;
-      const referenceBase = baseAmounts.get(scaling.referenceId);
-      const factor = scaling.factor ?? (referenceBase ? baseAmount / referenceBase : undefined);
-      if (factor === undefined) {
-        throw new Error(`Unable to determine factor for baker's percentage ingredient "${key}"`);
+      const referenceBase = baseAmounts.get(referenceId);
+      const calculatedPercent = percent ?? (referenceBase ? (baseAmount / referenceBase) * 100 : undefined);
+      if (calculatedPercent === undefined) {
+        throw new Error(`Unable to determine percentage for baker's percentage ingredient "${key}"`);
       }
 
-      scaledAmounts.set(key, referenceAmount * factor);
+      scaledAmounts.set(key, referenceAmount * (calculatedPercent / 100));
     });
 
   orderedIngredients.forEach(ing => {
@@ -109,14 +117,15 @@ function applyYieldScaling(recipe: Recipe, options: ScaleRecipeOptions, multipli
 }
 
 function getIngredientKey(ing: Ingredient): string {
-  return ing.id || ing.item;
+  return ing.id || ing.name;
 }
 
 function calculateIndependentIngredient(ing: Ingredient, multiplier: number): number {
   const baseAmount = ing.quantity?.amount || 0;
-  const type = ing.scaling?.type || 'linear';
+  const scaling = ing.scaling as any;
+  const mode = scaling?.mode || scaling?.type || 'linear';
 
-  switch (type) {
+  switch (mode) {
     case 'fixed':
       return baseAmount;
     case 'discrete': {
@@ -137,8 +146,8 @@ function calculateIndependentIngredient(ing: Ingredient, multiplier: number): nu
 function collectIngredients(items: IngredientItem[], bucket: Ingredient[]) {
   items.forEach(item => {
     if (typeof item === 'string') return;
-    if ('subsection' in item) {
-      collectIngredients(item.items, bucket);
+    if ('section' in item) {
+      collectIngredients(item.ingredients, bucket);
     } else {
       bucket.push(item);
     }
@@ -148,8 +157,8 @@ function collectIngredients(items: IngredientItem[], bucket: Ingredient[]) {
 function collectBaseIngredientAmounts(items: IngredientItem[], map = new Map<string, number>()) {
   items.forEach(item => {
     if (typeof item === 'string') return;
-    if ('subsection' in item) {
-      collectBaseIngredientAmounts(item.items, map);
+    if ('section' in item) {
+      collectBaseIngredientAmounts(item.ingredients, map);
     } else {
       map.set(getIngredientKey(item), item.quantity?.amount ?? 0);
     }
@@ -161,25 +170,28 @@ function scaleInstructionItems(items: InstructionItem[], multiplier: number) {
   items.forEach(item => {
     if (typeof item === 'string') return;
 
-    if ('subsection' in item) {
-      scaleInstructionItems(item.items, multiplier);
+    if ('section' in item) {
+      scaleInstructionItems(item.steps, multiplier);
       return;
     }
 
     const timing = item.timing;
-    if (!timing) return;
+    if (!timing || !timing.duration) return;
 
-    const baseDuration = toDurationMinutes(timing.duration);
-    const scalingType = timing.scaling || 'fixed';
-    let newDuration = baseDuration;
+    // Handle DurationMinutes format: { minutes: number }
+    const baseDuration = typeof timing.duration === 'object' && 'minutes' in timing.duration
+      ? timing.duration.minutes
+      : toDurationMinutes(timing.duration as any);
+    
+    // Default to linear scaling for timing (vNext doesn't have scaling property)
+    const newDuration = Math.ceil(baseDuration * multiplier);
 
-    if (scalingType === 'linear') {
-      newDuration = baseDuration * multiplier;
-    } else if (scalingType === 'sqrt') {
-      newDuration = baseDuration * Math.sqrt(multiplier);
+    if (typeof timing.duration === 'object' && 'minutes' in timing.duration) {
+      timing.duration.minutes = newDuration;
+    } else {
+      // Fallback for legacy format
+      (timing as any).duration = newDuration;
     }
-
-    timing.duration = Math.ceil(newDuration);
   });
 }
 

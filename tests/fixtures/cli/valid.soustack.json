@@ -1,14 +1,14 @@
 {
   "@type": "Recipe",
-  "profile": "core",
+  "profile": "lite",
   "stacks": {},
   "name": "CLI Valid Recipe",
   "description": "A simple recipe fixture for CLI validation tests.",
   "ingredients": [
-    { "item": "Flour", "quantity": { "amount": 2, "unit": "cup" } },
-    { "item": "Water", "quantity": { "amount": 1, "unit": "cup" } }
+    { "id": "flour", "name": "Flour", "quantity": { "amount": 2, "unit": "cup" } },
+    { "id": "water", "name": "Water", "quantity": { "amount": 1, "unit": "cup" } }
   ],
   "instructions": [
-    { "text": "Mix the ingredients." }
+    { "id": "mix", "text": "Mix the ingredients." }
   ]
 }
