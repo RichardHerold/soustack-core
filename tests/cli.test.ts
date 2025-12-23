@@ -91,18 +91,33 @@ describe('soustack CLI', () => {
   "schemaErrors": [
     {
       "keyword": "required",
-      "message": "must have required property '@type'",
+      "message": "must have required property 'yield'",
       "path": "/",
     },
     {
       "keyword": "required",
-      "message": "must have required property '@type'",
+      "message": "must have required property 'time'",
       "path": "/",
     },
     {
       "keyword": "required",
       "message": "must have required property 'instructions'",
       "path": "/",
+    },
+    {
+      "keyword": "required",
+      "message": "must have required property 'name'",
+      "path": "/ingredients/0",
+    },
+    {
+      "keyword": "required",
+      "message": "must have required property 'section'",
+      "path": "/ingredients/0",
+    },
+    {
+      "keyword": "required",
+      "message": "must have required property 'ingredients'",
+      "path": "/ingredients/0",
     },
   ],
   "stacks": {},
