@@ -20,6 +20,7 @@ import nutritionStackSchema from "./schemas/recipe/stacks/nutrition/1.schema.jso
 import scheduleStackSchema from "./schemas/recipe/stacks/schedule/1.schema.json";
 import taxonomyStackSchema from "./schemas/recipe/stacks/taxonomy/1.schema.json";
 import timesStackSchema from "./schemas/recipe/stacks/times/1.schema.json";
+import stacksRegistry from "./schemas/registry/stacks.json";
 
 type ProfileName =
   | "base"
@@ -78,8 +79,16 @@ interface ValidationContext {
   validators: Map<string, ValidateFunction>;
 }
 
+interface StackRegistryInfo {
+  latestMajor: number;
+  versions: number[];
+  requires: string[];
+}
+
 // Cache for validation contexts
 const validationContexts: Map<boolean, ValidationContext> = new Map();
+const stackRegistryById = buildStackRegistryById();
+const stackRegistryIds = Array.from(stackRegistryById.keys());
 
 /**
  * Loads all bundled schema files and registers them with Ajv.
@@ -196,27 +205,84 @@ function isSoustackSchemaId(schemaId: string): boolean {
   );
 }
 
+function buildStackRegistryById(): Map<string, StackRegistryInfo> {
+  const registry = new Map<string, StackRegistryInfo>();
+  for (const entry of stacksRegistry.stacks || []) {
+    if (!entry || typeof entry.id !== "string") continue;
+    const versions = Array.isArray(entry.versions)
+      ? entry.versions.filter((version) => Number.isInteger(version) && version >= 1)
+      : [];
+    const latestMajor =
+      typeof (entry as any).latestMajor === "number"
+        ? (entry as any).latestMajor
+        : typeof entry.latest === "number"
+          ? entry.latest
+          : versions.length > 0
+            ? Math.max(...versions)
+            : 1;
+    const requires = Array.isArray((entry as any).requires)
+      ? (entry as any).requires.filter((requirement: unknown): requirement is string => typeof requirement === "string")
+      : [];
+
+    registry.set(entry.id, {
+      latestMajor,
+      versions: versions.length > 0 ? versions : [latestMajor],
+      requires,
+    });
+  }
+  return registry;
+}
+
+function validateDeclaredStacksAgainstRegistry(declaredStacks: Record<string, number>): NormalizedError[] {
+  const errors: NormalizedError[] = [];
+
+  for (const [name, version] of Object.entries(declaredStacks)) {
+    const registryEntry = stackRegistryById.get(name);
+    if (!registryEntry) {
+      errors.push({
+        path: `/stacks/${name}`,
+        message: `Unknown stack: ${name}`,
+      });
+      continue;
+    }
+
+    if (!registryEntry.versions.includes(version)) {
+      errors.push({
+        path: `/stacks/${name}`,
+        message: `Unsupported stack version for ${name}: ${version}`,
+      });
+      continue;
+    }
+
+    for (const requirement of registryEntry.requires) {
+      if (!declaredStacks[requirement]) {
+        errors.push({
+          path: `/stacks/${name}`,
+          message: `Stack '${name}' requires stack '${requirement}'.`,
+        });
+      }
+    }
+  }
+
+  return errors;
+}
+
 /**
  * Infers stacks from payload fields in the recipe.
  * Returns a stacks map (e.g., { times: 1, nutrition: 1 }).
- * Uses version 1 as default, but can be enhanced to use registry "latest" if available.
+ * Uses registry-provided latest major versions when available.
  */
 function inferStacksFromPayload(recipe: any): Record<string, number> {
   const inferred: Record<string, number> = {};
 
-  // Map payload field names to stack names
-  const payloadToStack: Record<string, string> = {
-    attribution: "attribution",
-    taxonomy: "taxonomy",
-    media: "media",
-    times: "times",
-    nutrition: "nutrition",
-    schedule: "schedule",
-  };
+  if (!recipe || typeof recipe !== "object") {
+    return inferred;
+  }
 
-  for (const [field, stackName] of Object.entries(payloadToStack)) {
-    if (recipe && typeof recipe === "object" && field in recipe && recipe[field] !== undefined) {
-      inferred[stackName] = 1; // Default to version 1, can be enhanced with registry lookup
+  for (const stackId of stackRegistryIds) {
+    if (stackId in recipe && (recipe as any)[stackId] !== undefined) {
+      const entry = stackRegistryById.get(stackId);
+      inferred[stackId] = entry?.latestMajor ?? 1;
     }
   }
 
@@ -370,17 +436,20 @@ function validateRecipeSchemaNormalized(
     }
   }
 
+  const registryErrors = validateDeclaredStacksAgainstRegistry(declaredStacks);
+  if (registryErrors.length > 0) {
+    return {
+      ok: false,
+      errors: registryErrors,
+    };
+  }
+
   // Infer stacks from payloads (for stack contract enforcement)
   // We include inferred stacks in the validation schema to enforce that stacks must be declared
   const inferredStacks = inferStacksFromPayload(normalized);
   
   // Merge declared and inferred stacks, using max(version) per stack name
-  const allStacks: Record<string, number> = { ...declaredStacks };
-  for (const [name, version] of Object.entries(inferredStacks)) {
-    if (!allStacks[name] || allStacks[name] < version) {
-      allStacks[name] = version;
-    }
-  }
+  const allStacks: Record<string, number> = { ...inferredStacks, ...declaredStacks };
 
   let isValid: boolean;
   let errors: ErrorObject[] = [];
@@ -441,8 +510,7 @@ function validateRecipeSchemaNormalized(
         delete (rootCheckCopy as any).profile;
       }
       // Also remove stack payload fields that root schema doesn't have
-      const stackPayloadFields = ["attribution", "taxonomy", "media", "times", "nutrition", "schedule"];
-      for (const field of stackPayloadFields) {
+      for (const field of stackRegistryIds) {
         if (field in rootCheckCopy) {
           delete (rootCheckCopy as any)[field];
         }
