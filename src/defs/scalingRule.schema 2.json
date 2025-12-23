@@ -1,0 +1,127 @@
+{
+"$id": "https://soustack.spec/defs/scalingRule.schema.json",
+"$schema": "https://json-schema.org/draft/2020-12/schema",
+"title": "Soustack ScalingRule",
+"type": "object",
+"additionalProperties": false,
+"required": ["mode"],
+"properties": {
+"mode": {
+"type": "string",
+"enum": ["linear", "fixed", "discrete", "toTaste", "bakersPercent"]
+},
+
+"step": {
+  "type": "number",
+  "exclusiveMinimum": 0
+},
+"rounding": {
+  "type": "string",
+  "enum": ["nearest", "ceil", "floor"]
+},
+"min": {
+  "type": "number"
+},
+"max": {
+  "type": "number"
+},
+
+"percent": {
+  "type": "number",
+  "exclusiveMinimum": 0
+},
+"of": {
+  "type": "string",
+  "minLength": 1
+}
+
+},
+
+"allOf": [
+{
+"if": {
+"properties": { "mode": { "const": "linear" } },
+"required": ["mode"]
+},
+"then": {
+"not": {
+"anyOf": [
+{ "required": ["step"] },
+{ "required": ["rounding"] },
+{ "required": ["min"] },
+{ "required": ["max"] },
+{ "required": ["percent"] },
+{ "required": ["of"] }
+]
+}
+}
+},
+{
+"if": {
+"properties": { "mode": { "const": "fixed" } },
+"required": ["mode"]
+},
+"then": {
+"not": {
+"anyOf": [
+{ "required": ["step"] },
+{ "required": ["rounding"] },
+{ "required": ["min"] },
+{ "required": ["max"] },
+{ "required": ["percent"] },
+{ "required": ["of"] }
+]
+}
+}
+},
+{
+"if": {
+"properties": { "mode": { "const": "toTaste" } },
+"required": ["mode"]
+},
+"then": {
+"not": {
+"anyOf": [
+{ "required": ["step"] },
+{ "required": ["rounding"] },
+{ "required": ["min"] },
+{ "required": ["max"] },
+{ "required": ["percent"] },
+{ "required": ["of"] }
+]
+}
+}
+},
+{
+"if": {
+"properties": { "mode": { "const": "discrete" } },
+"required": ["mode"]
+},
+"then": {
+"not": {
+"anyOf": [
+{ "required": ["percent"] },
+{ "required": ["of"] }
+]
+}
+}
+},
+{
+"if": {
+"properties": { "mode": { "const": "bakersPercent" } },
+"required": ["mode"]
+},
+"then": {
+"required": ["percent", "of"],
+"not": {
+"anyOf": [
+{ "required": ["step"] },
+{ "required": ["rounding"] },
+{ "required": ["min"] },
+{ "required": ["max"] }
+]
+}
+}
+}
+]
+}
