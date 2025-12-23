@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://soustack.org/schema/v0.0.2/profiles/equipped",
+  "title": "Soustack Equipped Profile Schema",
+  "description": "Profile for recipes that declare required tools/equipment.",
+  "allOf": [
+    { "$ref": "http://soustack.org/schema/v0.0.2/profiles/base" }
+  ]
+}
+
