@@ -74,7 +74,7 @@
     "stacks/timed.schema.json"
   ],
   "checksums": {
-    "SOUSTACK_SPEC_VERSION": "e6635045e1d2478ec4ca712d8c0e1dfcef8bb7b5b1e8e3bb560d37fe399a9e72",
+    "SOUSTACK_SPEC_VERSION": "a5dd346546a384362936b97a4c2f5da2d3d253043ea9679aa7b97d89550dfdbd",
     "defs/common.schema.json": "798f7a91bb9f2f59f4803a986ecfd56a6ab8158575c92bd311f87a15a59f4c13",
     "defs/duration.schema.json": "151b9efdede26e6806696734b9cdc747121638f5cf905f45073e5a25bec951f0",
     "defs/entities.schema.json": "1c720a456c766c5c7fc5762a37810f097bd978188ec7fcc5811bceb1861658dc",

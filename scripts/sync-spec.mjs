@@ -315,6 +315,68 @@ function readSpecVersion(specDir) {
   return version;
 }
 
+/**
+ * Ensure all version-related files are consistent with the given version
+ */
+function ensureVersionConsistency(version) {
+  const versionFiles = [
+    { path: path.join(ROOT_DIR, 'spec', 'SOUSTACK_SPEC_VERSION'), content: `${version}\n` },
+    { path: path.join(ROOT_DIR, 'src', 'specVersion.ts'), content: `export const SOUSTACK_SPEC_VERSION = '${version}';\n` },
+  ];
+  
+  let updated = false;
+  versionFiles.forEach(({ path: filePath, content }) => {
+    const currentContent = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '';
+    if (currentContent.trim() !== content.trim()) {
+      fs.writeFileSync(filePath, content);
+      updated = true;
+      console.log(`Updated ${path.relative(ROOT_DIR, filePath)} to version ${version}`);
+    }
+  });
+  
+  return updated;
+}
+
+/**
+ * Validate that all version files are synchronized
+ */
+function validateVersionSync() {
+  const specVersionFile = path.join(SPEC_DIR, 'SOUSTACK_SPEC_VERSION');
+  const srcVersionFile = path.join(ROOT_DIR, 'src', 'specVersion.ts');
+  
+  if (!fs.existsSync(specVersionFile)) {
+    throw new Error('spec/SOUSTACK_SPEC_VERSION is missing');
+  }
+  if (!fs.existsSync(srcVersionFile)) {
+    throw new Error('src/specVersion.ts is missing');
+  }
+  
+  const specVersion = fs.readFileSync(specVersionFile, 'utf8').trim();
+  const srcVersionMatch = fs.readFileSync(srcVersionFile, 'utf8').match(/SOUSTACK_SPEC_VERSION\s*=\s*['"]([^'"]+)['"]/);
+  const srcVersion = srcVersionMatch ? srcVersionMatch[1] : null;
+  
+  if (!srcVersion) {
+    throw new Error('Could not parse version from src/specVersion.ts');
+  }
+  
+  const pkg = readPackageJson();
+  const pkgVersion = pkg.soustackSpecVersion;
+  
+  const mismatches = [];
+  if (specVersion !== srcVersion) {
+    mismatches.push(`spec/SOUSTACK_SPEC_VERSION (${specVersion}) !== src/specVersion.ts (${srcVersion})`);
+  }
+  if (pkgVersion && specVersion !== pkgVersion) {
+    mismatches.push(`spec/SOUSTACK_SPEC_VERSION (${specVersion}) !== package.json soustackSpecVersion (${pkgVersion})`);
+  }
+  
+  if (mismatches.length > 0) {
+    throw new Error(`Version sync validation failed:\n${mismatches.join('\n')}`);
+  }
+  
+  console.log(`✓ All version files are synchronized at ${specVersion}`);
+}
+
 async function main() {
   const pkg = readPackageJson();
   const specSource = process.env.SOUSTACK_SPEC_SOURCE;
@@ -397,8 +459,12 @@ async function main() {
   try {
     const previousMeta = readSyncMetadata();
     copyIntoSpecDirectory(tempDir);
+    
+    // Write version files and ensure consistency
     writeSpecVersion(version);
     updateSpecVersionModule(version);
+    ensureVersionConsistency(version);
+    
     copySchemaIntoSrc();
     updatePackageJson(pkg, version, tag);
 
@@ -413,6 +479,9 @@ async function main() {
       source: usingNpmSpec ? 'npm' : undefined,
       previousMeta,
     });
+
+    // Validate that all version files are synchronized
+    validateVersionSync();
 
     console.log(`Soustack spec synced successfully (version ${version}).`);
   } finally {
