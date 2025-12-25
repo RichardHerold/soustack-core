@@ -333,15 +333,22 @@ async function main() {
         'SOUSTACK_SPEC_SOURCE is set to "npm" but node_modules/soustack-spec was not found. Run npm install.'
       );
     }
-    const specPackagePath = path.join(sourceDir, 'package.json');
-    if (!fs.existsSync(specPackagePath)) {
-      throw new Error('soustack-spec package.json not found in node_modules.');
+    // For npm source, prefer SOUSTACK_SPEC_VERSION file over package.json version
+    const versionFile = path.join(sourceDir, 'SOUSTACK_SPEC_VERSION');
+    if (fs.existsSync(versionFile)) {
+      version = readSpecVersion(sourceDir);
+    } else {
+      // Fall back to package.json version if SOUSTACK_SPEC_VERSION doesn't exist
+      const specPackagePath = path.join(sourceDir, 'package.json');
+      if (!fs.existsSync(specPackagePath)) {
+        throw new Error('soustack-spec package.json not found in node_modules.');
+      }
+      const specPackage = JSON.parse(fs.readFileSync(specPackagePath, 'utf8'));
+      if (!specPackage.version) {
+        throw new Error('soustack-spec package.json is missing a version field.');
+      }
+      version = specPackage.version;
     }
-    const specPackage = JSON.parse(fs.readFileSync(specPackagePath, 'utf8'));
-    if (!specPackage.version) {
-      throw new Error('soustack-spec package.json is missing a version field.');
-    }
-    version = specPackage.version;
     tag = `v${version}`;
     console.log(`Syncing Soustack spec from npm package at ${sourceDir}`);
   } else {
@@ -379,6 +386,14 @@ async function main() {
     sourceCommit = getSourceCommit(tempDir);
     version = readSpecVersion(tempDir);
   }
+  
+  // Allow version override via environment variable or package.json
+  const versionOverride = process.env.SOUSTACK_SPEC_VERSION_OVERRIDE || pkg.soustackSpecVersion;
+  if (versionOverride && versionOverride !== version) {
+    console.log(`Version override: using ${versionOverride} instead of ${version} from source`);
+    version = versionOverride;
+  }
+  
   try {
     const previousMeta = readSyncMetadata();
     copyIntoSpecDirectory(tempDir);
