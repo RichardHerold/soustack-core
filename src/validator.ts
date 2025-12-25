@@ -80,6 +80,16 @@ const stackRegistryIds = Array.from(stackRegistryById.keys());
 const profileRegistryById = buildProfileRegistryById();
 const profileRegistryOrder = Object.keys(registry.profiles || {});
 const profileRegistryIndex = new Map(profileRegistryOrder.map((profile, index) => [profile, index]));
+const stackSchemaIdCache: Map<string, string> = new Map();
+
+const optionalRequire = (id: string): any => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return typeof require === "function" ? require(id) : null;
+  } catch {
+    return null;
+  }
+};
 
 interface StackRequirement {
   id: string;
@@ -121,71 +131,15 @@ function loadAllSchemas(ajv: Ajv2020): void {
   // Load stack schemas BEFORE root schema (root schema references them in conditional logic)
   // Stack schemas are loaded here so they're available when root schema is compiled
   const stacks = registry.stacks || {};
-  const stackSchemasToLoad: Array<{ id: string; schema: any; requires: string[] }> = [];
-  
+  const stackLoading = new Set<string>();
   for (const [id, entry] of Object.entries(stacks)) {
     if (!entry || typeof entry !== "object") continue;
-    const stackEntry = entry as any;
-    const schemaPath = stackEntry.schema?.major?.["1"];
-    if (schemaPath) {
-      // Stack schemas are in src/stacks/ directory
-      try {
-        const stackSchema = require(`./stacks/${id}.schema.json`);
-        if (stackSchema && typeof stackSchema === "object" && "$id" in stackSchema) {
-          // Resolve relative $refs to absolute IDs
-          // Stack schemas may reference other stacks with relative paths like "./structured.schema.json"
-          // These need to be resolved to absolute IDs like "https://soustack.spec/stacks/structured.schema.json"
-          const resolvedSchema = JSON.parse(JSON.stringify(stackSchema)); // Deep clone
-          const resolveRefs = (obj: any): void => {
-            if (Array.isArray(obj)) {
-              obj.forEach(resolveRefs);
-            } else if (obj && typeof obj === "object") {
-              for (const [key, value] of Object.entries(obj)) {
-                if (key === "$ref" && typeof value === "string" && value.startsWith("./")) {
-                  // Resolve relative stack reference
-                  const refName = value.replace("./", "").replace(".schema.json", "");
-                  const refId = `https://soustack.spec/stacks/${refName}.schema.json`;
-                  obj[key] = refId;
-                } else {
-                  resolveRefs(value);
-                }
-              }
-            }
-          };
-          resolveRefs(resolvedSchema);
-          const requires = Array.isArray(stackEntry.requires) ? stackEntry.requires : [];
-          stackSchemasToLoad.push({ id, schema: resolvedSchema, requires });
-        }
-      } catch (e) {
-        // Stack schema not found, skip it
-        console.warn(`Stack schema not found for ${id}: ${schemaPath}`);
-      }
+    const majors = entry.schema?.major && typeof entry.schema.major === "object" ? Object.keys(entry.schema.major) : [];
+    for (const majorKey of majors) {
+      const major = parseInt(majorKey, 10);
+      if (!Number.isInteger(major) || major < 1) continue;
+      ensureStackSchemaLoaded(ajv, id, major, stackLoading);
     }
-  }
-  
-  // Load stack schemas in dependency order (dependencies first)
-  // Use topological sort to ensure dependencies are loaded before dependents
-  const loaded = new Set<string>();
-  const loadStack = (stackId: string): void => {
-    if (loaded.has(stackId)) return;
-    const stack = stackSchemasToLoad.find(s => s.id === stackId);
-    if (!stack) return;
-    
-    // Load dependencies first
-    for (const dep of stack.requires) {
-      loadStack(dep);
-    }
-    
-    // Load this stack
-    if (!ajv.getSchema(stack.schema.$id)) {
-      ajv.addSchema(stack.schema, stack.schema.$id);
-    }
-    loaded.add(stackId);
-  };
-  
-  // Load all stacks
-  for (const { id } of stackSchemasToLoad) {
-    loadStack(id);
   }
 
   // Load root schema (references defs and stack schemas)
@@ -451,6 +405,143 @@ function buildProfileRegistryById(): Map<string, ProfileRegistryInfo> {
   return registryMap;
 }
 
+function resolveStackSchemaPath(stackId: string, major: number): { path: string; requires: string[] } | null {
+  const stacks = registry.stacks || {};
+  const entry = (stacks as Record<string, any>)[stackId];
+  if (!entry || typeof entry !== "object") return null;
+
+  const versionKey = String(major);
+  const schemaPath = entry.schema?.major?.[versionKey];
+  if (typeof schemaPath !== "string") return null;
+
+  const requires = Array.isArray(entry.requires)
+    ? entry.requires.filter((value: unknown): value is string => typeof value === "string")
+    : [];
+
+  return {
+    path: schemaPath.replace(/^\.\//, ""),
+    requires,
+  };
+}
+
+function resolveStackSchemaRefs(schema: any): any {
+  const resolvedSchema = JSON.parse(JSON.stringify(schema)); // Deep clone
+  const resolveRefs = (obj: any): void => {
+    if (Array.isArray(obj)) {
+      obj.forEach(resolveRefs);
+    } else if (obj && typeof obj === "object") {
+      for (const [key, value] of Object.entries(obj)) {
+        if (key === "$ref" && typeof value === "string") {
+          if (value.startsWith("./") || value.startsWith("../stacks/")) {
+            const [refPath, fragment] = value.split("#");
+            const refName = refPath?.replace(/^(\.\/|\.{2}\/stacks\/)/, "").replace(/\.schema\.json$/, "");
+            if (refName) {
+              const refId = `https://soustack.spec/stacks/${refName}.schema.json${fragment ? `#${fragment}` : ""}`;
+              obj[key] = refId;
+            }
+          }
+        } else {
+          resolveRefs(value);
+        }
+      }
+    }
+  };
+  resolveRefs(resolvedSchema);
+  return resolvedSchema;
+}
+
+function ensureStackSchemaLoaded(
+  ajv: Ajv2020,
+  stackId: string,
+  major: number,
+  loading: Set<string>,
+): string | null {
+  if (stackId.startsWith("x-")) return null; // Vendor stack - no schema enforcement
+
+  const stackKey = `${stackId}@${major}`;
+  if (loading.has(stackKey)) {
+    return stackSchemaIdCache.get(stackKey) ?? null;
+  }
+
+  loading.add(stackKey);
+  try {
+    const resolved = resolveStackSchemaPath(stackId, major);
+    if (!resolved) return null;
+
+    const { path: schemaPath, requires } = resolved;
+    const normalizedSchemaPath = schemaPath.startsWith("./") ? schemaPath : `./${schemaPath}`;
+    const fs = optionalRequire("fs") as typeof import("fs") | null;
+    const path = optionalRequire("path") as typeof import("path") | null;
+    const searchPaths: string[] = [];
+    if (path) {
+      searchPaths.push(
+        path.join(__dirname, schemaPath),
+        path.join(__dirname, "..", "src", schemaPath),
+        path.join(__dirname, "..", "spec", schemaPath),
+        path.join(process.cwd(), schemaPath),
+        path.join(process.cwd(), "src", schemaPath),
+        path.join(process.cwd(), "spec", schemaPath),
+      );
+    }
+    const existingPath = fs && searchPaths.length > 0 ? searchPaths.find((candidate) => fs.existsSync(candidate)) : undefined;
+    const requirePath = existingPath ?? normalizedSchemaPath;
+    let stackSchema: any;
+    try {
+      stackSchema = require(requirePath);
+    } catch (error) {
+      console.warn(`Stack schema not found for ${stackId} (major ${major}): ${schemaPath}`);
+      return null;
+    }
+
+    if (!stackSchema || typeof stackSchema !== "object" || !("$id" in stackSchema)) {
+      console.warn(`Stack schema for ${stackId} (major ${major}) is missing $id (path: ${schemaPath})`);
+      return null;
+    }
+
+    const resolvedSchema = resolveStackSchemaRefs(stackSchema);
+    const schemaId = (resolvedSchema as { $id?: string }).$id;
+    if (!schemaId) {
+      console.warn(`Stack schema for ${stackId} (major ${major}) is missing $id after resolution (path: ${schemaPath})`);
+      return null;
+    }
+
+    if (!ajv.getSchema(schemaId)) {
+      const referencedStacks = new Set<string>();
+      const collectStackRefs = (obj: any): void => {
+        if (Array.isArray(obj)) {
+          obj.forEach(collectStackRefs);
+        } else if (obj && typeof obj === "object") {
+          const refValue = (obj as any).$ref;
+          if (typeof refValue === "string") {
+            const match = refValue.match(/^https:\/\/soustack\.spec\/stacks\/([^.#/]+)\.schema\.json/);
+            if (match && match[1]) {
+              referencedStacks.add(match[1]);
+            }
+          }
+          Object.values(obj).forEach(collectStackRefs);
+        }
+      };
+      collectStackRefs(resolvedSchema);
+
+      for (const dep of requires) {
+        const depMajor = stackRegistryById.get(dep)?.latestMajor ?? 1;
+        ensureStackSchemaLoaded(ajv, dep, depMajor, loading);
+      }
+      for (const refStack of referencedStacks) {
+        if (refStack === stackId) continue;
+        const depMajor = stackRegistryById.get(refStack)?.latestMajor ?? 1;
+        ensureStackSchemaLoaded(ajv, refStack, depMajor, loading);
+      }
+      ajv.addSchema(resolvedSchema, schemaId);
+    }
+
+    stackSchemaIdCache.set(stackKey, schemaId);
+    return schemaId;
+  } finally {
+    loading.delete(stackKey);
+  }
+}
+
 function isProfileAtLeast(profile: string, requiredProfile: string | undefined): boolean {
   if (!requiredProfile) return true;
   const profileRank = profileRegistryIndex.get(profile);
@@ -600,6 +691,9 @@ function validateDeclaredStacksAgainstRegistry(declaredStacks: Record<string, nu
     const registryEntry = stackRegistryById.get(name);
     
     if (!registryEntry) {
+      if (name.startsWith("x-")) {
+        continue; // Vendor stack - allowed without registry entry
+      }
       errors.push({
         path: `/stacks/${name}`,
         message: `Unknown stack: ${name}`,
@@ -841,12 +935,31 @@ function getComposedValidator(
         }
         return false;
       };
+      const hasLegacyProfileOrModuleRef = (obj: any): boolean => {
+        if (!obj || typeof obj !== 'object') return false;
+        if (obj.$ref && typeof obj.$ref === 'string') {
+          if (
+            obj.$ref.includes("soustack.org/schema/v0.0.2/profiles/") ||
+            obj.$ref.includes("soustack.org/schema/v0.0.2/modules/")
+          ) {
+            return true;
+          }
+        }
+        for (const value of Object.values(obj)) {
+          if (Array.isArray(value)) {
+            if (value.some((item: any) => hasLegacyProfileOrModuleRef(item))) return true;
+          } else if (typeof value === 'object' && value !== null) {
+            if (hasLegacyProfileOrModuleRef(value)) return true;
+          }
+        }
+        return false;
+      };
       
       if (Array.isArray(profileSchema.allOf)) {
         for (const entry of profileSchema.allOf) {
           // Skip entries that reference legacy #/definitions/* paths
           // These can't be resolved in the wrapper schema and should be handled by stack schemas instead
-          if (hasLegacyDefinitionsRef(entry)) {
+          if (hasLegacyDefinitionsRef(entry) || hasLegacyProfileOrModuleRef(entry)) {
             continue;
           }
           
@@ -878,19 +991,23 @@ function getComposedValidator(
       // Create wrapper schema with filtered allOf
       const profileWrapper: any = {
         $id: profileWrapperId,
-        allOf: filteredAllOf.length > 0 ? filteredAllOf : [{ $ref: profileSchemaId }],
+        allOf: filteredAllOf.length > 0 ? filteredAllOf : [],
       };
       
       // If we filtered out everything, just reference the base schema that the profile references
-      if (filteredAllOf.length === 0 && profileSchema.allOf && profileSchema.allOf.length > 0) {
+      if (profileWrapper.allOf.length === 0 && profileSchema.allOf && profileSchema.allOf.length > 0) {
         // Find the base schema reference (usually the first allOf entry)
-        const baseRef = profileSchema.allOf.find((e: any) => e.$ref && !e.properties && !hasLegacyDefinitionsRef(e));
+        const baseRef = profileSchema.allOf.find(
+          (e: any) => e.$ref && !e.properties && !hasLegacyDefinitionsRef(e) && !hasLegacyProfileOrModuleRef(e),
+        );
         if (baseRef) {
           profileWrapper.allOf = [baseRef];
-        } else {
-          // Fallback: reference the base schema directly
-          profileWrapper.allOf = [{ $ref: BASE_SCHEMA_ID }];
         }
+      }
+
+      if (profileWrapper.allOf.length === 0) {
+        // Fallback: reference the base schema directly
+        profileWrapper.allOf = [{ $ref: BASE_SCHEMA_ID }];
       }
       
       context.ajv.addSchema(profileWrapper, profileWrapperId);
@@ -902,46 +1019,18 @@ function getComposedValidator(
   }
 
   // Add stack schemas using registry
+  const stackSchemaLoading = new Set<string>();
   for (const [name, version] of Object.entries(stacks)) {
+    if (name.startsWith("x-")) {
+      // Vendor stack - no schema enforcement
+      continue;
+    }
     if (typeof version === "number" && version >= 1) {
-      // Look up stack in registry
-      const stacksRegistry = registry.stacks || {};
-      const stackEntry = (stacksRegistry as Record<string, any>)[name];
-      if (!stackEntry || typeof stackEntry !== "object") {
-        // Stack not in registry - skip with warning
-        console.warn(`Stack '${name}' not found in registry`);
-        continue;
-      }
-      
-      // Verify major version is supported
-      const versionStr = String(version);
-      const schemaPath = stackEntry.schema?.major?.[versionStr];
-      if (!schemaPath || typeof schemaPath !== "string") {
-        // Version not supported - skip with warning
-        const availableVersions = Object.keys(stackEntry.schema?.major || {}).join(", ");
-        console.warn(`Stack '${name}' version ${version} not found in registry (available: ${availableVersions || "none"})`);
-        continue;
-      }
-      
-      // Load schema file to get its $id
-      // Schema path is relative like "stacks/quantified.schema.json"
-      // Extract the stack name from the path (e.g., "quantified" from "stacks/quantified.schema.json")
-      const stackNameFromPath = schemaPath.replace(/^stacks\//, "").replace(/\.schema\.json$/, "");
-      try {
-        const stackSchema = require(`./stacks/${stackNameFromPath}.schema.json`);
-        if (stackSchema && typeof stackSchema === "object" && "$id" in stackSchema) {
-          const stackSchemaId = stackSchema.$id;
-          // Verify schema is loaded in AJV
-          if (context.ajv.getSchema(stackSchemaId)) {
-            allOf.push({ $ref: stackSchemaId });
-          } else {
-            console.warn(`Stack schema '${stackSchemaId}' not loaded in AJV (registry path: ${schemaPath})`);
-          }
-        } else {
-          console.warn(`Stack schema file for '${name}' missing $id (path: ${schemaPath})`);
-        }
-      } catch (e) {
-        console.warn(`Failed to load stack schema for '${name}' from path '${schemaPath}': ${e}`);
+      const schemaId = ensureStackSchemaLoaded(context.ajv, name, version, stackSchemaLoading);
+      if (schemaId) {
+        allOf.push({ $ref: schemaId });
+      } else {
+        throw new Error(`Stack schema for '${name}' version ${version} could not be loaded from registry.`);
       }
     }
   }
@@ -1543,6 +1632,12 @@ export function validateRecipe(input: any, options: ValidateOptions = {}): Valid
 
 export function validateRecipeWithProfile(data: any, profile: ProfileName): data is Recipe {
   return validateRecipe(data, { profile }).ok;
+}
+
+export function __getComposedSchemaForTesting(profile: ProfileName, stacks: Record<string, number>): any {
+  const context = getContext(false);
+  const validator = getComposedValidator(profile, stacks, context);
+  return validator.schema;
 }
 
 export function detectProfiles(recipe: any): ProfileName[] {

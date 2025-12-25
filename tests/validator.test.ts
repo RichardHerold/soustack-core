@@ -1,4 +1,4 @@
-import { detectProfiles, validateRecipe, validateRecipeSchema, ValidateResult } from '../src/validator';
+import { __getComposedSchemaForTesting, detectProfiles, validateRecipe, validateRecipeSchema, ValidateResult } from '../src/validator';
 import { Recipe } from '../src/types';
 import path from 'path';
 import fs from 'fs';
@@ -471,6 +471,44 @@ describe('Soustack validation', () => {
       // Both should be valid and use the same cached validator
       expect(result1.ok).toBe(true);
       expect(result2.ok).toBe(true);
+    });
+
+    it('composes stack schemas via registry IDs without legacy profile/module refs', () => {
+      const composedSchema = __getComposedSchemaForTesting('lite', { equipment: 1, dietary: 1 });
+      const collectRefs = (node: any): string[] => {
+        const refs = new Set<string>();
+        const visit = (value: any): void => {
+          if (!value) return;
+          if (Array.isArray(value)) {
+            value.forEach(visit);
+            return;
+          }
+          if (typeof value === 'object') {
+            const refValue = (value as any).$ref;
+            if (typeof refValue === 'string') {
+              refs.add(refValue);
+            }
+            Object.values(value).forEach(visit);
+          }
+        };
+        visit(node);
+        return Array.from(refs);
+      };
+
+      const refs = collectRefs(composedSchema);
+      const equipmentSchema = require('../src/stacks/equipment.schema.json');
+      const dietarySchema = require('../src/stacks/dietary.schema.json');
+
+      expect(refs).toEqual(expect.arrayContaining([equipmentSchema.$id, dietarySchema.$id]));
+
+      expect(
+        refs.some(
+          (ref) =>
+            typeof ref === 'string' &&
+            (ref.includes('soustack.org/schema/v0.0.2/profiles/') ||
+              ref.includes('soustack.org/schema/v0.0.2/modules/')),
+        ),
+      ).toBe(false);
     });
   });
 
