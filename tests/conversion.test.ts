@@ -95,13 +95,17 @@ describe('Schema.org <-> Soustack', () => {
     expect(recipe.yield).toMatchObject({ amount: 24, unit: 'cookies' });
     // vNext: time uses DurationMinutes format
     expect(recipe.time).toMatchObject({ total: { minutes: 32 } });
-    expect(recipe.ingredients[0]).toBe('2 1/4 cups all-purpose flour, sifted');
+    expect(recipe.ingredients).toEqual([
+      { name: '2 1/4 cups all-purpose flour, sifted', scaling: { mode: 'linear' } },
+      { name: '1 cup (225g) butter, softened', scaling: { mode: 'linear' } }
+    ]);
     expect(recipe.instructions).toHaveLength(2);
     expect(recipe.category).toBe('Dessert');
     expect(recipe.tags).toEqual(expect.arrayContaining(['American', 'cookies', 'chocolate']));
     expect(recipe.source).toMatchObject({ author: 'Jane Baker', name: 'Test Kitchen' });
     // vNext: nutrition is directly on recipe, not in stack
     expect(recipe.nutrition).toMatchObject({ calories: 250 });
+    expect(recipe.images).toEqual(['https://example.com/cookies.jpg']);
   });
 
   it('round-trips Schema.org through Lite validation', () => {
@@ -110,10 +114,9 @@ describe('Schema.org <-> Soustack', () => {
 
     // Ensure profile is set
     const recipe = soustack as Recipe;
-    if (!recipe.profile) {
-      recipe.profile = 'lite';
-    }
-    const validation = validateRecipe(recipe, { profile: 'lite' });
+    expect(recipe.profile).toBe('base');
+
+    const validation = validateRecipe(recipe, { profile: recipe.profile });
     expect(validation.ok).toBe(true);
 
     const schema = toSchemaOrg(validation.normalizedRecipe!);
@@ -126,11 +129,11 @@ describe('Schema.org <-> Soustack', () => {
   it('exports Soustack recipes to Schema.org JSON-LD', () => {
     const soustackRecipe: Recipe = {
       '@type': 'Recipe',
-      profile: 'lite',
+      profile: 'base',
       stacks: {},
       name: 'Test Bread',
       description: 'A demo loaf.',
-      image: 'https://example.com/bread.jpg',
+      images: ['https://example.com/bread.jpg'],
       category: 'Bread',
       tags: ['Italian', 'Holiday'],
       yield: { amount: 2, unit: 'loaves' },

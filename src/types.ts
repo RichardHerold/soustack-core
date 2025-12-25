@@ -28,6 +28,10 @@ export interface SoustackRecipe {
   /** Additional tags for filtering */
   tags?: string[];
   /** URL(s) to recipe image(s) */
+  images?: string[];
+  /** URL(s) to recipe video(s) */
+  videos?: string[];
+  /** Legacy image field preserved for compatibility */
   image?: string | string[];
   /** ISO 8601 date string */
   dateAdded?: string;

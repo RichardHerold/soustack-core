@@ -17,12 +17,16 @@ import stacksRegistry from '../stacks/registry.json';
 import { withCanonicalSchema } from '../schemaMetadata';
 
 export function convertBasicMetadata(recipe: Recipe): Partial<SchemaOrgRecipe> {
+  const image = toSchemaOrgMedia(recipe.images ?? (recipe as any).image);
+  const video = toSchemaOrgMedia(recipe.videos);
+
   return cleanOutput({
     '@context': 'https://schema.org',
     '@type': 'Recipe',
     name: recipe.name,
     description: recipe.description,
-    image: recipe.image,
+    image,
+    video,
     url: recipe.source?.url,
     datePublished: recipe.dateAdded,
     dateModified: recipe.dateModified
@@ -254,6 +258,21 @@ export function convertNutrition(
   });
 
   return result;
+}
+
+function toSchemaOrgMedia(
+  media?: string | string[] | null
+): string | string[] | undefined {
+  if (!media) {
+    return undefined;
+  }
+
+  const list = Array.isArray(media) ? media.filter(Boolean) : [media];
+  if (list.length === 0) {
+    return undefined;
+  }
+
+  return list.length === 1 ? list[0] : list;
 }
 
 export function cleanOutput<T extends Record<string, unknown>>(obj: T): T {
