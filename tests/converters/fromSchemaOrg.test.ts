@@ -1,6 +1,7 @@
 import { fromSchemaOrg } from '../../src/fromSchemaOrg';
 import { Recipe } from '../../src/types';
 import { validateRecipe } from '../../src/validator';
+import { CANONICAL_SCHEMA_ID } from '../../src/schemaMetadata';
 
 const baseSchemaOrg = {
   '@type': 'Recipe',
@@ -424,5 +425,11 @@ describe('lite profile and vNext format', () => {
 
     const validation = validateRecipe(recipe);
     expect(validation.ok).toBe(true);
+  });
+
+  it('emits the canonical $schema when converting Schema.org recipes', () => {
+    const soustack = fromSchemaOrg(schemaOrgSample);
+    expect(soustack).not.toBeNull();
+    expect((soustack as Recipe).$schema).toBe(CANONICAL_SCHEMA_ID);
   });
 });

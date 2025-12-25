@@ -25,6 +25,7 @@ export interface SchemaOrgRecipe {
   nutrition?: NutritionInformation;
   video?: SchemaOrgImage;
   '@graph'?: unknown;
+  $schema?: string;
 }
 
 export type SchemaOrgIngredientList = string | string[];

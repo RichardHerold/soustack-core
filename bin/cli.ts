@@ -5,6 +5,7 @@ import { scaleRecipe } from '../src/parser';
 import { fromSchemaOrg } from '../src/fromSchemaOrg';
 import { toSchemaOrg } from '../src/toSchemaOrg';
 import { scrapeRecipe } from '../src/scraper/index';
+import { withCanonicalSchema } from '../src/schemaMetadata';
 import {
   validateRecipe,
   type NormalizedError,
@@ -531,7 +532,7 @@ function resolveOutputPath(args: string[]): string | undefined {
 }
 
 function writeOutput(data: unknown, outputPath?: string) {
-  const serialized = JSON.stringify(data, null, 2);
+  const serialized = JSON.stringify(prepareOutputPayload(data), null, 2);
   if (!outputPath) {
     console.log(serialized);
     return;
@@ -539,6 +540,28 @@ function writeOutput(data: unknown, outputPath?: string) {
 
   const absolutePath = path.resolve(outputPath);
   fs.writeFileSync(absolutePath, serialized, 'utf-8');
+}
+
+function prepareOutputPayload(data: unknown): unknown {
+  if (Array.isArray(data)) {
+    return data.map((entry) => prepareOutputPayload(entry));
+  }
+
+  if (data && typeof data === 'object') {
+    const record = data as Record<string, unknown>;
+    const looksLikeRecipe =
+      'ingredients' in record ||
+      'instructions' in record ||
+      'profile' in record ||
+      'stacks' in record ||
+      record['@type'] === 'Recipe';
+
+    if (looksLikeRecipe) {
+      return withCanonicalSchema(record);
+    }
+  }
+
+  return data;
 }
 
 function buildConformanceReport(result: ValidateResult) {

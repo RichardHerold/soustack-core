@@ -19,6 +19,7 @@ import {
 } from './types/schemaOrg';
 import { normalizeImage } from './utils/image';
 import { normalizeRecipe } from './normalize';
+import { withCanonicalSchema } from './schemaMetadata';
 
 export function fromSchemaOrg(input: unknown): Recipe | null {
   const recipeNode = extractRecipeNode(input);
@@ -62,7 +63,7 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
   // Normalize the recipe to ensure it's in the correct format
   const { recipe } = normalizeRecipe(rawRecipe);
   
-  return recipe;
+  return withCanonicalSchema(recipe as Recipe);
 }
 
 function extractRecipeNode(input: unknown): SchemaOrgRecipe | null {
