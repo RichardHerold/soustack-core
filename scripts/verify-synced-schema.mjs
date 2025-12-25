@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
+import draft2020 from "ajv/dist/2020.js";
 import { getRequiredSpecFiles } from './schema-artifacts.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -24,6 +25,7 @@ const ajv = new Ajv({
   // by pre-loading all schemas. For now, we compile each schema individually.
 });
 addFormats(ajv);
+ajv.addMetaSchema(draft2020);
 
 function relativeToRoot(filePath) {
   return path.relative(ROOT_DIR, filePath);
