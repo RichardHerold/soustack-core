@@ -247,8 +247,19 @@ function areSyncMetadataEqual(a, b) {
     return false;
   }
 
-  const { syncedAt: _aSyncedAt, ...aRest } = a;
-  const { syncedAt: _bSyncedAt, ...bRest } = b;
+  // Remove fields that don't affect the actual spec content
+  // - syncedAt: timestamp, changes on every sync
+  // - sourceRepo, commit, source: metadata about sync method, not spec content
+  const { syncedAt: _aSyncedAt, sourceRepo: _aSourceRepo, commit: _aCommit, source: _aSource, ...aRest } = a;
+  const { syncedAt: _bSyncedAt, sourceRepo: _bSourceRepo, commit: _bCommit, source: _bSource, ...bRest } = b;
+  
+  // Normalize ref by removing 'v' prefix for comparison (v0.0.2 === 0.0.2)
+  const normalizeRef = (ref) => (typeof ref === 'string' ? ref.replace(/^v/, '') : ref);
+  if (aRest.ref !== undefined && bRest.ref !== undefined) {
+    aRest.ref = normalizeRef(aRest.ref);
+    bRest.ref = normalizeRef(bRest.ref);
+  }
+  
   const normalizedA = sortKeysDeep(aRest);
   const normalizedB = sortKeysDeep(bRest);
 

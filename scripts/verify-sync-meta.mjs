@@ -63,7 +63,18 @@ async function main() {
   const isNpmSource = metadata?.source === 'npm';
 
   assert(metadata && typeof metadata === 'object', 'Sync metadata must be an object.');
-  if (!isNpmSource) {
+  if (isNpmSource) {
+    // For npm source, sourceRepo and commit should not be present
+    assert(
+      metadata.sourceRepo === undefined || metadata.sourceRepo === null,
+      'metadata.sourceRepo must not be present for npm source.'
+    );
+    assert(
+      metadata.commit === undefined || metadata.commit === null,
+      'metadata.commit must not be present for npm source.'
+    );
+  } else {
+    // For git source, sourceRepo is required
     assert(
       typeof metadata.sourceRepo === 'string' && metadata.sourceRepo.length > 0,
       'metadata.sourceRepo must be a non-empty string.'

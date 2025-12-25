@@ -42,7 +42,15 @@ jobs:
 
       - name: Ensure spec artifacts are committed
         run: |
-          git diff --exit-code
+          # Exclude spec/.sync-meta.json from diff check since source-related fields
+          # (sourceRepo, commit, source) may differ between git and npm syncs,
+          # but the actual spec content is verified to be the same
+          CHANGED_FILES=$(git diff --name-only | grep -v '^spec/\.sync-meta\.json$' || true)
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "Error: Spec artifacts have uncommitted changes:"
+            echo "$CHANGED_FILES"
+            exit 1
+          fi
 
       - name: Run tests
         run: npm test
