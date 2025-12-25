@@ -169,6 +169,42 @@ describe('Soustack validation', () => {
     // Should validate against lite profile (core is mapped to lite)
   });
 
+  it('infers the highest compatible profile based on declared stacks', () => {
+    const recipe = {
+      name: 'Scalable Inference',
+      yield: { amount: 4, unit: 'servings' },
+      time: { total: { minutes: 45 } },
+      stacks: { quantified: 1, scaling: 1 },
+      scaling: { discrete: { min: 1, max: 8, step: 1 } },
+      ingredients: [
+        { id: 'flour', name: 'Flour', quantity: { amount: 500, unit: 'g' }, scaling: { mode: 'linear' } },
+      ],
+      instructions: [{ id: 'mix', text: 'Mix ingredients' }],
+    } as Recipe;
+
+    const result = validateRecipe(recipe, { includeNormalized: true });
+    expect(result.ok).toBe(true);
+    expect(result.normalizedRecipe?.profile).toBe('scalable');
+  });
+
+  it('rejects profiles that declare unsupported stack majors', () => {
+    const recipe: Recipe = {
+      profile: 'scalable',
+      stacks: { quantified: 2, scaling: 2 },
+      name: 'Bad Scalable',
+      yield: { amount: 1, unit: 'batch' },
+      time: { total: { minutes: 30 } },
+      ingredients: [
+        { id: 'flour', name: 'Flour', quantity: { amount: 400, unit: 'g' }, scaling: { mode: 'linear' } },
+      ],
+      instructions: [{ id: 'step-1', text: 'Mix' }],
+    };
+
+    const result = validateRecipe(recipe);
+    expect(result.ok).toBe(false);
+    expect(result.schemaErrors.some((error) => /Unsupported stack version/.test(error.message))).toBe(true);
+  });
+
   it('defaults to empty stacks map if stacks is missing', () => {
     const recipe = { ...liteRecipe };
     delete (recipe as any).stacks;
@@ -293,8 +329,8 @@ describe('Soustack validation', () => {
   it('detects all profiles that validate a recipe', () => {
     const profiles = detectProfiles(baseValid);
     expect(profiles.length).toBeGreaterThanOrEqual(1);
-    // Should detect at least lite (vNext default)
-    expect(profiles).toContain('lite');
+    // Should detect at least lite (vNext default) and base (has yield/time)
+    expect(profiles).toEqual(expect.arrayContaining(['lite', 'base']));
   });
 
   describe('structured stack instruction graphs', () => {

@@ -384,13 +384,19 @@ function buildStackRegistryById(): Map<string, StackRegistryInfo> {
     if (!entry || typeof entry !== "object") continue;
     const stackEntry = entry as any;
     const latestMajor = typeof stackEntry.latestMajor === "number" ? stackEntry.latestMajor : 1;
+    const schemaMajors =
+      stackEntry.schema && typeof stackEntry.schema === "object" && stackEntry.schema.major && typeof stackEntry.schema.major === "object"
+        ? Object.keys(stackEntry.schema.major)
+            .map((key) => parseInt(key, 10))
+            .filter((value) => Number.isInteger(value) && value >= 1)
+        : [];
     const requires = Array.isArray(stackEntry.requires)
       ? stackEntry.requires.filter((requirement: unknown): requirement is string => typeof requirement === "string")
       : [];
 
     registryMap.set(id, {
       latestMajor,
-      versions: [latestMajor], // New structure uses latestMajor only
+      versions: schemaMajors.length > 0 ? schemaMajors : [latestMajor], // Use declared schema majors when available
       requires,
       minProfile: typeof stackEntry.minProfile === "string" ? stackEntry.minProfile : undefined,
     });
@@ -645,18 +651,86 @@ function inferStacksFromPayload(recipe: any): Record<string, number> {
   return inferred;
 }
 
+function getStackContractErrors(
+  recipe: Recipe,
+  declaredStacks: Record<string, number>,
+  inferredStacks: Record<string, number>,
+): NormalizedError[] {
+  const contractErrors: NormalizedError[] = [];
+
+  // Check stack contract: all inferred stacks must be declared
+  for (const [stackName] of Object.entries(inferredStacks)) {
+    if (!declaredStacks[stackName]) {
+      contractErrors.push({
+        path: `/stacks/${stackName}`,
+        message: `Stack contract violation: stack payload '${stackName}' exists but stack is not declared in 'stacks'. Add '${stackName}': 1 to the 'stacks' property.`,
+      });
+    }
+  }
+
+  // Structural stacks constrain existing properties and don't require payloads
+  const structuralStacks = new Set(["structured", "quantified", "referenced", "timed"]);
+
+  // Map stack names to their required payload property names
+  const stackPayloadProperties: Record<string, string | string[]> = {
+    prep: "miseEnPlace",
+    scaling: "scaling",
+    storage: "storage",
+    dietary: "dietary",
+    substitutions: "substitutions",
+    techniques: "techniques",
+    equipment: "equipment",
+    illustrated: ["images", "videos"], // Either images or videos
+  };
+
+  for (const [stackName] of Object.entries(declaredStacks)) {
+    // Skip payload check for structural stacks - they constrain existing properties
+    if (structuralStacks.has(stackName)) {
+      continue;
+    }
+
+    const payloadProps = stackPayloadProperties[stackName];
+    if (!payloadProps) {
+      continue;
+    }
+
+    const propNames = Array.isArray(payloadProps) ? payloadProps : [payloadProps];
+    const hasPayload = propNames.some((prop) => prop in recipe && (recipe as any)[prop] !== undefined);
+
+    if (!hasPayload) {
+      const propName = Array.isArray(payloadProps) ? payloadProps.join(" or ") : payloadProps;
+      contractErrors.push({
+        path: `/stacks/${stackName}`,
+        message: `Stack contract violation: stack '${stackName}' is declared but payload is missing. Add a '${propName}' property to the recipe.`,
+      });
+    }
+  }
+
+  return contractErrors;
+}
+
 function inferProfileFromRegistry(
   recipe: Recipe,
   declaredStacks: Record<string, number>,
+  allStacks: Record<string, number>,
   context: ValidationContext,
+  normalizedInput: Recipe,
+  originalInput: any,
 ): ProfileName {
   let inferred: string | undefined;
   for (const profileId of profileRegistryOrder) {
-    const requirementErrors = getProfileRequirementErrors(profileId, recipe, declaredStacks, context);
-    if (requirementErrors.length > 0) {
-      continue;
+    const validationResult = validateProfileComposition(
+      profileId as ProfileName,
+      recipe,
+      declaredStacks,
+      allStacks,
+      context,
+      normalizedInput,
+      originalInput,
+    );
+    if (validationResult.ok) {
+      inferred = profileId;
     }
-    inferred = profileId;
   }
 
   if (inferred && typeof inferred === "string") {
@@ -883,6 +957,238 @@ function getComposedValidator(
   return validateFn;
 }
 
+function filterValidationErrors(
+  errors: ErrorObject[],
+  validationCopy: Recipe,
+  normalizedInput: Recipe,
+  originalInput: any,
+  allStacks: Record<string, number>,
+): ErrorObject[] {
+  const hadTypeProperty =
+    (normalizedInput && typeof normalizedInput === "object" && "@type" in normalizedInput) ||
+    (originalInput && typeof originalInput === "object" && "@type" in originalInput);
+  const hadVersionProperty =
+    (normalizedInput && typeof normalizedInput === "object" && "version" in normalizedInput) ||
+    (originalInput && typeof originalInput === "object" && "version" in originalInput);
+  const hadSchemaProperty =
+    (normalizedInput && typeof normalizedInput === "object" && "$schema" in normalizedInput) ||
+    (originalInput && typeof originalInput === "object" && "$schema" in originalInput);
+
+  // #region agent log
+  fetch("http://127.0.0.1:7244/ingest/7f75dc85-5d88-41b3-a2c3-713d0c6ca7a6", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      location: "validator.ts:1167",
+      message: "Checking @type and version",
+      data: {
+        hasOriginalInput: !!originalInput,
+        originalInputKeys: originalInput ? Object.keys(originalInput).slice(0, 10) : [],
+        normalizedInputKeys: Object.keys(normalizedInput).slice(0, 10),
+        hadTypeProperty,
+        hadVersionProperty,
+        normalizedInputHasType: "@type" in normalizedInput,
+        normalizedInputHasVersion: "version" in normalizedInput,
+      },
+      timestamp: Date.now(),
+      sessionId: "debug-session",
+      runId: "filter-debug",
+      hypothesisId: "B",
+    }),
+  }).catch(() => {});
+  // #endregion agent log
+
+  const xProperties = Object.keys(validationCopy).filter((key) => key.startsWith("x-"));
+
+  const stackPropertyNames = new Set<string>();
+  for (const [stackName] of Object.entries(allStacks)) {
+    const registryEntry = stackRegistryById.get(stackName);
+    if (registryEntry) {
+      stackPropertyNames.add(stackName);
+    }
+  }
+
+  const validRootProperties = new Set([
+    "$schema",
+    "profile",
+    "stacks",
+    "name",
+    "yield",
+    "time",
+    "ingredients",
+    "instructions",
+    "metadata",
+    "images",
+    "videos",
+    "miseEnPlace",
+    "scaling",
+    "storage",
+    "dietary",
+    "substitutions",
+    "techniques",
+    "equipment",
+  ]);
+
+  const filteredErrors = errors.filter((e) => {
+    if (e.keyword === "unevaluatedProperties" || e.keyword === "additionalProperties") {
+      const instancePath = (e as any).instancePath;
+      const isRootLevel = instancePath === undefined || instancePath === "" || instancePath === "/";
+
+      const params = e.params as any;
+      const propertyName = params?.unevaluatedProperty || params?.additionalProperty;
+
+      const formattedPath = instancePath === "" && propertyName ? `/${propertyName}` : instancePath;
+
+      if (isRootLevel) {
+        if (propertyName && typeof propertyName === "string") {
+          if (propertyName === "@type" || propertyName === "version") {
+            return false;
+          }
+          if (validRootProperties.has(propertyName)) {
+            return false;
+          }
+          if (propertyName.startsWith("x-")) {
+            return false;
+          }
+          if (stackPropertyNames.has(propertyName)) {
+            return false;
+          }
+          return true;
+        }
+        if (xProperties.length > 0) {
+          return false;
+        }
+        if (
+          e.keyword === "unevaluatedProperties" &&
+          (!propertyName || propertyName === undefined || propertyName === null)
+        ) {
+          return false;
+        }
+        if ((hadTypeProperty || hadVersionProperty || hadSchemaProperty) && e.keyword === "unevaluatedProperties") {
+          return false;
+        }
+        return true;
+      } else {
+        const pathParts = formattedPath.split("/").filter((p: string) => p);
+        if (pathParts.length > 0) {
+          const firstPart = pathParts[0];
+          if (validRootProperties.has(firstPart) || stackPropertyNames.has(firstPart)) {
+            return false;
+          }
+        }
+        if (propertyName && typeof propertyName === "string" && propertyName.startsWith("x-")) {
+          return false;
+        }
+        return true;
+      }
+    }
+    return true;
+  });
+
+  // #region agent log
+  fetch("http://127.0.0.1:7244/ingest/7f75dc85-5d88-41b3-a2c3-713d0c6ca7a6", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      location: "validator.ts:1245",
+      message: "After filtering errors",
+      data: {
+        originalErrorCount: errors.length,
+        filteredErrorCount: filteredErrors.length,
+        willSetValid: filteredErrors.length === 0,
+        filteredErrors: filteredErrors.slice(0, 3).map((error: any) => ({
+          keyword: error.keyword,
+          path: error.instancePath,
+          message: error.message,
+        })),
+      },
+      timestamp: Date.now(),
+      sessionId: "debug-session",
+      runId: "filter-debug",
+      hypothesisId: "A",
+    }),
+  }).catch(() => {});
+  // #endregion agent log
+
+  return filteredErrors;
+}
+
+function validateProfileComposition(
+  profile: ProfileName,
+  recipe: Recipe,
+  declaredStacks: Record<string, number>,
+  allStacks: Record<string, number>,
+  context: ValidationContext,
+  normalizedInput: Recipe,
+  originalInput: any,
+): { ok: boolean; errors: NormalizedError[] } {
+  const requirementErrors = getProfileRequirementErrors(profile, recipe, declaredStacks, context);
+  if (requirementErrors.length > 0) {
+    return {
+      ok: false,
+      errors: requirementErrors,
+    };
+  }
+
+  const profileSchemaId = `${PROFILE_SCHEMA_PREFIX}${profile}`;
+  if (!context.ajv.getSchema(profileSchemaId)) {
+    return {
+      ok: false,
+      errors: [
+        {
+          path: "/profile",
+          message: `Profile schema not loaded: ${profileSchemaId}`,
+        },
+      ],
+    };
+  }
+
+  const validationCopy = cloneRecipe(recipe);
+  (validationCopy as any).stacks = allStacks;
+  if (!validationCopy.profile) {
+    (validationCopy as any).profile = profile;
+  }
+  if ("@type" in validationCopy) {
+    delete (validationCopy as any)["@type"];
+  }
+  if ("$schema" in validationCopy) {
+    delete (validationCopy as any).$schema;
+  }
+
+  const validator = getComposedValidator(profile, allStacks, context);
+
+  let isValid = validator(validationCopy);
+  let errors = validator.errors || [];
+
+  if (isValid && context.rootValidator) {
+    const baseValid = context.rootValidator(validationCopy);
+    if (!baseValid && context.rootValidator.errors) {
+      const requiredErrors = context.rootValidator.errors.filter(
+        (e: any) => e.keyword === "required" && e.params?.missingProperty,
+      );
+      if (requiredErrors.length > 0) {
+        isValid = false;
+        errors = [...errors, ...context.rootValidator.errors.filter((e: any) => e.keyword === "required")];
+      }
+    }
+  }
+
+  if (!isValid && errors.length > 0) {
+    const filteredErrors = filterValidationErrors(errors, validationCopy, normalizedInput, originalInput, allStacks);
+    if (filteredErrors.length === 0) {
+      isValid = true;
+      errors = [];
+    } else {
+      errors = filteredErrors;
+    }
+  }
+
+  return {
+    ok: isValid,
+    errors: errors.map(formatAjvError),
+  };
+}
+
 /**
  * Validates a recipe against the root schema from the vendored spec.
  * This is the new primary validation function.
@@ -1056,71 +1362,7 @@ function validateRecipeSchemaNormalized(
   // Infer stacks from payloads (for stack contract enforcement)
   // Stack contract: if a payload exists, the stack MUST be declared in the recipe
   const inferredStacks = inferStacksFromPayload(normalized);
-  
-  // Check stack contract: all inferred stacks must be declared
-  const contractErrors: NormalizedError[] = [];
-  for (const [stackName] of Object.entries(inferredStacks)) {
-    if (!declaredStacks[stackName]) {
-      contractErrors.push({
-        path: `/stacks/${stackName}`,
-        message: `Stack contract violation: stack payload '${stackName}' exists but stack is not declared in 'stacks'. Add '${stackName}': 1 to the 'stacks' property.`,
-      });
-    }
-  }
-  
-  // Check reverse contract: all declared stacks must have payloads
-  // However, some stacks are "structural" - they constrain existing properties (ingredients/instructions)
-  // rather than adding new payload properties. These don't need explicit payloads.
-  // Structural stacks: structured, quantified, referenced, timed (they constrain existing properties)
-  // Payload stacks require specific properties that may differ from the stack name:
-  //   - prep requires miseEnPlace
-  //   - scaling requires scaling
-  //   - storage requires storage
-  //   - dietary requires dietary
-  //   - substitutions requires substitutions
-  //   - techniques requires techniques
-  //   - equipment requires equipment
-  //   - illustrated requires images or videos
-  const structuralStacks = new Set(['structured', 'quantified', 'referenced', 'timed']);
-  
-  // Map stack names to their required payload property names
-  const stackPayloadProperties: Record<string, string | string[]> = {
-    prep: 'miseEnPlace',
-    scaling: 'scaling',
-    storage: 'storage',
-    dietary: 'dietary',
-    substitutions: 'substitutions',
-    techniques: 'techniques',
-    equipment: 'equipment',
-    illustrated: ['images', 'videos'], // Either images or videos
-  };
-  
-  for (const [stackName] of Object.entries(declaredStacks)) {
-    // Skip payload check for structural stacks - they constrain existing properties
-    if (structuralStacks.has(stackName)) {
-      continue;
-    }
-    
-    // Get the required payload property name(s) for this stack
-    const payloadProps = stackPayloadProperties[stackName];
-    if (!payloadProps) {
-      // Unknown stack - skip payload check (will be caught by schema validation)
-      continue;
-    }
-    
-    // Check if at least one required property exists
-    const propNames = Array.isArray(payloadProps) ? payloadProps : [payloadProps];
-    const hasPayload = propNames.some(prop => prop in normalized && (normalized as any)[prop] !== undefined);
-    
-    if (!hasPayload) {
-      const propName = Array.isArray(payloadProps) ? payloadProps.join(' or ') : payloadProps;
-      contractErrors.push({
-        path: `/stacks/${stackName}`,
-        message: `Stack contract violation: stack '${stackName}' is declared but payload is missing. Add a '${propName}' property to the recipe.`,
-      });
-    }
-  }
-  
+  const contractErrors = getStackContractErrors(normalized, declaredStacks, inferredStacks);
   if (contractErrors.length > 0) {
     return {
       ok: false,
@@ -1131,240 +1373,27 @@ function validateRecipeSchemaNormalized(
   // Merge declared and inferred stacks, using max(version) per stack name
   const allStacks: Record<string, number> = { ...inferredStacks, ...declaredStacks };
 
-  let isValid: boolean;
-  let errors: ErrorObject[] = [];
-
   // Infer profile if none specified, using declared stacks only
   // Always use composed validation (base + profile + stacks) instead of root schema
   if (!profileName) {
-    profileName = inferProfileFromRegistry(normalized, declaredStacks, context);
+    profileName = inferProfileFromRegistry(normalized, declaredStacks, allStacks, context, normalizedInput, originalInput);
   }
   
   const profile = profileName as ProfileName;
+  (normalized as any).profile = profile;
+  (normalizedInput as any).profile = profile;
 
-  const requirementErrors = getProfileRequirementErrors(profile, normalized, declaredStacks, context);
-  if (requirementErrors.length > 0) {
-    return {
-      ok: false,
-      errors: requirementErrors,
-    };
-  }
+  const validationOutcome = validateProfileComposition(
+    profile,
+    normalized,
+    declaredStacks,
+    allStacks,
+    context,
+    normalizedInput,
+    originalInput,
+  );
 
-  // Always use composed validation for recipes (base + profile + stacks)
-  // Root schema validation is only for standalone validation without profiles
-  const profileSchemaId = `${PROFILE_SCHEMA_PREFIX}${profile}`;
-  if (!context.ajv.getSchema(profileSchemaId)) {
-    return {
-      ok: false,
-      errors: [
-        {
-          path: "/profile",
-          message: `Profile schema not loaded: ${profileSchemaId}`,
-        },
-      ],
-    };
-  }
-  {
-    // Use composed validation (base + profile + stacks)
-    // Include both declared and inferred stacks in schema to enforce contract
-    // The schema will enforce that stacks must be declared if payload exists
-
-    // Ensure stacks map exists for validation
-    // The root schema's conditionals check for stacks, so we need to ensure it's set
-    const validationCopy = cloneRecipe(normalized);
-    // Always set stacks to allStacks (declared + inferred) so root schema conditionals work
-    (validationCopy as any).stacks = allStacks;
-    // Ensure profile exists
-    if (!validationCopy.profile) {
-      (validationCopy as any).profile = profile;
-    }
-    // Remove @type from validationCopy if it exists, as the root schema doesn't allow it
-    if ("@type" in validationCopy) {
-      delete (validationCopy as any)["@type"];
-    }
-    // Remove $schema from validation copy - it's a JSON Schema property, not part of the recipe schema
-    if ("$schema" in validationCopy) {
-      delete (validationCopy as any).$schema;
-    }
-
-    // Use allStacks (declared + inferred) in the validator to enforce contract
-    const validator = getComposedValidator(profile, allStacks, context);
-    
-    isValid = validator(validationCopy);
-    errors = validator.errors || [];
-
-    // If validation passed but required fields might be missing, double-check against base schema
-    // This is a workaround for AJV not correctly checking required fields in allOf with $ref
-    if (isValid && context.rootValidator) {
-      const baseValid = context.rootValidator(validationCopy);
-      if (!baseValid && context.rootValidator.errors) {
-        // Check if any errors are about required fields
-        const requiredErrors = context.rootValidator.errors.filter(
-          (e: any) => e.keyword === "required" && e.params?.missingProperty
-        );
-        if (requiredErrors.length > 0) {
-          // Merge required field errors into the main errors
-          isValid = false;
-          errors = [...errors, ...context.rootValidator.errors.filter((e: any) => e.keyword === "required")];
-        }
-      }
-    }
-    
-    // Filter out unevaluatedProperties errors that are false positives from the root schema
-    // The wrapper schema should handle this, but if it doesn't, we filter here as a fallback
-    // These errors occur when the root schema's unevaluatedProperties: false conflicts with stack schemas
-    // We filter unevaluatedProperties errors for x-* extension properties, which should be allowed by patternProperties
-    // We also filter errors for stack properties when stacks are present
-    if (!isValid && errors.length > 0) {
-      // Check if @type or version were in the original recipe (they're removed before validation but might cause errors)
-      // @type is removed from validationCopy at line 1128, but normalizedInput should still have it
-      // We check normalizedInput since it's guaranteed to be an object and should have @type if it was in the input
-      // Also check originalInput as a fallback
-      const hadTypeProperty = (normalizedInput && typeof normalizedInput === "object" && "@type" in normalizedInput) 
-        || (originalInput && typeof originalInput === "object" && "@type" in originalInput);
-      const hadVersionProperty = (normalizedInput && typeof normalizedInput === "object" && "version" in normalizedInput)
-        || (originalInput && typeof originalInput === "object" && "version" in originalInput);
-      const hadSchemaProperty = (normalizedInput && typeof normalizedInput === "object" && "$schema" in normalizedInput)
-        || (originalInput && typeof originalInput === "object" && "$schema" in originalInput);
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/7f75dc85-5d88-41b3-a2c3-713d0c6ca7a6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'validator.ts:1167',message:'Checking @type and version',data:{hasOriginalInput:!!originalInput,originalInputKeys:originalInput?Object.keys(originalInput).slice(0,10):[],normalizedInputKeys:Object.keys(normalizedInput).slice(0,10),hadTypeProperty,hadVersionProperty,normalizedInputHasType:"@type" in normalizedInput,normalizedInputHasVersion:"version" in normalizedInput},timestamp:Date.now(),sessionId:'debug-session',runId:'filter-debug',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion agent log
-      
-      // Get list of x-* properties in the recipe
-      const xProperties = Object.keys(validationCopy).filter(key => key.startsWith('x-'));
-      
-      // Get list of stack property names (from registry)
-      const stackPropertyNames = new Set<string>();
-      for (const [stackName] of Object.entries(allStacks)) {
-        const registryEntry = stackRegistryById.get(stackName);
-        if (registryEntry) {
-          // Stack properties are typically the same as the stack name, but some have different names
-          // (e.g., 'prep' stack has 'miseEnPlace' property)
-          // For now, we'll use the stack name as the property name
-          // Stack properties are typically top-level properties matching the stack name
-          stackPropertyNames.add(stackName);
-        }
-      }
-      
-          // Known valid root-level properties that should never trigger additionalProperties errors
-          // Includes base schema properties and stack payload properties
-          const validRootProperties = new Set([
-            '$schema', 'profile', 'stacks', 'name', 'yield', 'time', 'ingredients', 'instructions', 
-            'metadata', 'images', 'videos',
-            // Stack payload properties
-            'miseEnPlace', 'scaling', 'storage', 'dietary', 'substitutions', 'techniques', 'equipment',
-          ]);
-      
-      const filteredErrors = errors.filter((e) => {
-        // Filter out unevaluatedProperties and additionalProperties errors that are false positives
-        // These occur when the root schema's restrictions conflict with stack schemas or x-* properties
-        if (e.keyword === "unevaluatedProperties" || e.keyword === "additionalProperties") {
-          // AJV errors have instancePath, but it might be undefined or empty string for root-level errors
-          const instancePath = (e as any).instancePath;
-          const isRootLevel = instancePath === undefined || instancePath === "" || instancePath === "/";
-          
-          // Get the property name from error params
-          const params = e.params as any;
-          const propertyName = params?.unevaluatedProperty || params?.additionalProperty;
-          
-          // Get the formatted path (which includes the property name for additionalProperties)
-          // formatAjvError constructs paths like "/$schema" for root-level additionalProperties errors
-          const formattedPath = instancePath === "" && propertyName 
-            ? `/${propertyName}` 
-            : instancePath;
-          
-          if (isRootLevel) {
-            // Root-level errors - check if they're about valid properties, x-*, stack properties, or @type
-            if (propertyName && typeof propertyName === "string") {
-              // Check if it's @type (which we explicitly remove before validation)
-              if (propertyName === "@type") {
-                return false; // Filter out @type errors - we remove it before validation
-              }
-              // Check if it's version (which is normalized to recipeVersion and removed)
-              if (propertyName === "version") {
-                return false; // Filter out version errors - it's normalized to recipeVersion and removed
-              }
-              // Check if it's a known valid root property
-              if (validRootProperties.has(propertyName)) {
-                return false; // Filter out errors for valid root properties
-              }
-              // Check if it's an x-* extension property
-              if (propertyName.startsWith("x-")) {
-                return false; // Filter out x-* properties
-              }
-              // Check if it's a stack property
-              if (stackPropertyNames.has(propertyName)) {
-                return false; // Filter out stack properties
-              }
-              // Keep other root-level errors
-              return true;
-            }
-            // If we can't identify the property, check if we have x-* properties or @type
-            if (xProperties.length > 0) {
-              return false; // Likely a false positive for x-* properties
-            }
-            // For root-level unevaluatedProperties errors without a property name, filter them out
-            // as they're likely false positives from schema composition (e.g., @type or $schema being removed)
-            // AJV sometimes reports unevaluatedProperties errors without the property name in params
-            // This happens when properties are removed before validation (like @type or $schema)
-            if (e.keyword === "unevaluatedProperties" && (!propertyName || propertyName === undefined || propertyName === null)) {
-              return false; // Filter out unevaluatedProperties errors without property names - likely false positives
-            }
-            // If @type, version, or $schema were in the original recipe, filter out root-level unevaluatedProperties errors
-            // as they're likely false positives from these properties (which we remove before validation)
-            if ((hadTypeProperty || hadVersionProperty || hadSchemaProperty) && e.keyword === "unevaluatedProperties") {
-              return false; // Likely a false positive from @type, version, or $schema
-            }
-            // Keep root-level errors if we can't identify the property and no x-* properties
-            return true;
-          } else {
-            // Nested errors - check if the path starts with a valid root property or stack property
-            const pathParts = formattedPath.split('/').filter((p: string) => p);
-            if (pathParts.length > 0) {
-              const firstPart = pathParts[0];
-              // Check if this is a nested property under a valid root property
-              if (validRootProperties.has(firstPart) || stackPropertyNames.has(firstPart)) {
-                // This is a nested property under a valid root property or stack property
-                // Filter it out as it's likely a false positive from schema composition
-                return false;
-              }
-            }
-            // For other nested errors, check if they're about x-* properties
-            if (propertyName && typeof propertyName === "string" && propertyName.startsWith("x-")) {
-              return false; // Filter out x-* properties at any level
-            }
-            // Keep other nested errors - they might be legitimate
-            return true;
-          }
-        }
-        // Keep all other errors
-        return true;
-      });
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/7f75dc85-5d88-41b3-a2c3-713d0c6ca7a6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'validator.ts:1245',message:'After filtering errors',data:{originalErrorCount:errors.length,filteredErrorCount:filteredErrors.length,willSetValid:filteredErrors.length===0,filteredErrors:filteredErrors.slice(0,3).map((e:any)=>({keyword:e.keyword,path:e.instancePath,message:e.message}))},timestamp:Date.now(),sessionId:'debug-session',runId:'filter-debug',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion agent log
-      
-      // If filtering removed all errors, validation passes
-      if (filteredErrors.length === 0) {
-        isValid = true;
-        errors = [];
-      } else {
-        errors = filteredErrors;
-      }
-    }
-
-    // Skip root schema check when using composed validation
-    // The composed validation already includes the root schema via BASE_SCHEMA_ID,
-    // and the composed schema has unevaluatedProperties: true to allow stack properties.
-    // The root schema check was causing false positives for stack properties.
-  }
-
-  return {
-    ok: isValid,
-    errors: errors.map(formatAjvError),
-  };
+  return validationOutcome;
 }
 
 function isInstruction(item: any): item is { id?: string; dependsOn?: string[] } {
@@ -1517,10 +1546,46 @@ export function validateRecipeWithProfile(data: any, profile: ProfileName): data
 }
 
 export function detectProfiles(recipe: any): ProfileName[] {
-  const result = validateRecipe(recipe, { collectAllErrors: false });
-  if (!result.ok) return [];
+  const { recipe: normalized } = normalizeRecipe(recipe);
+  const context = getContext(false);
 
-  // For now, return lite as default since we're using root schema validation
-  // This can be enhanced later to check against specific profile schemas
-  return ["lite"];
+  const declaredStacks: Record<string, number> = {};
+  if (normalized.stacks && typeof normalized.stacks === "object" && !Array.isArray(normalized.stacks)) {
+    for (const [name, version] of Object.entries(normalized.stacks)) {
+      if (typeof version === "number" && version >= 1) {
+        declaredStacks[name] = version;
+      }
+    }
+  }
+
+  const registryErrors = validateDeclaredStacksAgainstRegistry(declaredStacks);
+  if (registryErrors.length > 0) {
+    return [];
+  }
+
+  const inferredStacks = inferStacksFromPayload(normalized);
+  const contractErrors = getStackContractErrors(normalized, declaredStacks, inferredStacks);
+  if (contractErrors.length > 0) {
+    return [];
+  }
+
+  const allStacks: Record<string, number> = { ...inferredStacks, ...declaredStacks };
+  const compatible: ProfileName[] = [];
+
+  for (const profileId of profileRegistryOrder) {
+    const outcome = validateProfileComposition(
+      profileId as ProfileName,
+      normalized,
+      declaredStacks,
+      allStacks,
+      context,
+      normalized,
+      recipe,
+    );
+    if (outcome.ok) {
+      compatible.push(profileId as ProfileName);
+    }
+  }
+
+  return compatible;
 }
