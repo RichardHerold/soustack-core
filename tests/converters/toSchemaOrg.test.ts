@@ -22,7 +22,7 @@ function buildRecipe(overrides: Partial<Recipe> = {}): Recipe {
     description: 'Base description',
     category: 'Dessert',
     tags: ['Sweet', 'Baking'],
-    image: 'https://example.com/image.jpg',
+    images: ['https://example.com/image.jpg'],
     dateAdded: '2024-01-01',
     dateModified: '2024-02-01',
     source: { author: 'Test Author', name: 'Test Kitchen', url: 'https://example.com' },
@@ -30,7 +30,7 @@ function buildRecipe(overrides: Partial<Recipe> = {}): Recipe {
     time: { total: { minutes: 45 } },
     nutrition: { calories: 200 },
     stacks: {},
-    ingredients: ['1 cup sugar'],
+    ingredients: [{ name: '1 cup sugar', scaling: { mode: 'linear' } }],
     instructions: ['Mix everything']
   };
 
@@ -66,7 +66,7 @@ describe('convertBasicMetadata', () => {
     },
     {
       name: 'includes optional description and image',
-      recipe: buildRecipe({ description: 'Tasty', image: 'https://img.test/pic.jpg' }),
+      recipe: buildRecipe({ description: 'Tasty', images: ['https://img.test/pic.jpg'] }),
       expected: {
         description: 'Tasty',
         image: 'https://img.test/pic.jpg'
@@ -87,8 +87,13 @@ describe('convertBasicMetadata', () => {
       }
     },
     {
+      name: 'maps videos to schema.org video',
+      recipe: buildRecipe({ videos: ['https://example.com/clip.mp4'] }),
+      expected: { video: 'https://example.com/clip.mp4' }
+    },
+    {
       name: 'omits undefined optional fields',
-      recipe: buildRecipe({ description: undefined, image: undefined }),
+      recipe: buildRecipe({ description: undefined, images: undefined }),
       expected: {},
       absent: ['description', 'image']
     }
@@ -469,7 +474,7 @@ describe('toSchemaOrg integration', () => {
   it('removes undefined optional fields', () => {
     const recipe = buildRecipe({
       description: undefined,
-      image: undefined,
+      images: undefined,
       tags: undefined,
       source: undefined,
       time: undefined,
@@ -511,7 +516,7 @@ describe('toSchemaOrg integration', () => {
 describe('round-trip conversion', () => {
   it('preserves key recipe data', () => {
     const recipe = buildRecipe({
-      image: ['https://example.com/hero.jpg', 'https://example.com/gallery.jpg'],
+      images: ['https://example.com/hero.jpg', 'https://example.com/gallery.jpg'],
       ingredients: [
         { name: 'flour', quantity: { amount: 2, unit: 'cup' } },
         { section: 'Frosting', ingredients: ['1 cup sugar'] } as any
@@ -543,9 +548,9 @@ describe('round-trip conversion', () => {
     if (recipe.time) {
       expect(roundTrip?.time).toBeDefined();
     }
-    // vNext: image is directly on recipe
-    if (recipe.image) {
-      expect(roundTrip?.image).toBeDefined();
+    // vNext: images are directly on recipe
+    if (recipe.images) {
+      expect(roundTrip?.images).toBeDefined();
     }
     expect(roundTrip?.instructions[2]).toEqual(
       expect.objectContaining({

@@ -1,4 +1,5 @@
 import {
+  Ingredient,
   IngredientItem,
   Instruction,
   InstructionItem,
@@ -36,6 +37,10 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
   const source = convertSource(recipeNode);
   const dateModified = recipeNode.dateModified || undefined;
   const nutrition = convertNutrition(recipeNode.nutrition);
+  const images = toArray(normalizeImage(recipeNode.image));
+  const videos = normalizeMediaList(recipeNode.video);
+  const profile: Recipe['profile'] =
+    recipeYield && time ? 'base' : 'lite';
 
   // Legacy stack conversions removed - vNext doesn't support attribution/taxonomy/media/times/nutrition stacks
   // Schema.org data is mapped to vNext properties directly
@@ -43,11 +48,12 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
 
   const rawRecipe = {
     '@type': 'Recipe',
-    profile: 'lite',
+    profile,
     stacks,
     name: recipeNode.name.trim(),
     description: recipeNode.description?.trim() || undefined,
-    image: normalizeImage(recipeNode.image),
+    images: images.length ? images : undefined,
+    videos: videos.length ? videos : undefined,
     category,
     tags: tags.length ? tags : undefined,
     source,
@@ -122,7 +128,11 @@ function convertIngredients(
   const normalized = Array.isArray(value) ? value : [value];
   return normalized
     .map(item => (typeof item === 'string' ? item.trim() : ''))
-    .filter(Boolean);
+    .filter(Boolean)
+    .map<Ingredient>(name => ({
+      name,
+      scaling: { mode: 'linear' }
+    }));
 }
 
 function convertInstructions(
@@ -274,15 +284,27 @@ function isHowToSection(value: unknown): value is HowToSection {
 
 function convertTime(recipe: SchemaOrgRecipe): Time | undefined {
   const total = smartParseDuration(recipe.totalTime ?? '');
-  
-  // vNext Time format requires total with DurationMinutes
-  if (total !== null && total !== undefined) {
-    return {
-      total: { minutes: total }
-    };
+  const prep = smartParseDuration(recipe.prepTime ?? '');
+  const cook = smartParseDuration(recipe.cookTime ?? '');
+
+  const minutes = isPositiveDuration(total)
+    ? total
+    : [prep, cook].filter(isPositiveDuration).reduce<number | null>((sum, value) => {
+        if (sum === null) return value;
+        return sum + value;
+      }, null);
+
+  if (!isPositiveDuration(minutes)) {
+    return undefined;
   }
-  
-  return undefined;
+
+  return {
+    total: { minutes }
+  };
+}
+
+function isPositiveDuration(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
 }
 
 function collectTags(cuisine: unknown, keywords: unknown): string[] {
@@ -381,11 +403,25 @@ function normalizeMediaList(value: SchemaOrgImage | undefined): string[] {
 }
 
 function extractMediaUrl(value: unknown): string | undefined {
-  if (value && typeof value === 'object' && 'url' in value && typeof (value as any).url === 'string') {
-    const trimmed = (value as any).url.trim();
-    return trimmed || undefined;
+  if (value && typeof value === 'object') {
+    const urlValue =
+      typeof (value as any).url === 'string'
+        ? (value as any).url
+        : typeof (value as any).contentUrl === 'string'
+          ? (value as any).contentUrl
+          : undefined;
+
+    if (typeof urlValue === 'string') {
+      const trimmed = urlValue.trim();
+      return trimmed || undefined;
+    }
   }
   return undefined;
+}
+
+function toArray(value: string | string[] | undefined): string[] {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
 }
 
 // Legacy stack conversion functions removed - vNext doesn't support media/times stacks

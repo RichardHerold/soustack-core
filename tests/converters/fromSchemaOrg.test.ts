@@ -103,39 +103,39 @@ describe('metadata mapping', () => {
 describe('image handling', () => {
   it('captures string recipe images', () => {
     const recipe = getRecipe({ image: 'https://example.com/one.jpg' });
-    expect(recipe.image).toBe('https://example.com/one.jpg');
+    expect(recipe.images).toEqual(['https://example.com/one.jpg']);
   });
 
   it('preserves multiple recipe images as arrays', () => {
     const recipe = getRecipe({
       image: ['https://example.com/a.jpg', 'https://example.com/b.jpg']
     });
-    expect(recipe.image).toEqual(['https://example.com/a.jpg', 'https://example.com/b.jpg']);
+    expect(recipe.images).toEqual(['https://example.com/a.jpg', 'https://example.com/b.jpg']);
   });
 
   it('extracts URLs from image objects', () => {
     const recipe = getRecipe({ image: { url: 'https://example.com/object.jpg' } });
-    expect(recipe.image).toBe('https://example.com/object.jpg');
+    expect(recipe.images).toEqual(['https://example.com/object.jpg']);
   });
 
   it('normalizes mixed image arrays', () => {
     const recipe = getRecipe({
       image: [{ url: 'https://example.com/object.jpg' }, 'https://example.com/string.jpg']
     });
-    expect(recipe.image).toEqual([
+    expect(recipe.images).toEqual([
       'https://example.com/object.jpg',
       'https://example.com/string.jpg'
     ]);
   });
 
   it('returns undefined when no valid image exists', () => {
-    expect(convert({ image: { invalid: true } as any })?.image).toBeUndefined();
-    expect(convert({ image: null })?.image).toBeUndefined();
+    expect(convert({ image: { invalid: true } as any })?.images).toBeUndefined();
+    expect(convert({ image: null })?.images).toBeUndefined();
   });
 
   it('uses contentUrl when url is unavailable', () => {
     const recipe = getRecipe({ image: { contentUrl: 'https://example.com/content.jpg' } });
-    expect(recipe.image).toBe('https://example.com/content.jpg');
+    expect(recipe.images).toEqual(['https://example.com/content.jpg']);
   });
 });
 
@@ -181,12 +181,15 @@ describe('ingredient conversion', () => {
       recipeIngredient: [' 2 cups sugar ', '', '1 tsp salt']
     });
 
-    expect(recipe.ingredients).toEqual(['2 cups sugar', '1 tsp salt']);
+    expect(recipe.ingredients).toEqual([
+      { name: '2 cups sugar', scaling: { mode: 'linear' } },
+      { name: '1 tsp salt', scaling: { mode: 'linear' } }
+    ]);
   });
 
   it('handles single string values', () => {
     const recipe = getRecipe({ recipeIngredient: '3 large eggs' });
-    expect(recipe.ingredients).toEqual(['3 large eggs']);
+    expect(recipe.ingredients).toEqual([{ name: '3 large eggs', scaling: { mode: 'linear' } }]);
   });
 });
 
@@ -361,6 +364,25 @@ describe('time and yield parsing', () => {
     expect(recipe.yield).toMatchObject({ amount: 24, unit: 'cookies' });
   });
 
+  it('sums prep and cook time when totalTime is missing', () => {
+    const recipe = getRecipe({
+      prepTime: 'PT15M',
+      cookTime: 'PT30M',
+      totalTime: undefined
+    });
+
+    expect(recipe.time).toMatchObject({ total: { minutes: 45 } });
+  });
+
+  it('sets profile to base when both time and yield are available', () => {
+    const recipe = getRecipe({
+      totalTime: 'PT15M',
+      recipeYield: '4 servings'
+    });
+
+    expect(recipe.profile).toBe('base');
+  });
+
   it('omits time when no values parse', () => {
     const recipe = getRecipe({ prepTime: 'invalid', cookTime: undefined, totalTime: undefined });
     expect(recipe.time).toBeUndefined();
@@ -412,12 +434,8 @@ describe('lite profile and vNext format', () => {
     expect(recipe.category).toBe('Dinner');
     expect(recipe.tags).toEqual(expect.arrayContaining(['Italian', 'pasta', 'cheese', 'baked']));
     // vNext: image is directly on recipe (may be string or array)
-    expect(recipe.image).toBeDefined();
-    if (Array.isArray(recipe.image)) {
-      expect(recipe.image).toEqual(expect.arrayContaining(['https://example.com/lasagna.jpg']));
-    } else {
-      expect(recipe.image).toBe('https://example.com/lasagna.jpg');
-    }
+    expect(recipe.images).toEqual(expect.arrayContaining(['https://example.com/lasagna.jpg']));
+    expect(recipe.videos).toEqual(['https://example.com/lasagna.mp4']);
     // vNext: time uses DurationMinutes format
     expect(recipe.time).toMatchObject({ total: { minutes: 60 } });
     // vNext: nutrition is directly on recipe
