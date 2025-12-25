@@ -38,6 +38,12 @@ describe('soustack CLI', () => {
     expect(`${result.stdout}${result.stderr ?? ''}`).toMatch(/❌|Validation/);
   });
 
+  it('fails validation when forcing an incompatible profile', () => {
+    const result = runCli(['validate', VALID_FIXTURE, '--profile', 'base', '--force-profile']);
+    expectNonZero(result.status);
+    expect(`${result.stdout}${result.stderr ?? ''}`).toMatch(/Schema errors/i);
+  });
+
   it('fails soustack test when repository contains invalid recipes', () => {
     const tmp = mkdtempSync(path.join(tmpdir(), 'soustack-cli-'));
     const validPath = path.join(tmp, 'valid.soustack.json');
@@ -89,16 +95,6 @@ describe('soustack CLI', () => {
   "level": null,
   "ok": false,
   "schemaErrors": [
-    {
-      "keyword": "required",
-      "message": "must have required property 'yield'",
-      "path": "/",
-    },
-    {
-      "keyword": "required",
-      "message": "must have required property 'time'",
-      "path": "/",
-    },
     {
       "keyword": "required",
       "message": "must have required property 'instructions'",
