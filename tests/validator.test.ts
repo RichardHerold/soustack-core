@@ -141,6 +141,17 @@ describe('Soustack validation', () => {
     }
   });
 
+  it('accepts historical Soustack $schema aliases', () => {
+    const recipe: Recipe = {
+      ...baseValid,
+      $schema: 'https://raw.githubusercontent.com/RichardHerold/soustack-spec/main/soustack.schema.json',
+    };
+
+    const result = validateRecipe(recipe);
+    expect(result.ok).toBe(true);
+    expect(result.schemaErrors).toHaveLength(0);
+  });
+
   it('accepts an explicit profile selection', () => {
     const result = validateRecipe(baseValid, { profile: 'lite' });
     expect(result.ok).toBe(true);

@@ -13,6 +13,7 @@ import {
 import { fromSchemaOrg } from '../../src/fromSchemaOrg';
 import { Recipe } from '../../src/types';
 import { HowToSection, HowToStep, SchemaOrgRecipe } from '../../src/types/schemaOrg';
+import { CANONICAL_SCHEMA_ID } from '../../src/schemaMetadata';
 
 function buildRecipe(overrides: Partial<Recipe> = {}): Recipe {
   const base: Recipe = {
@@ -499,6 +500,11 @@ describe('toSchemaOrg integration', () => {
     expect(nutritionResult?.calories).toBe('200 calories');
     expect(nutritionResult?.['@type']).toBe('NutritionInformation');
     expect(nutritionResult?.protein_g).toBe(10); // Other fields preserved as-is
+  });
+
+  it('adds the canonical $schema marker to Schema.org output', () => {
+    const schemaOrg = toSchemaOrg(buildRecipe());
+    expect(schemaOrg.$schema).toBe(CANONICAL_SCHEMA_ID);
   });
 });
 

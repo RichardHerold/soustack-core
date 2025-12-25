@@ -14,6 +14,7 @@ import {
   SchemaOrgRecipe
 } from '../types/schemaOrg';
 import stacksRegistry from '../stacks/registry.json';
+import { withCanonicalSchema } from '../schemaMetadata';
 
 export function convertBasicMetadata(recipe: Recipe): Partial<SchemaOrgRecipe> {
   return cleanOutput({
@@ -328,7 +329,7 @@ export function toSchemaOrg(recipe: Recipe): SchemaOrgRecipe {
     ? convertCategoryTags(recipe.category, recipe.tags)
     : {};
 
-  return cleanOutput({
+  const schemaOrgRecipe = cleanOutput({
     ...base,
     recipeIngredient: ingredients.length ? ingredients : undefined,
     recipeInstructions: instructions.length ? instructions : undefined,
@@ -338,6 +339,8 @@ export function toSchemaOrg(recipe: Recipe): SchemaOrgRecipe {
     ...taxonomyData,
     nutrition
   }) as SchemaOrgRecipe;
+
+  return withCanonicalSchema(schemaOrgRecipe) as SchemaOrgRecipe;
 }
 
 // Legacy isStructuredTime removed - vNext uses Time format with DurationMinutes

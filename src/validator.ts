@@ -9,6 +9,7 @@ import baseProfileSchema from "./profiles/base.schema.json";
 import illustratedProfileSchema from "./profiles/illustrated.schema.json";
 import scalableProfileSchema from "./profiles/scalable.schema.json";
 import registry from "./stacks/registry.json";
+import { CANONICAL_SCHEMA_ID, LEGACY_SCHEMA_ID, resolveSchemaHint, SCHEMA_ALIAS_MAP } from "./schemaMetadata";
 
 type ProfileName =
   | "base"
@@ -20,8 +21,8 @@ type ProfileName =
   | "timed";
 
 // Schema IDs from the vendored spec
-const LEGACY_ROOT_SCHEMA_ID = `http://soustack.org/schema/v${SOUSTACK_SPEC_VERSION}`;
-const DEFAULT_ROOT_SCHEMA_ID = "https://soustack.spec/soustack.schema.json";
+const LEGACY_ROOT_SCHEMA_ID = LEGACY_SCHEMA_ID;
+const DEFAULT_ROOT_SCHEMA_ID = CANONICAL_SCHEMA_ID;
 const BASE_SCHEMA_ID = LEGACY_ROOT_SCHEMA_ID; // Base schema is the root schema
 // Profile schemas use v0.0.2, not the spec version
 const PROFILE_SCHEMA_PREFIX = `http://soustack.org/schema/v0.0.2/profiles/`;
@@ -150,16 +151,26 @@ function loadAllSchemas(ajv: Ajv2020): void {
     }
   }
 
+  // Register alias IDs that should resolve to the canonical root schema
+  for (const [alias, target] of SCHEMA_ALIAS_MAP.entries()) {
+    if (alias === target || alias === LEGACY_ROOT_SCHEMA_ID) continue;
+    if (!ajv.getSchema(alias)) {
+      ajv.addSchema({ $id: alias, $ref: target }, alias);
+    }
+  }
+
   // Create legacy schema mappings BEFORE loading profiles (profiles reference them)
   // Profiles reference http://soustack.org/schema/v0.0.2, but root schema uses https://soustack.spec/soustack.schema.json
   // We need to create a mapping from the legacy ID to the root schema
   // Also need to map old #/definitions/ to new #/$defs/ for backward compatibility
   // Profile schemas use Draft 7 which uses "definitions", but they reference a Draft 2020-12 schema
   // We need to create a compatibility layer that exposes definitions in the old format
-  const legacyIds = [
-    LEGACY_ROOT_SCHEMA_ID,
-    `http://soustack.org/schema/v0.0.2`, // Profiles reference this version
-  ];
+  const legacyIds = Array.from(
+    new Set<string>([
+      LEGACY_ROOT_SCHEMA_ID,
+      `http://soustack.org/schema/v0.0.2`, // Profiles reference this version
+    ]),
+  );
   
   for (const legacyId of legacyIds) {
     if (!ajv.getSchema(legacyId)) {
@@ -323,12 +334,7 @@ function formatAjvError(error: ErrorObject): NormalizedError {
 }
 
 function isSoustackSchemaId(schemaId: string): boolean {
-  return (
-    schemaId.startsWith("http://soustack.org/schema") ||
-    schemaId.startsWith("https://soustack.org/schema") ||
-    schemaId.startsWith("https://soustack.spec/") ||
-    schemaId.startsWith("https://soustack.org/schemas/")
-  );
+  return resolveSchemaHint(schemaId).isSoustackSchema;
 }
 
 function buildStackRegistryById(): Map<string, StackRegistryInfo> {
@@ -1341,9 +1347,16 @@ function validateRecipeSchemaNormalized(
   // Get validation context
   const context = getContext(collectAllErrors);
 
-  const schemaId = typeof schemaOverride === "string" ? schemaOverride : typeof normalized.$schema === "string" ? normalized.$schema : undefined;
+  const schemaHint = typeof schemaOverride === "string" ? schemaOverride : typeof normalized.$schema === "string" ? normalized.$schema : undefined;
+  const resolvedSchema = resolveSchemaHint(schemaHint);
+  const schemaId = resolvedSchema.canonicalId;
   const hasSchemaOverride = typeof schemaOverride === "string";
-  const isSoustackSchema = schemaId ? isSoustackSchemaId(schemaId) : false;
+  const isSoustackSchema = resolvedSchema.isSoustackSchema;
+  if (isSoustackSchema && schemaId) {
+    (normalized as any).$schema = schemaId;
+    (normalizedInput as any).$schema = schemaId;
+  }
+  const isLegacySchemaHint = typeof schemaHint === "string" && schemaHint.startsWith(LEGACY_ROOT_SCHEMA_ID);
   
   // Check if recipe has stacks - if so, we need to use composed validation
   // even if $schema is set, because the root schema doesn't include stack properties
@@ -1353,87 +1366,78 @@ function validateRecipeSchemaNormalized(
   // 1. Schema is specified AND
   // 2. It's a Soustack schema AND
   // 3. Recipe doesn't have stacks (stacks require composed validation)
-  if (schemaId && isSoustackSchema && !hasStacks) {
-    const schemaValidator = context.ajv.getSchema(schemaId);
-    if (!schemaValidator) {
-      return {
-        ok: false,
-        errors: [
-          {
-            path: "/$schema",
-            message: `Unknown schema: ${schemaId}`,
-          },
-        ],
-      };
-    }
+  if (schemaId && isSoustackSchema && !hasStacks && hasSchemaOverride) {
+    const schemaValidator = context.ajv.getSchema(schemaId) ?? context.ajv.getSchema(DEFAULT_ROOT_SCHEMA_ID);
+    if (schemaValidator) {
 
-    const schemaInput = cloneRecipe(normalized);
-    // Remove $schema from validation copy - it's a JSON Schema property, not part of the recipe schema
-    if ("$schema" in schemaInput) {
-      delete (schemaInput as any).$schema;
-    }
-    if (hasSchemaOverride && "$schema" in schemaInput && schemaInput.$schema !== schemaId) {
-      delete (schemaInput as any).$schema;
-    }
-    const isLegacySchema = schemaId.startsWith(LEGACY_ROOT_SCHEMA_ID);
-    const shouldRemoveStacks = (isLegacySchema || schemaId === DEFAULT_ROOT_SCHEMA_ID) && !inputHasStacks;
-    if (isLegacySchema && "@type" in schemaInput) {
-      delete (schemaInput as any)["@type"];
-    }
-    if (shouldRemoveStacks && "stacks" in schemaInput) {
-      delete (schemaInput as any).stacks;
-    }
-    const schemaValid = schemaValidator(schemaInput);
-    const schemaErrors = schemaValidator.errors || [];
-    
-    // Filter out false positive errors for properties we remove before validation ($schema, @type, version)
-    const hadSchemaProperty = (normalizedInput && typeof normalizedInput === "object" && "$schema" in normalizedInput)
-      || (originalInput && typeof originalInput === "object" && "$schema" in originalInput);
-    const hadTypeProperty = (normalizedInput && typeof normalizedInput === "object" && "@type" in normalizedInput) 
-      || (originalInput && typeof originalInput === "object" && "@type" in originalInput);
-    const hadVersionProperty = (normalizedInput && typeof normalizedInput === "object" && "version" in normalizedInput)
-      || (originalInput && typeof originalInput === "object" && "version" in originalInput);
-    
-    const filteredErrors = schemaErrors.filter((e) => {
-      if (e.keyword === "unevaluatedProperties" || e.keyword === "additionalProperties") {
-        const instancePath = e.instancePath;
-        const isRootLevel = instancePath === undefined || instancePath === "" || instancePath === "/";
-        const params = e.params as any;
-        const propertyName = params?.unevaluatedProperty || params?.additionalProperty;
-        
-        if (isRootLevel) {
-          if (propertyName && typeof propertyName === "string") {
-            // Filter out errors for properties we remove or that are valid
-            if (propertyName === "$schema" || propertyName === "@type" || propertyName === "version") {
-              return false;
+      const schemaInput = cloneRecipe(normalized);
+      // Remove $schema from validation copy - it's a JSON Schema property, not part of the recipe schema
+      if ("$schema" in schemaInput) {
+        delete (schemaInput as any).$schema;
+      }
+      if (hasSchemaOverride && "$schema" in schemaInput && schemaInput.$schema !== schemaId) {
+        delete (schemaInput as any).$schema;
+      }
+      const isLegacySchema = isLegacySchemaHint || (schemaId ? schemaId.startsWith(LEGACY_ROOT_SCHEMA_ID) : false);
+      const shouldRemoveStacks = (isLegacySchema || schemaId === DEFAULT_ROOT_SCHEMA_ID) && !inputHasStacks;
+      if (isLegacySchema && "@type" in schemaInput) {
+        delete (schemaInput as any)["@type"];
+      }
+      if (shouldRemoveStacks && "stacks" in schemaInput) {
+        delete (schemaInput as any).stacks;
+      }
+      const schemaValid = schemaValidator(schemaInput);
+      const schemaErrors = schemaValidator.errors || [];
+      
+      // Filter out false positive errors for properties we remove before validation ($schema, @type, version)
+      const hadSchemaProperty = (normalizedInput && typeof normalizedInput === "object" && "$schema" in normalizedInput)
+        || (originalInput && typeof originalInput === "object" && "$schema" in originalInput);
+      const hadTypeProperty = (normalizedInput && typeof normalizedInput === "object" && "@type" in normalizedInput) 
+        || (originalInput && typeof originalInput === "object" && "@type" in originalInput);
+      const hadVersionProperty = (normalizedInput && typeof normalizedInput === "object" && "version" in normalizedInput)
+        || (originalInput && typeof originalInput === "object" && "version" in originalInput);
+      
+      const filteredErrors = schemaErrors.filter((e) => {
+        if (e.keyword === "unevaluatedProperties" || e.keyword === "additionalProperties") {
+          const instancePath = e.instancePath;
+          const isRootLevel = instancePath === undefined || instancePath === "" || instancePath === "/";
+          const params = e.params as any;
+          const propertyName = params?.unevaluatedProperty || params?.additionalProperty;
+          
+          if (isRootLevel) {
+            if (propertyName && typeof propertyName === "string") {
+              // Filter out errors for properties we remove or that are valid
+              if (propertyName === "$schema" || propertyName === "@type" || propertyName === "version") {
+                return false;
+              }
+              // Filter out valid root properties
+              if (propertyName === "profile" || propertyName === "stacks" || propertyName === "name" || 
+                  propertyName === "yield" || propertyName === "time" || propertyName === "ingredients" || 
+                  propertyName === "instructions" || propertyName.startsWith("x-")) {
+                return false;
+              }
             }
-            // Filter out valid root properties
-            if (propertyName === "profile" || propertyName === "stacks" || propertyName === "name" || 
-                propertyName === "yield" || propertyName === "time" || propertyName === "ingredients" || 
-                propertyName === "instructions" || propertyName.startsWith("x-")) {
-              return false;
-            }
-          }
-          // Filter out unevaluatedProperties errors without property names if we removed $schema, @type, or version
-          if (e.keyword === "unevaluatedProperties" && (!propertyName || propertyName === undefined || propertyName === null)) {
-            if (hadSchemaProperty || hadTypeProperty || hadVersionProperty) {
-              return false; // Likely a false positive from removed properties
+            // Filter out unevaluatedProperties errors without property names if we removed $schema, @type, or version
+            if (e.keyword === "unevaluatedProperties" && (!propertyName || propertyName === undefined || propertyName === null)) {
+              if (hadSchemaProperty || hadTypeProperty || hadVersionProperty) {
+                return false; // Likely a false positive from removed properties
+              }
             }
           }
         }
-      }
-      return true;
-    });
-    
-    // If validation passed, it's valid
-    // If validation failed but all errors were filtered out (meaning they were false positives),
-    // also consider it valid
-    const ok = Boolean(schemaValid) || (filteredErrors.length === 0);
-    
-    return {
-      ok,
-      errors: filteredErrors.map(formatAjvError),
-    };
+        return true;
+      });
+      
+      // If validation passed, it's valid
+      // If validation failed but all errors were filtered out (meaning they were false positives),
+      // also consider it valid
+      const ok = Boolean(schemaValid) || (filteredErrors.length === 0);
+      
+      return {
+        ok,
+        errors: filteredErrors.map(formatAjvError),
+      };
+    }
   }
   
   // If schema is specified but recipe has stacks, fall through to composed validation
