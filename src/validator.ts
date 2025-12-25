@@ -450,6 +450,43 @@ function resolveStackSchemaRefs(schema: any): any {
   return resolvedSchema;
 }
 
+function hasLegacyDefinitionsRef(obj: any): boolean {
+  if (!obj || typeof obj !== "object") return false;
+  if (obj.$ref && typeof obj.$ref === "string" && obj.$ref.includes("#/definitions/")) {
+    return true;
+  }
+  return Object.values(obj).some((value) => {
+    if (Array.isArray(value)) {
+      return value.some((item) => hasLegacyDefinitionsRef(item));
+    }
+    if (value && typeof value === "object") {
+      return hasLegacyDefinitionsRef(value);
+    }
+    return false;
+  });
+}
+
+function hasLegacyProfileOrModuleRef(obj: any): boolean {
+  if (!obj || typeof obj !== "object") return false;
+  if (obj.$ref && typeof obj.$ref === "string") {
+    if (
+      obj.$ref.includes("soustack.org/schema/v0.0.2/profiles/") ||
+      obj.$ref.includes("soustack.org/schema/v0.0.2/modules/")
+    ) {
+      return true;
+    }
+  }
+  return Object.values(obj).some((value) => {
+    if (Array.isArray(value)) {
+      return value.some((item) => hasLegacyProfileOrModuleRef(item));
+    }
+    if (value && typeof value === "object") {
+      return hasLegacyProfileOrModuleRef(value);
+    }
+    return false;
+  });
+}
+
 function ensureStackSchemaLoaded(
   ajv: Ajv2020,
   stackId: string,
@@ -466,7 +503,9 @@ function ensureStackSchemaLoaded(
   loading.add(stackKey);
   try {
     const resolved = resolveStackSchemaPath(stackId, major);
-    if (!resolved) return null;
+    if (!resolved) {
+      throw new Error(`Stack schema not found in registry for '${stackId}' major ${major}`);
+    }
 
     const { path: schemaPath, requires } = resolved;
     const normalizedSchemaPath = schemaPath.startsWith("./") ? schemaPath : `./${schemaPath}`;
@@ -475,12 +514,12 @@ function ensureStackSchemaLoaded(
     const searchPaths: string[] = [];
     if (path) {
       searchPaths.push(
+        path.join(__dirname, "..", "spec", schemaPath),
+        path.join(process.cwd(), "spec", schemaPath),
         path.join(__dirname, schemaPath),
         path.join(__dirname, "..", "src", schemaPath),
-        path.join(__dirname, "..", "spec", schemaPath),
         path.join(process.cwd(), schemaPath),
         path.join(process.cwd(), "src", schemaPath),
-        path.join(process.cwd(), "spec", schemaPath),
       );
     }
     const existingPath = fs && searchPaths.length > 0 ? searchPaths.find((candidate) => fs.existsSync(candidate)) : undefined;
@@ -834,6 +873,85 @@ function inferProfileFromRegistry(
   return "lite";
 }
 
+function getProfileWrapperSchemaId(
+  context: ValidationContext,
+  profileSchemaId: string,
+  cacheKey: string,
+  options: { removeIngredientInstructionOverrides: boolean },
+): string {
+  const wrapperSuffix = options.removeIngredientInstructionOverrides ? "with-stacks" : "no-stacks";
+  const profileWrapperId = `urn:soustack:profile-wrapper:${cacheKey}:${wrapperSuffix}`;
+  if (context.ajv.getSchema(profileWrapperId)) {
+    return profileWrapperId;
+  }
+
+  const ajvAny = context.ajv as any;
+  const profileSchemaObj = ajvAny.schemas[profileSchemaId];
+  if (!profileSchemaObj) {
+    throw new Error(`Profile schema object not found: ${profileSchemaId}`);
+  }
+
+  const profileSchema = profileSchemaObj.schema || profileSchemaObj;
+  const filteredAllOf: any[] = [];
+
+  const addEntry = (entry: any): void => {
+    if (!entry || typeof entry !== "object") return;
+    if (hasLegacyDefinitionsRef(entry) || hasLegacyProfileOrModuleRef(entry)) {
+      return;
+    }
+
+    let candidate = entry;
+    if (
+      options.removeIngredientInstructionOverrides &&
+      entry.properties &&
+      (entry.properties.ingredients || entry.properties.instructions)
+    ) {
+      candidate = { ...entry };
+      if (candidate.properties) {
+        const newProps: any = { ...candidate.properties };
+        delete newProps.ingredients;
+        delete newProps.instructions;
+        if (Object.keys(newProps).length > 0) {
+          candidate.properties = newProps;
+        } else {
+          delete candidate.properties;
+        }
+      }
+    }
+
+    if (Object.keys(candidate).length > 0) {
+      filteredAllOf.push(candidate);
+    }
+  };
+
+  if (Array.isArray(profileSchema.allOf)) {
+    profileSchema.allOf.forEach(addEntry);
+  }
+
+  let wrapperAllOf = [...filteredAllOf];
+
+  if (wrapperAllOf.length === 0 && Array.isArray(profileSchema.allOf) && profileSchema.allOf.length > 0) {
+    const baseRef = profileSchema.allOf.find(
+      (e: any) => e.$ref && !hasLegacyDefinitionsRef(e) && !hasLegacyProfileOrModuleRef(e),
+    );
+    if (baseRef) {
+      wrapperAllOf = [baseRef];
+    }
+  }
+
+  if (wrapperAllOf.length === 0) {
+    wrapperAllOf = [{ $ref: BASE_SCHEMA_ID }];
+  }
+
+  const profileWrapper: any = {
+    $id: profileWrapperId,
+    allOf: wrapperAllOf,
+  };
+
+  context.ajv.addSchema(profileWrapper, profileWrapperId);
+  return profileWrapperId;
+}
+
 /**
  * Gets a composed validator for a profile and stacks using vendored schemas
  */
@@ -902,121 +1020,10 @@ function getComposedValidator(
   }
   
   const hasStackSchemas = Object.keys(stacks).length > 0;
-  if (hasStackSchemas) {
-    // When stacks are present, create a minimal profile schema that only includes non-conflicting requirements
-    // We need to get the profile schema and extract only the parts that don't conflict with stack schemas
-    const profileWrapperId = `urn:soustack:profile-wrapper:${cacheKey}`;
-    if (!context.ajv.getSchema(profileWrapperId)) {
-      // Get the profile schema object from AJV's internal storage
-      const ajvAny = context.ajv as any;
-      const profileSchemaObj = ajvAny.schemas[profileSchemaId];
-      if (!profileSchemaObj) {
-        throw new Error(`Profile schema object not found: ${profileSchemaId}`);
-      }
-      
-      // Create a wrapper that includes the profile's allOf but excludes:
-      // 1. Ingredient/instruction property overrides (conflict with stack schemas)
-      // 2. Entries that reference legacy #/definitions/* paths (can't resolve in wrapper)
-      const profileSchema = profileSchemaObj.schema || profileSchemaObj;
-      const filteredAllOf: any[] = [];
-      
-      // Helper function to check if a schema object contains legacy #/definitions/* references
-      const hasLegacyDefinitionsRef = (obj: any): boolean => {
-        if (!obj || typeof obj !== 'object') return false;
-        if (obj.$ref && typeof obj.$ref === 'string' && obj.$ref.includes('#/definitions/')) {
-          return true;
-        }
-        for (const value of Object.values(obj)) {
-          if (Array.isArray(value)) {
-            if (value.some((item: any) => hasLegacyDefinitionsRef(item))) return true;
-          } else if (typeof value === 'object' && value !== null) {
-            if (hasLegacyDefinitionsRef(value)) return true;
-          }
-        }
-        return false;
-      };
-      const hasLegacyProfileOrModuleRef = (obj: any): boolean => {
-        if (!obj || typeof obj !== 'object') return false;
-        if (obj.$ref && typeof obj.$ref === 'string') {
-          if (
-            obj.$ref.includes("soustack.org/schema/v0.0.2/profiles/") ||
-            obj.$ref.includes("soustack.org/schema/v0.0.2/modules/")
-          ) {
-            return true;
-          }
-        }
-        for (const value of Object.values(obj)) {
-          if (Array.isArray(value)) {
-            if (value.some((item: any) => hasLegacyProfileOrModuleRef(item))) return true;
-          } else if (typeof value === 'object' && value !== null) {
-            if (hasLegacyProfileOrModuleRef(value)) return true;
-          }
-        }
-        return false;
-      };
-      
-      if (Array.isArray(profileSchema.allOf)) {
-        for (const entry of profileSchema.allOf) {
-          // Skip entries that reference legacy #/definitions/* paths
-          // These can't be resolved in the wrapper schema and should be handled by stack schemas instead
-          if (hasLegacyDefinitionsRef(entry) || hasLegacyProfileOrModuleRef(entry)) {
-            continue;
-          }
-          
-          // Skip entries that override ingredients or instructions properties
-          if (entry.properties && (entry.properties.ingredients || entry.properties.instructions)) {
-            // Create a modified entry without ingredient/instruction overrides
-            const modifiedEntry: any = { ...entry };
-            if (modifiedEntry.properties) {
-              const newProps: any = { ...modifiedEntry.properties };
-              delete newProps.ingredients;
-              delete newProps.instructions;
-              if (Object.keys(newProps).length > 0) {
-                modifiedEntry.properties = newProps;
-              } else {
-                delete modifiedEntry.properties;
-              }
-            }
-            // Only add if there are still other properties or requirements
-            if (modifiedEntry.properties || modifiedEntry.required || modifiedEntry.allOf) {
-              filteredAllOf.push(modifiedEntry);
-            }
-          } else {
-            // Keep entries that don't override ingredients/instructions and don't reference legacy definitions
-            filteredAllOf.push(entry);
-          }
-        }
-      }
-      
-      // Create wrapper schema with filtered allOf
-      const profileWrapper: any = {
-        $id: profileWrapperId,
-        allOf: filteredAllOf.length > 0 ? filteredAllOf : [],
-      };
-      
-      // If we filtered out everything, just reference the base schema that the profile references
-      if (profileWrapper.allOf.length === 0 && profileSchema.allOf && profileSchema.allOf.length > 0) {
-        // Find the base schema reference (usually the first allOf entry)
-        const baseRef = profileSchema.allOf.find(
-          (e: any) => e.$ref && !e.properties && !hasLegacyDefinitionsRef(e) && !hasLegacyProfileOrModuleRef(e),
-        );
-        if (baseRef) {
-          profileWrapper.allOf = [baseRef];
-        }
-      }
-
-      if (profileWrapper.allOf.length === 0) {
-        // Fallback: reference the base schema directly
-        profileWrapper.allOf = [{ $ref: BASE_SCHEMA_ID }];
-      }
-      
-      context.ajv.addSchema(profileWrapper, profileWrapperId);
-    }
-    allOf.push({ $ref: profileWrapperId });
-  } else {
-    // No stacks - use profile schema directly
-  allOf.push({ $ref: profileSchemaId });
-  }
+  const profileWrapperId = getProfileWrapperSchemaId(context, profileSchemaId, cacheKey, {
+    removeIngredientInstructionOverrides: hasStackSchemas,
+  });
+  allOf.push({ $ref: profileWrapperId });
 
   // Add stack schemas using registry
   const stackSchemaLoading = new Set<string>();
@@ -1025,6 +1032,15 @@ function getComposedValidator(
       // Vendor stack - no schema enforcement
       continue;
     }
+
+    const registryEntry = stackRegistryById.get(name);
+    if (!registryEntry) {
+      throw new Error(`Unknown stack: ${name}`);
+    }
+    if (!registryEntry.versions.includes(version)) {
+      throw new Error(`Unsupported stack version for ${name}: ${version}`);
+    }
+
     if (typeof version === "number" && version >= 1) {
       const schemaId = ensureStackSchemaLoaded(context.ajv, name, version, stackSchemaLoading);
       if (schemaId) {
