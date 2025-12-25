@@ -395,6 +395,26 @@ describe('Soustack validation', () => {
   });
 
   describe('composed validation with stacks', () => {
+    const collectRefs = (node: any): string[] => {
+      const refs = new Set<string>();
+      const visit = (value: any): void => {
+        if (!value) return;
+        if (Array.isArray(value)) {
+          value.forEach(visit);
+          return;
+        }
+        if (typeof value === 'object') {
+          const refValue = (value as any).$ref;
+          if (typeof refValue === 'string') {
+            refs.add(refValue);
+          }
+          Object.values(value).forEach(visit);
+        }
+      };
+      visit(node);
+      return Array.from(refs);
+    };
+
     it('enforces stack declaration when payload exists (stack contract)', () => {
       const recipe: any = {
         ...liteRecipe,
@@ -475,31 +495,26 @@ describe('Soustack validation', () => {
 
     it('composes stack schemas via registry IDs without legacy profile/module refs', () => {
       const composedSchema = __getComposedSchemaForTesting('lite', { equipment: 1, dietary: 1 });
-      const collectRefs = (node: any): string[] => {
-        const refs = new Set<string>();
-        const visit = (value: any): void => {
-          if (!value) return;
-          if (Array.isArray(value)) {
-            value.forEach(visit);
-            return;
-          }
-          if (typeof value === 'object') {
-            const refValue = (value as any).$ref;
-            if (typeof refValue === 'string') {
-              refs.add(refValue);
-            }
-            Object.values(value).forEach(visit);
-          }
-        };
-        visit(node);
-        return Array.from(refs);
-      };
 
       const refs = collectRefs(composedSchema);
       const equipmentSchema = require('../src/stacks/equipment.schema.json');
       const dietarySchema = require('../src/stacks/dietary.schema.json');
 
       expect(refs).toEqual(expect.arrayContaining([equipmentSchema.$id, dietarySchema.$id]));
+
+      expect(
+        refs.some(
+          (ref) =>
+            typeof ref === 'string' &&
+            (ref.includes('soustack.org/schema/v0.0.2/profiles/') ||
+              ref.includes('soustack.org/schema/v0.0.2/modules/')),
+        ),
+      ).toBe(false);
+    });
+
+    it('omits legacy profile/module refs when composing without stacks', () => {
+      const composedSchema = __getComposedSchemaForTesting('lite', {});
+      const refs = collectRefs(composedSchema);
 
       expect(
         refs.some(
