@@ -1,9 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import Ajv from 'ajv';
+import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
-import draft2020 from "ajv/dist/2020.js";
 import { getRequiredSpecFiles } from './schema-artifacts.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -18,14 +17,14 @@ const SRC_SCHEMA_COPIES = [
   path.join(SRC_DIR, 'schema.json'),
 ];
 
-const ajv = new Ajv({
+// Use Ajv2020 for draft 2020-12 schema support
+const ajv = new Ajv2020({
   allErrors: true,
   strict: false,
   // Note: Schema references ($ref) should use relative paths or be resolved
   // by pre-loading all schemas. For now, we compile each schema individually.
 });
 addFormats(ajv);
-ajv.addMetaSchema(draft2020);
 
 function relativeToRoot(filePath) {
   return path.relative(ROOT_DIR, filePath);
@@ -82,9 +81,33 @@ function findSchemaFiles(dirPath, basePath = '') {
   return files;
 }
 
-function compileSchema(filePath) {
+function compileSchema(filePath, schemaMap = null) {
   const schema = readJson(filePath);
+  
+  // Validate that schema is an object or boolean (AJV requirement)
+  if (typeof schema !== 'object' && typeof schema !== 'boolean') {
+    throw new Error(
+      `Schema ${relativeToRoot(filePath)} must be an object or boolean, but got ${typeof schema}${Array.isArray(schema) ? ' (array)' : ''}`
+    );
+  }
+  
+  // Additional check: if it's an object, ensure it's not null or an array
+  if (typeof schema === 'object' && (schema === null || Array.isArray(schema))) {
+    throw new Error(
+      `Schema ${relativeToRoot(filePath)} must be a valid JSON Schema object, but got ${schema === null ? 'null' : 'array'}`
+    );
+  }
+  
   try {
+    // If schema has an absolute $id, check if it's already been added
+    if (schema.$id && (schema.$id.startsWith('http://') || schema.$id.startsWith('https://'))) {
+      const existingSchema = ajv.getSchema(schema.$id);
+      if (existingSchema) {
+        // Schema already added and compiled, skip
+        return;
+      }
+    }
+    // Compile the schema (it should already be added if it has an $id)
     ajv.compile(schema);
   } catch (error) {
     throw new Error(
@@ -209,8 +232,65 @@ async function main() {
     });
   }
 
-  // Compile all schemas to verify they're valid and references resolve
-  schemaTargets.forEach(compileSchema);
+  // First, add all schemas with absolute $id to AJV so they can be referenced
+  // This allows schemas to reference each other via their $id
+  const schemaMap = new Map();
+  const addedSchemaIds = new Set();
+  schemaTargets.forEach((schemaPath) => {
+    const schema = readJson(schemaPath);
+    // Only add schemas with absolute $id (starting with http:// or https://)
+    // Skip relative $ids as they may cause conflicts and aren't useful for cross-schema references
+    if (schema.$id && (schema.$id.startsWith('http://') || schema.$id.startsWith('https://'))) {
+      schemaMap.set(schema.$id, schemaPath);
+      try {
+        // Check if schema already exists before adding
+        if (!ajv.getSchema(schema.$id) && !addedSchemaIds.has(schema.$id)) {
+          // addSchema automatically compiles the schema
+          ajv.addSchema(schema, schema.$id);
+          addedSchemaIds.add(schema.$id);
+        }
+      } catch (error) {
+        // If schema already exists, that's okay - continue
+        if (!error.message.includes('already exists')) {
+          console.error(`Error adding schema ${schema.$id} from ${relativeToRoot(schemaPath)}`);
+          throw error;
+        }
+      }
+    }
+  });
+
+  // Then compile all schemas to verify they're valid and references resolve
+  // Note: Schemas with absolute $id were already compiled when added above
+  schemaTargets.forEach((schemaPath) => {
+    try {
+      const schema = readJson(schemaPath);
+      // Skip compilation if schema was already added (has absolute $id and was pre-loaded)
+      if (schema.$id && (schema.$id.startsWith('http://') || schema.$id.startsWith('https://'))) {
+        if (ajv.getSchema(schema.$id)) {
+          // Already compiled when added, skip
+          return;
+        }
+      }
+      // For schemas with relative $id or no $id, compile directly
+      // Note: relative $id schemas can't be referenced by other schemas, so we just validate them
+      // If schema has a relative $id, temporarily remove it to avoid conflicts
+      const originalId = schema.$id;
+      if (originalId && !originalId.startsWith('http://') && !originalId.startsWith('https://')) {
+        delete schema.$id;
+      }
+      try {
+        ajv.compile(schema);
+      } finally {
+        // Restore $id if we removed it
+        if (originalId && !originalId.startsWith('http://') && !originalId.startsWith('https://')) {
+          schema.$id = originalId;
+        }
+      }
+    } catch (error) {
+      console.error(`Error compiling schema: ${relativeToRoot(schemaPath)}`);
+      throw error;
+    }
+  });
 
   // Compile root schema to verify all references resolve
   // Note: root schema may already be compiled if it was in schemaTargets
