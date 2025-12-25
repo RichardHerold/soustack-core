@@ -426,16 +426,21 @@ async function main() {
       sourceDir = tempLocalCopy;
     }
 
-    // If using local schemas (tag not found but version matches), skip sync
     if (usingLocalSchemas) {
-      console.log(`Using existing local schemas for version ${tag.replace(/^v/, '')}`);
-      return;
+      console.log(
+        `Using existing local schemas for version ${tag.replace(/^v/, '')} (regenerating sync metadata from local copy)`
+      );
+      tempLocalCopy = fs.mkdtempSync(path.join(os.tmpdir(), 'soustack-spec-local-'));
+      fs.cpSync(sourceDir, tempLocalCopy, { recursive: true });
+      sourceDir = tempLocalCopy;
     }
 
     console.log(
       usingLocalSpec
         ? `Syncing Soustack spec from local path ${sourceDir}`
-        : `Syncing Soustack spec from ${SPEC_REPO} @ ${tag}`
+        : usingLocalSchemas
+          ? `Syncing Soustack spec from existing local copy at ${SPEC_DIR}`
+          : `Syncing Soustack spec from ${SPEC_REPO} @ ${tag}`
     );
 
     if (usingLocalSpec && !fs.existsSync(sourceDir)) {
@@ -458,6 +463,7 @@ async function main() {
   
   try {
     const previousMeta = readSyncMetadata();
+    const resolvedCommit = usingNpmSpec ? null : (sourceCommit || previousMeta?.commit || null);
     copyIntoSpecDirectory(tempDir);
     
     // Write version files and ensure consistency
@@ -474,7 +480,7 @@ async function main() {
       repo: usingNpmSpec ? null : SPEC_REPO,
       ref: usingNpmSpec ? version : tag,
       version,
-      commit: usingNpmSpec ? null : sourceCommit,
+      commit: resolvedCommit,
       files: requiredFiles,
       source: usingNpmSpec ? 'npm' : undefined,
       previousMeta,
