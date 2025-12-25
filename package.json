@@ -36,7 +36,7 @@
     "type": "git",
     "url": "git+https://github.com/RichardHerold/soustack-core.git"
   },
-  "soustackSpecVersion": "0.0.1",
+  "soustackSpecVersion": "0.0.2",
   "soustackSpecTag": "v0.0.2",
   "bin": {
     "soustack": "dist/cli/index.js",
