@@ -185,34 +185,38 @@ function copySchemaIntoSrc() {
 
   // Copy defs directory to src (new structure)
   const defsSource = path.join(SPEC_DIR, 'defs');
+  const defsDest = path.join(srcDir, 'defs');
   if (fs.existsSync(defsSource)) {
-    fs.rmSync(path.join(srcDir, 'defs'), { recursive: true, force: true });
-    fs.mkdirSync(path.join(srcDir, 'defs'), { recursive: true });
-    fs.cpSync(defsSource, path.join(srcDir, 'defs'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(defsDest, { recursive: true, force: true });
+    fs.cpSync(defsSource, defsDest, { recursive: true });
   }
 
   // Copy stacks directory to src (new structure)
   const stacksSource = path.join(SPEC_DIR, 'stacks');
+  const stacksDest = path.join(srcDir, 'stacks');
   if (fs.existsSync(stacksSource)) {
-    fs.rmSync(path.join(srcDir, 'stacks'), { recursive: true, force: true });
-    fs.mkdirSync(path.join(srcDir, 'stacks'), { recursive: true });
-    fs.cpSync(stacksSource, path.join(srcDir, 'stacks'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(stacksDest, { recursive: true, force: true });
+    fs.cpSync(stacksSource, stacksDest, { recursive: true });
   }
 
   // Copy schemas directory (may contain stacks-registry.schema.json or legacy recipe/registry)
   const schemasSource = path.join(SPEC_DIR, 'schemas');
+  const schemasDest = path.join(srcDir, 'schemas');
   if (fs.existsSync(schemasSource)) {
-    // Copy entire schemas directory structure
-    fs.rmSync(path.join(srcDir, 'schemas'), { recursive: true, force: true });
-    fs.mkdirSync(path.join(srcDir, 'schemas'), { recursive: true });
-    fs.cpSync(schemasSource, path.join(srcDir, 'schemas'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(schemasDest, { recursive: true, force: true });
+    fs.cpSync(schemasSource, schemasDest, { recursive: true });
   }
 
   // Legacy: Copy profiles if they still exist (for backward compatibility during transition)
   const profilesSource = path.join(SPEC_DIR, 'profiles');
+  const profilesDest = path.join(srcDir, 'profiles');
   if (fs.existsSync(profilesSource)) {
-    fs.rmSync(path.join(srcDir, 'profiles'), { recursive: true, force: true });
-    fs.cpSync(profilesSource, path.join(srcDir, 'profiles'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(profilesDest, { recursive: true, force: true });
+    fs.cpSync(profilesSource, profilesDest, { recursive: true });
   }
 }
 
