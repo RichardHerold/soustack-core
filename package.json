@@ -25,15 +25,17 @@
   },
   "scripts": {
     "build": "tsup",
-    "prepack": "npm run build",
-    "prepublishOnly": "cross-env SOUSTACK_SPEC_SOURCE=npm npm run sync:spec && npm run verify:sync && npm run verify:schema && npm run build && npm test",
+    "prepack": "npm run clean:collisions && npm run build",
+    "prepublishOnly": "npm run build && npm test",
     "pretest": "npm run build --silent",
     "test": "jest",
+    "release:prep": "cross-env SOUSTACK_SPEC_SOURCE=npm npm run sync:spec && npm run verify:sync && npm run verify:schema && npm test",
     "sync:spec": "node scripts/sync-spec.mjs",
     "verify:schema": "node scripts/verify-synced-schema.mjs",
     "verify:sync": "node scripts/verify-sync-meta.mjs",
     "validate:version": "node scripts/check-version-drift.mjs",
-    "prepare": "husky",
+    "clean:collisions": "node scripts/clean-collisions.mjs",
+    "prepare": "node scripts/prepare-husky.mjs",
     "dump:ai": "node scripts/dump-repo-for-ai.mjs"
   },
   "repository": {

@@ -14,3 +14,4 @@ soustack-core-repo-pack.md
 *.log
 * 2.log
 * 2.mjs
+*.tgz
