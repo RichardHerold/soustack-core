@@ -1,7 +1,7 @@
 {
-  "ref": "v0.0.2",
+  "ref": "0.0.2",
   "specVersion": "0.0.2",
-  "syncedAt": "2025-12-23T04:25:42.587Z",
+  "syncedAt": "2025-12-26T16:34:15.922Z",
   "files": [
     "SOUSTACK_SPEC_VERSION",
     "defs/common.schema.json",
@@ -144,6 +144,5 @@
     "stacks/techniques.schema.json": "a72da1bfcb91d8422e4ae934fe9be38d2a20b728b9eaa5374b8017c09c70f999",
     "stacks/timed.schema.json": "d3a1b610f9de9f844d859fbfd5ca7c3f7fb9ea30a7b29c4a40bda001e4ab0229"
   },
-  "sourceRepo": "https://github.com/RichardHerold/soustack-spec.git",
-  "commit": "213717ffc282a322e6040f33441e5c66b21d1701"
+  "source": "npm"
 }
