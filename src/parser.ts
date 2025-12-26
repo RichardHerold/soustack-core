@@ -3,7 +3,10 @@ import {
   Ingredient,
   IngredientItem,
   Instruction,
-  InstructionItem
+  InstructionItem,
+  Equipment,
+  ScaledRecipe,
+  EquipmentUpgradeRecommendation
 } from './types';
 import { parseDuration } from './parsers/duration';
 
@@ -21,9 +24,10 @@ export interface ScaleRecipeOptions {
 
 export function scaleRecipe(recipe: Recipe, options: ScaleRecipeOptions = {}): Recipe {
   const multiplier = resolveMultiplier(recipe, options);
-  const scaled: Recipe = deepClone(recipe);
+  const scaled: ScaledRecipe = deepClone(recipe);
 
   applyYieldScaling(scaled, options, multiplier);
+  const equipmentUpgrades = scaleEquipment(scaled.equipment || [], multiplier);
 
   const baseAmounts = collectBaseIngredientAmounts(scaled.ingredients || []);
   const scaledAmounts = new Map<string, number>();
@@ -84,6 +88,14 @@ export function scaleRecipe(recipe: Recipe, options: ScaleRecipeOptions = {}): R
   });
 
   scaleInstructionItems(scaled.instructions || [], multiplier);
+
+  scaled.scaling = {
+    ...(scaled.scaling ?? {}),
+    multiplier,
+    equipment: {
+      upgrades: equipmentUpgrades
+    }
+  };
 
   return scaled;
 }
@@ -193,6 +205,75 @@ function scaleInstructionItems(items: InstructionItem[], multiplier: number) {
       (timing as any).duration = newDuration;
     }
   });
+}
+
+function scaleEquipment(items: (Equipment | string)[], multiplier: number): EquipmentUpgradeRecommendation[] {
+  const upgrades: EquipmentUpgradeRecommendation[] = [];
+
+  items.forEach(item => {
+    if (typeof item === 'string') return;
+
+    const scaledCount = calculateEquipmentCount(item, multiplier);
+    if (scaledCount !== undefined) {
+      item.count = scaledCount;
+    }
+
+    const upgrade = chooseEquipmentUpgrade(item, multiplier);
+    if (upgrade) {
+      upgrades.push(upgrade);
+    }
+  });
+
+  return upgrades;
+}
+
+function calculateEquipmentCount(equipment: Equipment, multiplier: number): number | undefined {
+  const baseCount = equipment.count ?? 1;
+  const scaling = equipment.countScaling;
+
+  if (!scaling) {
+    return equipment.count;
+  }
+
+  if (scaling === 'fixed') {
+    return baseCount;
+  }
+
+  if (scaling === 'linear') {
+    return Math.ceil(baseCount * multiplier);
+  }
+
+  if (typeof scaling === 'object' && scaling.mode === 'threshold') {
+    const steps = scaling.steps || [];
+    if (steps.length === 0) {
+      return equipment.count;
+    }
+
+    const matchedStep = steps.find(step => multiplier <= step.maxFactor);
+    const selected = matchedStep ?? steps[steps.length - 1];
+    return selected.count;
+  }
+
+  return equipment.count;
+}
+
+function chooseEquipmentUpgrade(equipment: Equipment, multiplier: number): EquipmentUpgradeRecommendation | null {
+  if (!equipment.upgrades || equipment.upgrades.length === 0 || !equipment.id) {
+    return null;
+  }
+
+  const eligible = equipment.upgrades.filter(rule => multiplier >= rule.minFactor);
+  if (eligible.length === 0) {
+    return null;
+  }
+
+  const selected = eligible.reduce((best, current) => current.minFactor > best.minFactor ? current : best, eligible[0]);
+
+  return {
+    fromId: equipment.id,
+    use: selected.use,
+    minFactor: selected.minFactor
+  };
 }
 
 function deepClone<T>(value: T): T {
