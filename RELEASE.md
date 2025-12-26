@@ -13,5 +13,6 @@
 ## Publish steps
 
 - [ ] `npm publish --access public` (runs `prepublishOnly` hooks: spec sync, schema verification, build, tests).
+  - Note: `prepublishOnly` uses `SOUSTACK_SPEC_SOURCE=npm` to ensure deterministic spec sync from the npm package, preserving fixtures and preventing checksum drift.
 - [ ] Tag the release: `git tag vX.Y.Z && git push --tags`.
 - [ ] Create/update the GitHub release notes referencing the matching `Changelog.md` entry.
