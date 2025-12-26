@@ -8,16 +8,20 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "browser": "./dist/index.mjs",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./scrape": {
       "types": "./dist/scrape/index.d.ts",
-      "import": "./dist/scrape/index.mjs",
-      "require": "./dist/scrape/index.js",
+      "node": {
+        "import": "./dist/scrape/index.mjs",
+        "require": "./dist/scrape/index.js"
+      },
       "default": "./dist/scrape/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsup",
@@ -44,6 +48,10 @@
   },
   "files": [
     "dist",
+    "spec",
+    "src/defs",
+    "src/stacks",
+    "src/schemas",
     "src/schema.json",
     "src/soustack.schema.json",
     "src/profiles",
