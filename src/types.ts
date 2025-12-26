@@ -98,6 +98,9 @@ export interface Equipment {
   capacity?: Quantity;
   scalingLimit?: number;
   alternatives?: string[];
+  count?: number;
+  countScaling?: EquipmentCountScaling;
+  upgrades?: EquipmentUpgradeRule[];
 }
 
 export interface Quantity {
@@ -105,6 +108,40 @@ export interface Quantity {
   /** Unit string (e.g. "g", "cup") or null for count-based items (e.g. "2 eggs") */
   unit: string | null;
 }
+
+export type EquipmentCountScaling = 'fixed' | 'linear' | EquipmentThresholdScaling;
+
+export interface EquipmentThresholdScaling {
+  mode: 'threshold';
+  steps: EquipmentThresholdStep[];
+}
+
+export interface EquipmentThresholdStep {
+  maxFactor: number;
+  count: number;
+}
+
+export interface EquipmentUpgradeRule {
+  minFactor: number;
+  use: string;
+}
+
+export interface EquipmentUpgradeRecommendation {
+  fromId: string;
+  use: string;
+  minFactor: number;
+}
+
+export interface ScalingMetadata {
+  multiplier: number;
+  equipment?: {
+    upgrades: EquipmentUpgradeRecommendation[];
+  };
+}
+
+export type ScaledRecipe = Recipe & {
+  scaling?: ScalingMetadata;
+};
 
 // --- Ingredient Logic ---
 
