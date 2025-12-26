@@ -116,7 +116,8 @@ async function main() {
     metadata.specVersion === specVersionFile,
     `metadata.specVersion (${metadata.specVersion}) does not match spec/SOUSTACK_SPEC_VERSION (${specVersionFile}).`
   );
-  if (pkg.soustackSpecVersion) {
+  // Skip package.json version check for npm source since package.json is not updated during sync
+  if (pkg.soustackSpecVersion && !isNpmSource) {
     assert(
       metadata.specVersion === pkg.soustackSpecVersion,
       `metadata.specVersion (${metadata.specVersion}) does not match package.json soustackSpecVersion (${pkg.soustackSpecVersion}).`

@@ -359,15 +359,9 @@ function validateVersionSync() {
     throw new Error('Could not parse version from src/specVersion.ts');
   }
   
-  const pkg = readPackageJson();
-  const pkgVersion = pkg.soustackSpecVersion;
-  
   const mismatches = [];
   if (specVersion !== srcVersion) {
     mismatches.push(`spec/SOUSTACK_SPEC_VERSION (${specVersion}) !== src/specVersion.ts (${srcVersion})`);
-  }
-  if (pkgVersion && specVersion !== pkgVersion) {
-    mismatches.push(`spec/SOUSTACK_SPEC_VERSION (${specVersion}) !== package.json soustackSpecVersion (${pkgVersion})`);
   }
   
   if (mismatches.length > 0) {
@@ -472,7 +466,8 @@ async function main() {
     ensureVersionConsistency(version);
     
     copySchemaIntoSrc();
-    updatePackageJson(pkg, version, tag);
+    // Note: package.json is not modified to prevent version drift and CI failures.
+    // soustackSpecVersion and soustackSpecTag should be manually maintained.
 
     // Discover required files from the synced spec directory
     const requiredFiles = getRequiredSpecFiles(SPEC_DIR);
