@@ -8,3 +8,9 @@ soustack-core-repo-pack.md
 .cursor/
 *.log
 * 2.log
+
+# Editor/debug junk
+.cursor/
+*.log
+* 2.log
+* 2.mjs

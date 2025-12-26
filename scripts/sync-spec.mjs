@@ -127,32 +127,47 @@ function copyIntoSpecDirectory(sourceDir) {
 
   // Copy defs directory (new structure)
   const defsSource = path.join(sourceDir, 'defs');
+  const defsDest = path.join(SPEC_DIR, 'defs');
   if (fs.existsSync(defsSource)) {
-    fs.cpSync(defsSource, path.join(SPEC_DIR, 'defs'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(defsDest, { recursive: true, force: true });
+    fs.cpSync(defsSource, defsDest, { recursive: true });
   }
 
   // Copy stacks directory (new structure)
   const stacksSource = path.join(sourceDir, 'stacks');
+  const stacksDest = path.join(SPEC_DIR, 'stacks');
   if (fs.existsSync(stacksSource)) {
-    fs.cpSync(stacksSource, path.join(SPEC_DIR, 'stacks'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(stacksDest, { recursive: true, force: true });
+    fs.cpSync(stacksSource, stacksDest, { recursive: true });
   }
 
   // Copy schemas directory (may contain stacks-registry.schema.json)
   const schemasSource = path.join(sourceDir, 'schemas');
+  const schemasDest = path.join(SPEC_DIR, 'schemas');
   if (fs.existsSync(schemasSource)) {
-    fs.cpSync(schemasSource, path.join(SPEC_DIR, 'schemas'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(schemasDest, { recursive: true, force: true });
+    fs.cpSync(schemasSource, schemasDest, { recursive: true });
   }
 
   // Copy fixtures directory
   const fixturesSource = path.join(sourceDir, 'fixtures');
+  const fixturesDest = path.join(SPEC_DIR, 'fixtures');
   if (fs.existsSync(fixturesSource)) {
-    fs.cpSync(fixturesSource, path.join(SPEC_DIR, 'fixtures'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(fixturesDest, { recursive: true, force: true });
+    fs.cpSync(fixturesSource, fixturesDest, { recursive: true });
   }
 
   // Copy examples directory (if present)
   const examplesSource = path.join(sourceDir, 'examples');
+  const examplesDest = path.join(SPEC_DIR, 'examples');
   if (fs.existsSync(examplesSource)) {
-    fs.cpSync(examplesSource, path.join(SPEC_DIR, 'examples'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(examplesDest, { recursive: true, force: true });
+    fs.cpSync(examplesSource, examplesDest, { recursive: true });
   }
 }
 
@@ -372,6 +387,11 @@ function validateVersionSync() {
 }
 
 async function main() {
+  // Ensure clean start: remove spec directory if it exists to prevent duplicate directories
+  if (fs.existsSync(SPEC_DIR)) {
+    fs.rmSync(SPEC_DIR, { recursive: true, force: true });
+  }
+  
   const pkg = readPackageJson();
   const specSource = process.env.SOUSTACK_SPEC_SOURCE;
   const usingNpmSpec = specSource === 'npm';
