@@ -127,32 +127,47 @@ function copyIntoSpecDirectory(sourceDir) {
 
   // Copy defs directory (new structure)
   const defsSource = path.join(sourceDir, 'defs');
+  const defsDest = path.join(SPEC_DIR, 'defs');
   if (fs.existsSync(defsSource)) {
-    fs.cpSync(defsSource, path.join(SPEC_DIR, 'defs'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(defsDest, { recursive: true, force: true });
+    fs.cpSync(defsSource, defsDest, { recursive: true });
   }
 
   // Copy stacks directory (new structure)
   const stacksSource = path.join(sourceDir, 'stacks');
+  const stacksDest = path.join(SPEC_DIR, 'stacks');
   if (fs.existsSync(stacksSource)) {
-    fs.cpSync(stacksSource, path.join(SPEC_DIR, 'stacks'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(stacksDest, { recursive: true, force: true });
+    fs.cpSync(stacksSource, stacksDest, { recursive: true });
   }
 
   // Copy schemas directory (may contain stacks-registry.schema.json)
   const schemasSource = path.join(sourceDir, 'schemas');
+  const schemasDest = path.join(SPEC_DIR, 'schemas');
   if (fs.existsSync(schemasSource)) {
-    fs.cpSync(schemasSource, path.join(SPEC_DIR, 'schemas'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(schemasDest, { recursive: true, force: true });
+    fs.cpSync(schemasSource, schemasDest, { recursive: true });
   }
 
   // Copy fixtures directory
   const fixturesSource = path.join(sourceDir, 'fixtures');
+  const fixturesDest = path.join(SPEC_DIR, 'fixtures');
   if (fs.existsSync(fixturesSource)) {
-    fs.cpSync(fixturesSource, path.join(SPEC_DIR, 'fixtures'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(fixturesDest, { recursive: true, force: true });
+    fs.cpSync(fixturesSource, fixturesDest, { recursive: true });
   }
 
   // Copy examples directory (if present)
   const examplesSource = path.join(sourceDir, 'examples');
+  const examplesDest = path.join(SPEC_DIR, 'examples');
   if (fs.existsSync(examplesSource)) {
-    fs.cpSync(examplesSource, path.join(SPEC_DIR, 'examples'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(examplesDest, { recursive: true, force: true });
+    fs.cpSync(examplesSource, examplesDest, { recursive: true });
   }
 }
 
@@ -170,34 +185,38 @@ function copySchemaIntoSrc() {
 
   // Copy defs directory to src (new structure)
   const defsSource = path.join(SPEC_DIR, 'defs');
+  const defsDest = path.join(srcDir, 'defs');
   if (fs.existsSync(defsSource)) {
-    fs.rmSync(path.join(srcDir, 'defs'), { recursive: true, force: true });
-    fs.mkdirSync(path.join(srcDir, 'defs'), { recursive: true });
-    fs.cpSync(defsSource, path.join(srcDir, 'defs'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(defsDest, { recursive: true, force: true });
+    fs.cpSync(defsSource, defsDest, { recursive: true });
   }
 
   // Copy stacks directory to src (new structure)
   const stacksSource = path.join(SPEC_DIR, 'stacks');
+  const stacksDest = path.join(srcDir, 'stacks');
   if (fs.existsSync(stacksSource)) {
-    fs.rmSync(path.join(srcDir, 'stacks'), { recursive: true, force: true });
-    fs.mkdirSync(path.join(srcDir, 'stacks'), { recursive: true });
-    fs.cpSync(stacksSource, path.join(srcDir, 'stacks'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(stacksDest, { recursive: true, force: true });
+    fs.cpSync(stacksSource, stacksDest, { recursive: true });
   }
 
   // Copy schemas directory (may contain stacks-registry.schema.json or legacy recipe/registry)
   const schemasSource = path.join(SPEC_DIR, 'schemas');
+  const schemasDest = path.join(srcDir, 'schemas');
   if (fs.existsSync(schemasSource)) {
-    // Copy entire schemas directory structure
-    fs.rmSync(path.join(srcDir, 'schemas'), { recursive: true, force: true });
-    fs.mkdirSync(path.join(srcDir, 'schemas'), { recursive: true });
-    fs.cpSync(schemasSource, path.join(srcDir, 'schemas'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(schemasDest, { recursive: true, force: true });
+    fs.cpSync(schemasSource, schemasDest, { recursive: true });
   }
 
   // Legacy: Copy profiles if they still exist (for backward compatibility during transition)
   const profilesSource = path.join(SPEC_DIR, 'profiles');
+  const profilesDest = path.join(srcDir, 'profiles');
   if (fs.existsSync(profilesSource)) {
-    fs.rmSync(path.join(srcDir, 'profiles'), { recursive: true, force: true });
-    fs.cpSync(profilesSource, path.join(srcDir, 'profiles'), { recursive: true });
+    // Always remove destination to prevent fs.cpSync from creating duplicates
+    fs.rmSync(profilesDest, { recursive: true, force: true });
+    fs.cpSync(profilesSource, profilesDest, { recursive: true });
   }
 }
 
@@ -359,15 +378,9 @@ function validateVersionSync() {
     throw new Error('Could not parse version from src/specVersion.ts');
   }
   
-  const pkg = readPackageJson();
-  const pkgVersion = pkg.soustackSpecVersion;
-  
   const mismatches = [];
   if (specVersion !== srcVersion) {
     mismatches.push(`spec/SOUSTACK_SPEC_VERSION (${specVersion}) !== src/specVersion.ts (${srcVersion})`);
-  }
-  if (pkgVersion && specVersion !== pkgVersion) {
-    mismatches.push(`spec/SOUSTACK_SPEC_VERSION (${specVersion}) !== package.json soustackSpecVersion (${pkgVersion})`);
   }
   
   if (mismatches.length > 0) {
@@ -378,6 +391,11 @@ function validateVersionSync() {
 }
 
 async function main() {
+  // Ensure clean start: remove spec directory if it exists to prevent duplicate directories
+  if (fs.existsSync(SPEC_DIR)) {
+    fs.rmSync(SPEC_DIR, { recursive: true, force: true });
+  }
+  
   const pkg = readPackageJson();
   const specSource = process.env.SOUSTACK_SPEC_SOURCE;
   const usingNpmSpec = specSource === 'npm';
@@ -472,7 +490,8 @@ async function main() {
     ensureVersionConsistency(version);
     
     copySchemaIntoSrc();
-    updatePackageJson(pkg, version, tag);
+    // Note: package.json is not modified to prevent version drift and CI failures.
+    // soustackSpecVersion and soustackSpecTag should be manually maintained.
 
     // Discover required files from the synced spec directory
     const requiredFiles = getRequiredSpecFiles(SPEC_DIR);

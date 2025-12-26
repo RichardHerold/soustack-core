@@ -26,7 +26,7 @@
   "scripts": {
     "build": "tsup",
     "prepack": "npm run build",
-    "prepublishOnly": "npm run sync:spec && npm run verify:sync && npm run verify:schema && npm run build && npm test",
+    "prepublishOnly": "cross-env SOUSTACK_SPEC_SOURCE=npm npm run sync:spec && npm run verify:sync && npm run verify:schema && npm run build && npm test",
     "pretest": "npm run build --silent",
     "test": "jest",
     "sync:spec": "node scripts/sync-spec.mjs",
@@ -89,6 +89,7 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
+    "cross-env": "^7.0.3",
     "husky": "^9.1.7",
     "jest": "^30.2.0",
     "soustack-spec": "0.0.2",
