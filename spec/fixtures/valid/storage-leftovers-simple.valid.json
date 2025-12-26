@@ -1,0 +1,27 @@
+{
+  "$schema": "https://soustack.spec/soustack.schema.json",
+  "stacks": {
+    "storage": 1
+  },
+  "name": "Soup with Simple Leftovers",
+  "ingredients": [
+    "soup"
+  ],
+  "instructions": [
+    "Cook the soup"
+  ],
+  "storage": {
+    "refrigerated": {
+      "duration": {
+        "iso8601": "P4D"
+      }
+    },
+    "leftovers": {
+      "notes": "Store in an airtight container.",
+      "reheat": [
+        "Microwave 2\u20133 minutes, stirring halfway.",
+        "Or warm in a skillet over medium heat with a splash of water."
+      ]
+    }
+  }
+}
