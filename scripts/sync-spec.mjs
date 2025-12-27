@@ -246,7 +246,8 @@ function readSyncMetadata() {
 
 function sortKeysDeep(value) {
   if (Array.isArray(value)) {
-    return value.map(sortKeysDeep);
+    // Sort arrays to ensure consistent comparison
+    return value.map(sortKeysDeep).sort();
   }
 
   if (value && typeof value === 'object') {
@@ -293,10 +294,10 @@ function writeSyncMetadata({ repo, ref, version, commit, files, source, previous
     return acc;
   }, {});
 
+  // Build payload without syncedAt first to check if content changed
   const payload = {
     ref,
     specVersion: version,
-    syncedAt: new Date().toISOString(),
     files,
     checksums,
   };
@@ -313,11 +314,22 @@ function writeSyncMetadata({ repo, ref, version, commit, files, source, previous
     payload.commit = commit;
   }
 
-  if (previousMeta && areSyncMetadataEqual(previousMeta, payload)) {
-    payload.syncedAt = previousMeta.syncedAt;
-  }
+  // Check if content changed (ignoring volatile fields like syncedAt)
+  const contentChanged = !previousMeta || !areSyncMetadataEqual(previousMeta, payload);
 
-  fs.writeFileSync(SYNC_META_PATH, `${JSON.stringify(payload, null, 2)}\n`);
+  // Only update syncedAt if content actually changed
+  if (contentChanged) {
+    payload.syncedAt = new Date().toISOString();
+    fs.writeFileSync(SYNC_META_PATH, `${JSON.stringify(payload, null, 2)}\n`);
+  } else {
+    // Content unchanged - restore the original file to preserve syncedAt and avoid unnecessary changes
+    if (previousMeta) {
+      // Restore the original file content (which includes the original syncedAt)
+      const originalContent = JSON.stringify(previousMeta, null, 2);
+      fs.writeFileSync(SYNC_META_PATH, `${originalContent}\n`);
+    }
+    return;
+  }
 }
 
 function readSpecVersion(specDir) {
@@ -391,6 +403,10 @@ function validateVersionSync() {
 }
 
 async function main() {
+  // Read previous metadata BEFORE removing spec directory
+  // This allows us to compare new metadata with old metadata to avoid unnecessary writes
+  const previousMeta = readSyncMetadata();
+  
   // Ensure clean start: remove spec directory if it exists to prevent duplicate directories
   if (fs.existsSync(SPEC_DIR)) {
     fs.rmSync(SPEC_DIR, { recursive: true, force: true });
@@ -480,7 +496,6 @@ async function main() {
   }
   
   try {
-    const previousMeta = readSyncMetadata();
     const resolvedCommit = usingNpmSpec ? null : (sourceCommit || previousMeta?.commit || null);
     copyIntoSpecDirectory(tempDir);
     
