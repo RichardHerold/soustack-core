@@ -1,7 +1,6 @@
 {
   "ref": "0.0.2",
   "specVersion": "0.0.2",
-  "syncedAt": "2025-12-26T22:25:49.007Z",
   "files": [
     "SOUSTACK_SPEC_VERSION",
     "defs/common.schema.json",
@@ -144,5 +143,6 @@
     "stacks/techniques.schema.json": "a72da1bfcb91d8422e4ae934fe9be38d2a20b728b9eaa5374b8017c09c70f999",
     "stacks/timed.schema.json": "d3a1b610f9de9f844d859fbfd5ca7c3f7fb9ea30a7b29c4a40bda001e4ab0229"
   },
-  "source": "npm"
+  "source": "npm",
+  "syncedAt": "2025-12-27T00:32:23.453Z"
 }
