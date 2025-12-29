@@ -20,33 +20,11 @@ export function extractRecipe(html: string): ExtractionResult {
   
   // Fallback to cheerio-based extraction for Node.js
   const jsonLdRecipe = extractJsonLd(html);
-  if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
-    const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
-    if (ingestUrl) {
-      try {
-        const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
-        if (globalFetch) {
-          globalFetch(ingestUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/extractors/index.ts:6',message:'JSON-LD extraction result',data:{hasJsonLd:!!jsonLdRecipe},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,D'})}).catch(()=>{});
-        }
-      } catch {}
-    }
-  }
   if (jsonLdRecipe) {
     return { recipe: jsonLdRecipe, source: 'jsonld' };
   }
 
   const microdataRecipe = extractMicrodata(html);
-  if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
-    const ingestUrl = process.env.SOUSTACK_DEBUG_INGEST_URL;
-    if (ingestUrl) {
-      try {
-        const globalFetch = typeof globalThis !== 'undefined' && typeof globalThis.fetch !== 'undefined' ? globalThis.fetch : null;
-        if (globalFetch) {
-          globalFetch(ingestUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scraper/extractors/index.ts:12',message:'Microdata extraction result',data:{hasMicrodata:!!microdataRecipe},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        }
-      } catch {}
-    }
-  }
   if (microdataRecipe) {
     return { recipe: microdataRecipe, source: 'microdata' };
   }

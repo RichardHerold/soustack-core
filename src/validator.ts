@@ -1196,29 +1196,6 @@ function filterValidationErrors(
     return true;
   });
 
-  fetch("http://127.0.0.1:7244/ingest/7f75dc85-5d88-41b3-a2c3-713d0c6ca7a6", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      location: "validator.ts:1245",
-      message: "After filtering errors",
-      data: {
-        originalErrorCount: errors.length,
-        filteredErrorCount: filteredErrors.length,
-        willSetValid: filteredErrors.length === 0,
-        filteredErrors: filteredErrors.slice(0, 3).map((error: any) => ({
-          keyword: error.keyword,
-          path: error.instancePath,
-          message: error.message,
-        })),
-      },
-      timestamp: Date.now(),
-      sessionId: "debug-session",
-      runId: "filter-debug",
-      hypothesisId: "A",
-    }),
-  }).catch(() => {});
-
   return filteredErrors;
 }
 
@@ -1268,31 +1245,9 @@ function validateProfileComposition(
 
   let isValid = validator(validationCopy);
   let errors = validator.errors || [];
-  // #region agent log
-  try {
-    const fs = optionalRequire("fs") as typeof import("fs") | null;
-    const path = optionalRequire("path") as typeof import("path") | null;
-    if (fs && path) {
-      const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
-      const logData = JSON.stringify({location:'validator.ts:1269',message:'Composed validator result',data:{profile,isValid,errorCount:errors.length,hasName:!!validationCopy.name,errors:errors.slice(0,3).map((e:any)=>({keyword:e.keyword,path:e.instancePath,message:e.message}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'}) + '\n';
-      fs.appendFileSync(logPath, logData);
-    }
-  } catch {}
-  // #endregion
 
   if (isValid && context.rootValidator) {
     const baseValid = context.rootValidator(validationCopy);
-    // #region agent log
-    try {
-      const fs = optionalRequire("fs") as typeof import("fs") | null;
-      const path = optionalRequire("path") as typeof import("path") | null;
-      if (fs && path) {
-        const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
-        const logData = JSON.stringify({location:'validator.ts:1279',message:'Root validator fallback check',data:{profile,composedValid:isValid,baseValid,hasRootValidator:!!context.rootValidator,rootErrors:context.rootValidator?.errors?.slice(0,3).map((e:any)=>({keyword:e.keyword,path:e.instancePath,message:e.message}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'}) + '\n';
-        fs.appendFileSync(logPath, logData);
-      }
-    } catch {}
-    // #endregion
     if (!baseValid && context.rootValidator.errors) {
       const requiredErrors = context.rootValidator.errors.filter(
         (e: any) => e.keyword === "required" && e.params?.missingProperty,
@@ -1377,17 +1332,6 @@ function validateRecipeSchemaNormalized(
     : schemaId;
   const hasSchemaOverride = typeof schemaOverride === "string";
   const isSoustackSchema = resolvedSchema.isSoustackSchema;
-  // #region agent log
-  try {
-    const fs = optionalRequire("fs") as typeof import("fs") | null;
-    const path = optionalRequire("path") as typeof import("path") | null;
-    if (fs && path) {
-      const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
-      const logData = JSON.stringify({location:'validator.ts:1346',message:'Schema resolution',data:{schemaHint,schemaId,schemaIdForLookup,hasSchemaOverride,isSoustackSchema,hasName:!!normalized.name,hasYield:!!normalized.yield},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}) + '\n';
-      fs.appendFileSync(logPath, logData);
-    }
-  } catch {}
-  // #endregion
   if (isSoustackSchema && schemaId) {
     (normalized as any).$schema = schemaId;
     (normalizedInput as any).$schema = schemaId;
@@ -1402,17 +1346,6 @@ function validateRecipeSchemaNormalized(
   // 1. Schema is specified AND
   // 2. It's a Soustack schema AND
   // 3. Recipe doesn't have stacks (stacks require composed validation)
-  // #region agent log
-  try {
-    const fs = optionalRequire("fs") as typeof import("fs") | null;
-    const path = optionalRequire("path") as typeof import("path") | null;
-    if (fs && path) {
-      const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
-      const logData = JSON.stringify({location:'validator.ts:1370',message:'Validation path decision',data:{schemaId,isSoustackSchema,hasStacks,hasSchemaOverride,willUseDirectSchema:!!(schemaId && isSoustackSchema && !hasStacks && hasSchemaOverride)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'}) + '\n';
-      fs.appendFileSync(logPath, logData);
-    }
-  } catch {}
-  // #endregion
   if (schemaId && isSoustackSchema && !hasStacks && hasSchemaOverride) {
     // Use schemaIdForLookup for Ajv (vendored ID), but schemaId for $schema field (canonical)
     const schemaValidator = context.ajv.getSchema(schemaIdForLookup ?? schemaId) ?? context.ajv.getSchema(DEFAULT_ROOT_SCHEMA_ID) ?? context.ajv.getSchema(rootSchemaId ?? '');
@@ -1436,17 +1369,6 @@ function validateRecipeSchemaNormalized(
       }
       const schemaValid = schemaValidator(schemaInput);
       const schemaErrors = schemaValidator.errors || [];
-      // #region agent log
-      try {
-        const fs = optionalRequire("fs") as typeof import("fs") | null;
-        const path = optionalRequire("path") as typeof import("path") | null;
-        if (fs && path) {
-          const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
-          const logData = JSON.stringify({location:'validator.ts:1391',message:'Direct schema validation result',data:{schemaValid,errorCount:schemaErrors.length,errors:schemaErrors.slice(0,3).map((e:any)=>({keyword:e.keyword,path:e.instancePath,message:e.message}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}) + '\n';
-          fs.appendFileSync(logPath, logData);
-        }
-      } catch {}
-      // #endregion
       
       // Filter out false positive errors for properties we remove before validation ($schema, @type, version)
       const hadSchemaProperty = (normalizedInput && typeof normalizedInput === "object" && "$schema" in normalizedInput)
@@ -1491,17 +1413,6 @@ function validateRecipeSchemaNormalized(
       // If validation failed but all errors were filtered out (meaning they were false positives),
       // also consider it valid
       const ok = Boolean(schemaValid) || (filteredErrors.length === 0);
-      // #region agent log
-      try {
-        const fs = optionalRequire("fs") as typeof import("fs") | null;
-        const path = optionalRequire("path") as typeof import("path") | null;
-        if (fs && path) {
-          const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
-          const logData = JSON.stringify({location:'validator.ts:1436',message:'Final validation result',data:{schemaValid,filteredErrorCount:filteredErrors.length,ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}) + '\n';
-          fs.appendFileSync(logPath, logData);
-        }
-      } catch {}
-      // #endregion
       
       return {
         ok,
@@ -1519,17 +1430,6 @@ function validateRecipeSchemaNormalized(
   let profileName = hasProfile
     ? ((normalized.profile as string).toLowerCase() as string)
     : undefined;
-  // #region agent log
-  try {
-    const fs = optionalRequire("fs") as typeof import("fs") | null;
-    const path = optionalRequire("path") as typeof import("path") | null;
-    if (fs && path) {
-      const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
-      const logData = JSON.stringify({location:'validator.ts:1478',message:'Composed validation path',data:{hasProfile,profileName,hasStacks,hasName:!!normalized.name,hasYield:!!normalized.yield},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}) + '\n';
-      fs.appendFileSync(logPath, logData);
-    }
-  } catch {}
-  // #endregion
   
   // Get declared stacks from recipe
   let declaredStacks: Record<string, number> = {};
@@ -1582,17 +1482,6 @@ function validateRecipeSchemaNormalized(
     normalizedInput,
     originalInput,
   );
-  // #region agent log
-  try {
-    const fs = optionalRequire("fs") as typeof import("fs") | null;
-    const path = optionalRequire("path") as typeof import("path") | null;
-    if (fs && path) {
-      const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
-      const logData = JSON.stringify({location:'validator.ts:1537',message:'Composed validation result',data:{profile,ok:validationOutcome.ok,errorCount:validationOutcome.errors.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}) + '\n';
-      fs.appendFileSync(logPath, logData);
-    }
-  } catch {}
-  // #endregion
 
   return validationOutcome;
 }
