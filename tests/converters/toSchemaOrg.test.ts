@@ -13,7 +13,7 @@ import {
 import { fromSchemaOrg } from '../../src/fromSchemaOrg';
 import { Recipe } from '../../src/types';
 import { HowToSection, HowToStep, SchemaOrgRecipe } from '../../src/types/schemaOrg';
-import { CANONICAL_SCHEMA_ID } from '../../src/schemaMetadata';
+import { CANONICAL_ROOT_SCHEMA_URL } from '../../src/schemaMetadata';
 
 function buildRecipe(overrides: Partial<Recipe> = {}): Recipe {
   const base: Recipe = {
@@ -509,7 +509,16 @@ describe('toSchemaOrg integration', () => {
 
   it('adds the canonical $schema marker to Schema.org output', () => {
     const schemaOrg = toSchemaOrg(buildRecipe());
-    expect(schemaOrg.$schema).toBe(CANONICAL_SCHEMA_ID);
+    expect(schemaOrg.$schema).toBe(CANONICAL_ROOT_SCHEMA_URL);
+  });
+
+  it('does not emit legacy schema URLs in Schema.org output', () => {
+    const schemaOrg = toSchemaOrg(buildRecipe());
+    const schema = schemaOrg.$schema;
+    if (schema) {
+      expect(schema).not.toContain('https://soustack.spec/');
+      expect(schema).not.toContain('https://soustack.ai/schemas/');
+    }
   });
 });
 

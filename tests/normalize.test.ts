@@ -1,5 +1,6 @@
 import { normalizeRecipe } from '../src/normalize';
 import { Recipe } from '../src/types';
+import { CANONICAL_ROOT_SCHEMA_URL } from '../src/schemaMetadata';
 
 describe('normalizeRecipe', () => {
   const legacyKey = ['mod', 'ules'].join('');
@@ -189,5 +190,79 @@ describe('normalizeRecipe', () => {
     expect(result.recipe.time).toEqual(
       expect.objectContaining({ prep: 5, active: 10, passive: 20, total: 30 })
     );
+  });
+
+  describe('$schema normalization', () => {
+    it('normalizes legacy soustack.spec URL to canonical', () => {
+      const input: any = {
+        name: 'Test Recipe',
+        ingredients: [],
+        instructions: [],
+        $schema: 'https://soustack.spec/soustack.schema.json',
+      };
+
+      const result = normalizeRecipe(input);
+      expect(result.recipe.$schema).toBe(CANONICAL_ROOT_SCHEMA_URL);
+    });
+
+    it('normalizes legacy soustack.ai URL to canonical', () => {
+      const input: any = {
+        name: 'Test Recipe',
+        ingredients: [],
+        instructions: [],
+        $schema: 'https://soustack.ai/schemas/recipe.schema.json',
+      };
+
+      const result = normalizeRecipe(input);
+      expect(result.recipe.$schema).toBe(CANONICAL_ROOT_SCHEMA_URL);
+    });
+
+    it('normalizes legacy soustack.org URL to canonical', () => {
+      const input: any = {
+        name: 'Test Recipe',
+        ingredients: [],
+        instructions: [],
+        $schema: 'http://soustack.org/schema/v0.0.2',
+      };
+
+      const result = normalizeRecipe(input);
+      expect(result.recipe.$schema).toBe(CANONICAL_ROOT_SCHEMA_URL);
+    });
+
+    it('preserves canonical URL unchanged', () => {
+      const input: any = {
+        name: 'Test Recipe',
+        ingredients: [],
+        instructions: [],
+        $schema: CANONICAL_ROOT_SCHEMA_URL,
+      };
+
+      const result = normalizeRecipe(input);
+      expect(result.recipe.$schema).toBe(CANONICAL_ROOT_SCHEMA_URL);
+    });
+
+    it('preserves unknown custom schema URLs unchanged', () => {
+      const customUrl = 'https://example.com/custom.schema.json';
+      const input: any = {
+        name: 'Test Recipe',
+        ingredients: [],
+        instructions: [],
+        $schema: customUrl,
+      };
+
+      const result = normalizeRecipe(input);
+      expect(result.recipe.$schema).toBe(customUrl);
+    });
+
+    it('handles missing $schema field', () => {
+      const input: any = {
+        name: 'Test Recipe',
+        ingredients: [],
+        instructions: [],
+      };
+
+      const result = normalizeRecipe(input);
+      expect(result.recipe.$schema).toBeUndefined();
+    });
   });
 });
