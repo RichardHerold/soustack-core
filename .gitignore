@@ -17,3 +17,4 @@ soustack-core-repo-pack.md
 *.tgz
 .cursor/debug.log
 /.cursor
+.cursor/debug.log
