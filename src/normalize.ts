@@ -1,5 +1,6 @@
 import { parseDuration } from './parsers/duration';
 import { Recipe } from './types';
+import { normalizeSchemaUrl } from './schemaMetadata';
 
 export interface NormalizationResult {
   recipe: Recipe;
@@ -55,6 +56,14 @@ export function normalizeRecipe(input: unknown): NormalizationResult {
 
   // Normalize time
   normalizeTime(recipe);
+
+  // Normalize $schema to canonical if present
+  if (typeof recipe.$schema === "string") {
+    const normalized = normalizeSchemaUrl(recipe.$schema);
+    if (normalized) {
+      recipe.$schema = normalized;
+    }
+  }
 
   return {
     recipe: recipe as Recipe,

@@ -1,5 +1,6 @@
 import { __getComposedSchemaForTesting, detectProfiles, validateRecipe, validateRecipeSchema, ValidateResult } from '../src/validator';
 import { Recipe } from '../src/types';
+import { CANONICAL_ROOT_SCHEMA_URL } from '../src/schemaMetadata';
 import path from 'path';
 import fs from 'fs';
 
@@ -600,6 +601,53 @@ describe('Soustack validation', () => {
         e.keyword === 'unevaluatedProperties' || e.keyword === 'additionalProperties'
       );
       expect(schemaErrors.length).toBe(0);
+    });
+  });
+
+  describe('legacy schema URL acceptance', () => {
+    const validRecipe: Recipe = {
+      name: 'Test Recipe',
+      ingredients: ['Flour'],
+      instructions: [{ id: 'step-1', text: 'Mix' }],
+    };
+
+    it('accepts legacy soustack.spec URL and validates successfully', () => {
+      const recipe = {
+        ...validRecipe,
+        $schema: 'https://soustack.spec/soustack.schema.json',
+      };
+      const result = validateRecipe(recipe);
+      expect(result.ok).toBe(true);
+    });
+
+    it('accepts legacy soustack.ai URL and validates successfully', () => {
+      const recipe = {
+        ...validRecipe,
+        $schema: 'https://soustack.ai/schemas/recipe.schema.json',
+      };
+      const result = validateRecipe(recipe);
+      expect(result.ok).toBe(true);
+    });
+
+    it('accepts legacy soustack.org URL and validates successfully', () => {
+      const recipe = {
+        ...validRecipe,
+        $schema: 'http://soustack.org/schema/v0.0.2',
+      };
+      const result = validateRecipe(recipe);
+      expect(result.ok).toBe(true);
+    });
+
+    it('normalizes legacy URL to canonical in normalized output', () => {
+      const recipe = {
+        ...validRecipe,
+        $schema: 'https://soustack.spec/soustack.schema.json',
+      };
+      const result = validateRecipe(recipe, { includeNormalized: true });
+      expect(result.ok).toBe(true);
+      if (result.normalizedRecipe?.$schema) {
+        expect(result.normalizedRecipe.$schema).toBe(CANONICAL_ROOT_SCHEMA_URL);
+      }
     });
   });
 });

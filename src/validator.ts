@@ -9,7 +9,7 @@ import baseProfileSchema from "./profiles/base.schema.json";
 import illustratedProfileSchema from "./profiles/illustrated.schema.json";
 import scalableProfileSchema from "./profiles/scalable.schema.json";
 import registry from "./stacks/registry.json";
-import { CANONICAL_SCHEMA_ID, LEGACY_SCHEMA_ID, resolveSchemaHint, SCHEMA_ALIAS_MAP } from "./schemaMetadata";
+import { CANONICAL_SCHEMA_ID, CANONICAL_ROOT_SCHEMA_URL, LEGACY_SCHEMA_ID, resolveSchemaHint, SCHEMA_ALIAS_MAP } from "./schemaMetadata";
 
 type ProfileName =
   | "base"
@@ -146,16 +146,31 @@ function loadAllSchemas(ajv: Ajv2020): void {
   // Load root schema (references defs and stack schemas)
   if (rootSchema && typeof rootSchema === "object" && "$id" in rootSchema) {
     const rootSchemaId = (rootSchema as { $id?: string }).$id;
-    if (rootSchemaId && !ajv.getSchema(rootSchemaId)) {
-      ajv.addSchema(rootSchema, rootSchemaId);
+    if (rootSchemaId) {
+      // Register the schema with its vendored ID
+      if (!ajv.getSchema(rootSchemaId)) {
+        ajv.addSchema(rootSchema, rootSchemaId);
+      }
+      // Note: We don't create a $ref alias for canonical ID here because it breaks relative refs.
+      // Instead, we handle canonical URL normalization in resolveSchemaHint and use vendored ID for Ajv lookups.
     }
   }
 
-  // Register alias IDs that should resolve to the canonical root schema
+  // Register alias IDs that should resolve to the vendored root schema
+  // Note: We use vendored ID as target (not canonical) to avoid $ref chain issues
+  const rootSchemaId = (rootSchema as { $id?: string }).$id;
   for (const [alias, target] of SCHEMA_ALIAS_MAP.entries()) {
-    if (alias === target || alias === LEGACY_ROOT_SCHEMA_ID) continue;
+    if (alias === target) continue;
+    // Skip if alias is the vendored root schema ID (already registered above)
+    if (rootSchemaId && alias === rootSchemaId) continue;
+    // Skip canonical ID - we handle it via schemaIdForLookup in validation
+    if (alias === CANONICAL_SCHEMA_ID) continue;
     if (!ajv.getSchema(alias)) {
-      ajv.addSchema({ $id: alias, $ref: target }, alias);
+      // Create a reference schema that points to the vendored schema (or target if vendored not available)
+      const targetId = (target === CANONICAL_SCHEMA_ID && rootSchemaId) ? rootSchemaId : target;
+      if (targetId && ajv.getSchema(targetId)) {
+        ajv.addSchema({ $id: alias, $ref: targetId }, alias);
+      }
     }
   }
 
@@ -165,6 +180,7 @@ function loadAllSchemas(ajv: Ajv2020): void {
   // Also need to map old #/definitions/ to new #/$defs/ for backward compatibility
   // Profile schemas use Draft 7 which uses "definitions", but they reference a Draft 2020-12 schema
   // We need to create a compatibility layer that exposes definitions in the old format
+  const rootSchemaIdForCompat = (rootSchema as { $id?: string }).$id ?? DEFAULT_ROOT_SCHEMA_ID;
   const legacyIds = Array.from(
     new Set<string>([
       LEGACY_ROOT_SCHEMA_ID,
@@ -189,11 +205,11 @@ function loadAllSchemas(ajv: Ajv2020): void {
         // Expose definitions at top level for Draft 7 profile schema references
         // These definitions map old names to new $defs locations
         definitions: {
-          instruction: { $ref: `${DEFAULT_ROOT_SCHEMA_ID}#/$defs/step` },
-          instructionSubsection: { $ref: `${DEFAULT_ROOT_SCHEMA_ID}#/$defs/stepSection` },
-          ingredient: { $ref: `${DEFAULT_ROOT_SCHEMA_ID}#/$defs/ingredient` },
-          ingredientSection: { $ref: `${DEFAULT_ROOT_SCHEMA_ID}#/$defs/ingredientSection` },
-          ingredientSubsection: { $ref: `${DEFAULT_ROOT_SCHEMA_ID}#/$defs/ingredientSection` }, // Alias for ingredientSection
+          instruction: { $ref: `${rootSchemaIdForCompat}#/$defs/step` },
+          instructionSubsection: { $ref: `${rootSchemaIdForCompat}#/$defs/stepSection` },
+          ingredient: { $ref: `${rootSchemaIdForCompat}#/$defs/ingredient` },
+          ingredientSection: { $ref: `${rootSchemaIdForCompat}#/$defs/ingredientSection` },
+          ingredientSubsection: { $ref: `${rootSchemaIdForCompat}#/$defs/ingredientSection` }, // Alias for ingredientSection
           yield: {
           type: "object",
           properties: {
@@ -1349,7 +1365,12 @@ function validateRecipeSchemaNormalized(
 
   const schemaHint = typeof schemaOverride === "string" ? schemaOverride : typeof normalized.$schema === "string" ? normalized.$schema : undefined;
   const resolvedSchema = resolveSchemaHint(schemaHint);
-  const schemaId = resolvedSchema.canonicalId;
+  const schemaId = resolvedSchema.canonicalId; // Canonical for $schema field
+  // For Ajv lookup, use vendored ID if canonical was requested (vendored is always registered)
+  const rootSchemaId = (rootSchema as { $id?: string }).$id;
+  const schemaIdForLookup = (schemaId === CANONICAL_SCHEMA_ID && rootSchemaId && rootSchemaId !== CANONICAL_SCHEMA_ID)
+    ? rootSchemaId
+    : schemaId;
   const hasSchemaOverride = typeof schemaOverride === "string";
   const isSoustackSchema = resolvedSchema.isSoustackSchema;
   if (isSoustackSchema && schemaId) {
@@ -1367,7 +1388,8 @@ function validateRecipeSchemaNormalized(
   // 2. It's a Soustack schema AND
   // 3. Recipe doesn't have stacks (stacks require composed validation)
   if (schemaId && isSoustackSchema && !hasStacks && hasSchemaOverride) {
-    const schemaValidator = context.ajv.getSchema(schemaId) ?? context.ajv.getSchema(DEFAULT_ROOT_SCHEMA_ID);
+    // Use schemaIdForLookup for Ajv (vendored ID), but schemaId for $schema field (canonical)
+    const schemaValidator = context.ajv.getSchema(schemaIdForLookup ?? schemaId) ?? context.ajv.getSchema(DEFAULT_ROOT_SCHEMA_ID) ?? context.ajv.getSchema(rootSchemaId ?? '');
     if (schemaValidator) {
 
       const schemaInput = cloneRecipe(normalized);

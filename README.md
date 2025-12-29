@@ -8,6 +8,8 @@
 
 **Soustack Core** is the reference implementation for the [Soustack Standard](https://github.com/RichardHerold/soustack-spec). It provides the validation, parsing, and scaling logic required to turn static recipe data into dynamic, computable objects.
 
+> **Schema URLs**: The canonical schema host is `https://spec.soustack.org`. Core accepts legacy schema URLs (e.g., `https://soustack.spec/`, `https://soustack.ai/schemas/`) for backward compatibility but always emits canonical URLs in generated output (convert/import/scrape output, normalization output, etc.).
+
 ---
 
 ## 💡 The Value Proposition

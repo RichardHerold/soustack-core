@@ -1,7 +1,7 @@
 import { fromSchemaOrg } from '../../src/fromSchemaOrg';
 import { Recipe } from '../../src/types';
 import { validateRecipe } from '../../src/validator';
-import { CANONICAL_SCHEMA_ID } from '../../src/schemaMetadata';
+import { CANONICAL_ROOT_SCHEMA_URL } from '../../src/schemaMetadata';
 
 const baseSchemaOrg = {
   '@type': 'Recipe',
@@ -448,6 +448,14 @@ describe('lite profile and vNext format', () => {
   it('emits the canonical $schema when converting Schema.org recipes', () => {
     const soustack = fromSchemaOrg(schemaOrgSample);
     expect(soustack).not.toBeNull();
-    expect((soustack as Recipe).$schema).toBe(CANONICAL_SCHEMA_ID);
+    expect((soustack as Recipe).$schema).toBe(CANONICAL_ROOT_SCHEMA_URL);
+  });
+
+  it('does not emit legacy schema URLs', () => {
+    const soustack = fromSchemaOrg(schemaOrgSample);
+    expect(soustack).not.toBeNull();
+    const schema = (soustack as Recipe).$schema;
+    expect(schema).not.toContain('https://soustack.spec/');
+    expect(schema).not.toContain('https://soustack.ai/schemas/');
   });
 });
