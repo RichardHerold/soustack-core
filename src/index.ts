@@ -8,6 +8,7 @@ export type { NormalizationResult } from './normalize';
 export { toSchemaOrg } from './toSchemaOrg';
 export { extractSchemaOrgRecipeFromHTML } from './scraper/browser';
 export { SOUSTACK_SPEC_VERSION } from './specVersion';
+export { SOUSTACK_VERSION } from './version';
 export {
   convertLineItemToMetric,
   type ConvertMode,
