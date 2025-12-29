@@ -1,6 +1,6 @@
 {
   "name": "soustack",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "description": "The logic engine for computational recipes - validation, scaling, parsing, and Schema.org conversion",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -24,6 +24,8 @@
     "./package.json": "./package.json"
   },
   "scripts": {
+    "prebuild": "npm run generate:version",
+    "generate:version": "node scripts/generate-version.mjs",
     "build": "tsup",
     "prepack": "npm run clean:collisions && npm run build",
     "prepublishOnly": "npm run assert:spec && npm run build && npm test",
