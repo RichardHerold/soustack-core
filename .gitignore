@@ -15,3 +15,4 @@ soustack-core-repo-pack.md
 * 2.log
 * 2.mjs
 *.tgz
+.cursor/debug.log
