@@ -156,25 +156,8 @@ function loadAllSchemas(ajv: Ajv2020): void {
     }
   }
 
-  // Register alias IDs that should resolve to the vendored root schema
-  // Note: We use vendored ID as target (not canonical) to avoid $ref chain issues
-  const rootSchemaId = (rootSchema as { $id?: string }).$id;
-  for (const [alias, target] of SCHEMA_ALIAS_MAP.entries()) {
-    if (alias === target) continue;
-    // Skip if alias is the vendored root schema ID (already registered above)
-    if (rootSchemaId && alias === rootSchemaId) continue;
-    // Skip canonical ID - we handle it via schemaIdForLookup in validation
-    if (alias === CANONICAL_SCHEMA_ID) continue;
-    if (!ajv.getSchema(alias)) {
-      // Create a reference schema that points to the vendored schema (or target if vendored not available)
-      const targetId = (target === CANONICAL_SCHEMA_ID && rootSchemaId) ? rootSchemaId : target;
-      if (targetId && ajv.getSchema(targetId)) {
-        ajv.addSchema({ $id: alias, $ref: targetId }, alias);
-      }
-    }
-  }
-
-  // Create legacy schema mappings BEFORE loading profiles (profiles reference them)
+  // Create legacy schema mappings BEFORE alias registration and profile loading
+  // This ensures compatibility schemas with definitions are created before aliases
   // Profiles reference http://soustack.org/schema/v0.0.2, but root schema uses https://soustack.spec/soustack.schema.json
   // We need to create a mapping from the legacy ID to the root schema
   // Also need to map old #/definitions/ to new #/$defs/ for backward compatibility
@@ -250,6 +233,28 @@ function loadAllSchemas(ajv: Ajv2020): void {
     }
   }
 
+  // Register alias IDs that should resolve to the vendored root schema
+  // Note: We use vendored ID as target (not canonical) to avoid $ref chain issues
+  // IMPORTANT: This runs AFTER compatibility schema creation to avoid creating aliases
+  // that would prevent the compatibility schema from being created
+  const rootSchemaIdForAliases = (rootSchema as { $id?: string }).$id;
+  for (const [alias, target] of SCHEMA_ALIAS_MAP.entries()) {
+    if (alias === target) continue;
+    // Skip if alias is the vendored root schema ID (already registered above)
+    if (rootSchemaIdForAliases && alias === rootSchemaIdForAliases) continue;
+    // Skip canonical ID - we handle it via schemaIdForLookup in validation
+    if (alias === CANONICAL_SCHEMA_ID) continue;
+    // Skip legacy IDs that we've already created compatibility schemas for
+    if (alias === LEGACY_ROOT_SCHEMA_ID || alias === `http://soustack.org/schema/v0.0.2`) continue;
+    if (!ajv.getSchema(alias)) {
+      // Create a reference schema that points to the vendored schema (or target if vendored not available)
+      const targetId = (target === CANONICAL_SCHEMA_ID && rootSchemaIdForAliases) ? rootSchemaIdForAliases : target;
+      if (targetId && ajv.getSchema(targetId)) {
+        ajv.addSchema({ $id: alias, $ref: targetId }, alias);
+      }
+    }
+  }
+
   // Load profile schemas (vNext only)
   const liteProfileSchema = require("./profiles/lite.schema.json");
   const equippedProfileSchema = require("./profiles/equipped.schema.json");
@@ -307,7 +312,9 @@ function createContext(collectAllErrors: boolean): ValidationContext {
   loadAllSchemas(ajv);
 
   // Get validators for root and base schemas
-  const rootValidator = ajv.getSchema(DEFAULT_ROOT_SCHEMA_ID) || ajv.getSchema(LEGACY_ROOT_SCHEMA_ID);
+  // Use vendored schema ID (not canonical or legacy) since that's what's actually registered
+  const rootSchemaId = (rootSchema as { $id?: string }).$id;
+  const rootValidator = ajv.getSchema(rootSchemaId ?? '') || ajv.getSchema(DEFAULT_ROOT_SCHEMA_ID) || ajv.getSchema(LEGACY_ROOT_SCHEMA_ID);
   const baseValidator = ajv.getSchema(BASE_SCHEMA_ID);
 
   return {
@@ -1101,29 +1108,6 @@ function filterValidationErrors(
     (normalizedInput && typeof normalizedInput === "object" && "$schema" in normalizedInput) ||
     (originalInput && typeof originalInput === "object" && "$schema" in originalInput);
 
-  // #region agent log
-  fetch("http://127.0.0.1:7244/ingest/7f75dc85-5d88-41b3-a2c3-713d0c6ca7a6", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      location: "validator.ts:1167",
-      message: "Checking @type and version",
-      data: {
-        hasOriginalInput: !!originalInput,
-        originalInputKeys: originalInput ? Object.keys(originalInput).slice(0, 10) : [],
-        normalizedInputKeys: Object.keys(normalizedInput).slice(0, 10),
-        hadTypeProperty,
-        hadVersionProperty,
-        normalizedInputHasType: "@type" in normalizedInput,
-        normalizedInputHasVersion: "version" in normalizedInput,
-      },
-      timestamp: Date.now(),
-      sessionId: "debug-session",
-      runId: "filter-debug",
-      hypothesisId: "B",
-    }),
-  }).catch(() => {});
-  // #endregion agent log
 
   const xProperties = Object.keys(validationCopy).filter((key) => key.startsWith("x-"));
 
@@ -1212,7 +1196,6 @@ function filterValidationErrors(
     return true;
   });
 
-  // #region agent log
   fetch("http://127.0.0.1:7244/ingest/7f75dc85-5d88-41b3-a2c3-713d0c6ca7a6", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1235,7 +1218,6 @@ function filterValidationErrors(
       hypothesisId: "A",
     }),
   }).catch(() => {});
-  // #endregion agent log
 
   return filteredErrors;
 }
@@ -1286,9 +1268,31 @@ function validateProfileComposition(
 
   let isValid = validator(validationCopy);
   let errors = validator.errors || [];
+  // #region agent log
+  try {
+    const fs = optionalRequire("fs") as typeof import("fs") | null;
+    const path = optionalRequire("path") as typeof import("path") | null;
+    if (fs && path) {
+      const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
+      const logData = JSON.stringify({location:'validator.ts:1269',message:'Composed validator result',data:{profile,isValid,errorCount:errors.length,hasName:!!validationCopy.name,errors:errors.slice(0,3).map((e:any)=>({keyword:e.keyword,path:e.instancePath,message:e.message}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'}) + '\n';
+      fs.appendFileSync(logPath, logData);
+    }
+  } catch {}
+  // #endregion
 
   if (isValid && context.rootValidator) {
     const baseValid = context.rootValidator(validationCopy);
+    // #region agent log
+    try {
+      const fs = optionalRequire("fs") as typeof import("fs") | null;
+      const path = optionalRequire("path") as typeof import("path") | null;
+      if (fs && path) {
+        const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
+        const logData = JSON.stringify({location:'validator.ts:1279',message:'Root validator fallback check',data:{profile,composedValid:isValid,baseValid,hasRootValidator:!!context.rootValidator,rootErrors:context.rootValidator?.errors?.slice(0,3).map((e:any)=>({keyword:e.keyword,path:e.instancePath,message:e.message}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'}) + '\n';
+        fs.appendFileSync(logPath, logData);
+      }
+    } catch {}
+    // #endregion
     if (!baseValid && context.rootValidator.errors) {
       const requiredErrors = context.rootValidator.errors.filter(
         (e: any) => e.keyword === "required" && e.params?.missingProperty,
@@ -1373,6 +1377,17 @@ function validateRecipeSchemaNormalized(
     : schemaId;
   const hasSchemaOverride = typeof schemaOverride === "string";
   const isSoustackSchema = resolvedSchema.isSoustackSchema;
+  // #region agent log
+  try {
+    const fs = optionalRequire("fs") as typeof import("fs") | null;
+    const path = optionalRequire("path") as typeof import("path") | null;
+    if (fs && path) {
+      const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
+      const logData = JSON.stringify({location:'validator.ts:1346',message:'Schema resolution',data:{schemaHint,schemaId,schemaIdForLookup,hasSchemaOverride,isSoustackSchema,hasName:!!normalized.name,hasYield:!!normalized.yield},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}) + '\n';
+      fs.appendFileSync(logPath, logData);
+    }
+  } catch {}
+  // #endregion
   if (isSoustackSchema && schemaId) {
     (normalized as any).$schema = schemaId;
     (normalizedInput as any).$schema = schemaId;
@@ -1387,6 +1402,17 @@ function validateRecipeSchemaNormalized(
   // 1. Schema is specified AND
   // 2. It's a Soustack schema AND
   // 3. Recipe doesn't have stacks (stacks require composed validation)
+  // #region agent log
+  try {
+    const fs = optionalRequire("fs") as typeof import("fs") | null;
+    const path = optionalRequire("path") as typeof import("path") | null;
+    if (fs && path) {
+      const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
+      const logData = JSON.stringify({location:'validator.ts:1370',message:'Validation path decision',data:{schemaId,isSoustackSchema,hasStacks,hasSchemaOverride,willUseDirectSchema:!!(schemaId && isSoustackSchema && !hasStacks && hasSchemaOverride)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'}) + '\n';
+      fs.appendFileSync(logPath, logData);
+    }
+  } catch {}
+  // #endregion
   if (schemaId && isSoustackSchema && !hasStacks && hasSchemaOverride) {
     // Use schemaIdForLookup for Ajv (vendored ID), but schemaId for $schema field (canonical)
     const schemaValidator = context.ajv.getSchema(schemaIdForLookup ?? schemaId) ?? context.ajv.getSchema(DEFAULT_ROOT_SCHEMA_ID) ?? context.ajv.getSchema(rootSchemaId ?? '');
@@ -1410,6 +1436,17 @@ function validateRecipeSchemaNormalized(
       }
       const schemaValid = schemaValidator(schemaInput);
       const schemaErrors = schemaValidator.errors || [];
+      // #region agent log
+      try {
+        const fs = optionalRequire("fs") as typeof import("fs") | null;
+        const path = optionalRequire("path") as typeof import("path") | null;
+        if (fs && path) {
+          const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
+          const logData = JSON.stringify({location:'validator.ts:1391',message:'Direct schema validation result',data:{schemaValid,errorCount:schemaErrors.length,errors:schemaErrors.slice(0,3).map((e:any)=>({keyword:e.keyword,path:e.instancePath,message:e.message}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}) + '\n';
+          fs.appendFileSync(logPath, logData);
+        }
+      } catch {}
+      // #endregion
       
       // Filter out false positive errors for properties we remove before validation ($schema, @type, version)
       const hadSchemaProperty = (normalizedInput && typeof normalizedInput === "object" && "$schema" in normalizedInput)
@@ -1454,6 +1491,17 @@ function validateRecipeSchemaNormalized(
       // If validation failed but all errors were filtered out (meaning they were false positives),
       // also consider it valid
       const ok = Boolean(schemaValid) || (filteredErrors.length === 0);
+      // #region agent log
+      try {
+        const fs = optionalRequire("fs") as typeof import("fs") | null;
+        const path = optionalRequire("path") as typeof import("path") | null;
+        if (fs && path) {
+          const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
+          const logData = JSON.stringify({location:'validator.ts:1436',message:'Final validation result',data:{schemaValid,filteredErrorCount:filteredErrors.length,ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'}) + '\n';
+          fs.appendFileSync(logPath, logData);
+        }
+      } catch {}
+      // #endregion
       
       return {
         ok,
@@ -1471,6 +1519,17 @@ function validateRecipeSchemaNormalized(
   let profileName = hasProfile
     ? ((normalized.profile as string).toLowerCase() as string)
     : undefined;
+  // #region agent log
+  try {
+    const fs = optionalRequire("fs") as typeof import("fs") | null;
+    const path = optionalRequire("path") as typeof import("path") | null;
+    if (fs && path) {
+      const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
+      const logData = JSON.stringify({location:'validator.ts:1478',message:'Composed validation path',data:{hasProfile,profileName,hasStacks,hasName:!!normalized.name,hasYield:!!normalized.yield},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}) + '\n';
+      fs.appendFileSync(logPath, logData);
+    }
+  } catch {}
+  // #endregion
   
   // Get declared stacks from recipe
   let declaredStacks: Record<string, number> = {};
@@ -1523,6 +1582,17 @@ function validateRecipeSchemaNormalized(
     normalizedInput,
     originalInput,
   );
+  // #region agent log
+  try {
+    const fs = optionalRequire("fs") as typeof import("fs") | null;
+    const path = optionalRequire("path") as typeof import("path") | null;
+    if (fs && path) {
+      const logPath = path.join(__dirname, '..', '.cursor', 'debug.log');
+      const logData = JSON.stringify({location:'validator.ts:1537',message:'Composed validation result',data:{profile,ok:validationOutcome.ok,errorCount:validationOutcome.errors.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'}) + '\n';
+      fs.appendFileSync(logPath, logData);
+    }
+  } catch {}
+  // #endregion
 
   return validationOutcome;
 }
