@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://soustack.spec/stacks/quantified.schema.json",
+  "$id": "https://spec.soustack.org/stacks/quantified.schema.json",
   "title": "Quantified Stack",
   "type": "object",
   "properties": {

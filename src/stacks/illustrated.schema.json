@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://soustack.spec/stacks/illustrated.schema.json",
+  "$id": "https://spec.soustack.org/stacks/illustrated.schema.json",
   "title": "Illustrated Stack",
   "type": "object",
   "properties": {

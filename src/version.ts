@@ -1,1 +1,1 @@
-export const SOUSTACK_VERSION = '0.4.7';
+export const SOUSTACK_VERSION = '0.4.8';
