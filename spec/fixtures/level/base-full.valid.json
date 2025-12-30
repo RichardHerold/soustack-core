@@ -1,5 +1,5 @@
 {
-  "$schema": "https://soustack.spec/soustack.schema.json",
+  "$schema": "https://spec.soustack.org/soustack.schema.json",
   "profile": "base",
   "stacks": {
     "quantified": 1,

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://soustack.spec/defs/temperature.schema.json",
+  "$id": "https://spec.soustack.org/defs/temperature.schema.json",
   "title": "Temperature",
   "type": "object",
   "oneOf": [
