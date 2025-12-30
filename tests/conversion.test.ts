@@ -93,7 +93,7 @@ describe('Schema.org <-> Soustack', () => {
     const recipe = soustack as Recipe;
     expect(recipe.name).toBe('Perfect Chocolate Chip Cookies');
     expect(recipe.yield).toMatchObject({ amount: 24, unit: 'cookies' });
-    // vNext: time uses DurationMinutes format
+    // time uses DurationMinutes format
     expect(recipe.time).toMatchObject({ total: { minutes: 32 } });
     expect(recipe.ingredients).toEqual([
       { name: '2 1/4 cups all-purpose flour, sifted', scaling: { mode: 'linear' } },
@@ -103,7 +103,7 @@ describe('Schema.org <-> Soustack', () => {
     expect(recipe.category).toBe('Dessert');
     expect(recipe.tags).toEqual(expect.arrayContaining(['American', 'cookies', 'chocolate']));
     expect(recipe.source).toMatchObject({ author: 'Jane Baker', name: 'Test Kitchen' });
-    // vNext: nutrition is directly on recipe, not in stack
+    // nutrition is directly on recipe, not in stack
     expect(recipe.nutrition).toMatchObject({ calories: 250 });
     expect(recipe.images).toEqual(['https://example.com/cookies.jpg']);
   });

@@ -13,7 +13,10 @@ export default defineConfig([
     ...shared,
     entry: { index: 'src/index.ts' },
     format: ['cjs', 'esm'],
-    dts: { entry: { index: 'src/index.ts' } },
+    dts: { 
+      entry: { index: 'src/index.ts' },
+      tsconfig: './tsconfig.build.json'
+    },
     clean: true, // Only clean on first entry
     splitting: false,
     outDir: 'dist',
@@ -25,7 +28,10 @@ export default defineConfig([
     ...shared,
     entry: { 'scrape/index': 'src/scrape/index.ts' },
     format: ['cjs', 'esm'],
-    dts: { entry: { 'scrape/index': 'src/scrape/index.ts' } },
+    dts: { 
+      entry: { 'scrape/index': 'src/scrape/index.ts' },
+      tsconfig: './tsconfig.build.json'
+    },
     clean: false,
     splitting: false,
     outDir: 'dist',

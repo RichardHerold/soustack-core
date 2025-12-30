@@ -8,7 +8,7 @@ export interface SoustackRecipe {
   '@type'?: 'Recipe';
   /** Optional $schema pointer for profile-aware validation */
   $schema?: string;
-  /** Optional declared validation profile (vNext only) */
+  /** Optional declared validation profile */
   profile?: "base" | "equipped" | "illustrated" | "lite" | "prepped" | "scalable" | "timed";
   /** Stack declarations as a map: Record<stackName, versionNumber> */
   stacks?: Record<string, number>;
@@ -75,7 +75,7 @@ export interface ParsedYield {
 }
 
 /**
- * Time uses DurationMinutes format (vNext).
+ * Time uses DurationMinutes format.
  * Required total field with minutes.
  */
 export interface Time {
@@ -154,7 +154,7 @@ export interface IngredientSubsection {
 
 export interface Ingredient {
   id?: string;
-  /** Ingredient name (required in vNext) */
+  /** Ingredient name (required) */
   name: string;
   quantity?: Quantity;
   /** Required prep state (e.g. "diced") or array of prep items */
@@ -182,7 +182,7 @@ export interface ParsedIngredient {
 }
 
 /**
- * Intelligent Scaling Logic (vNext format)
+ * Intelligent Scaling Logic
  * Defines how an ingredient behaves when the recipe yield changes.
  */
 export type Scaling =

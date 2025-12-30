@@ -195,7 +195,7 @@ function scaleInstructionItems(items: InstructionItem[], multiplier: number) {
       ? timing.duration.minutes
       : toDurationMinutes(timing.duration as any);
     
-    // Default to linear scaling for timing (vNext doesn't have scaling property)
+    // Default to linear scaling for timing
     const newDuration = Math.ceil(baseDuration * multiplier);
 
     if (typeof timing.duration === 'object' && 'minutes' in timing.duration) {

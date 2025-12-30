@@ -42,8 +42,8 @@ export function fromSchemaOrg(input: unknown): Recipe | null {
   const profile: Recipe['profile'] =
     recipeYield && time ? 'base' : 'lite';
 
-  // Legacy stack conversions removed - vNext doesn't support attribution/taxonomy/media/times/nutrition stacks
-  // Schema.org data is mapped to vNext properties directly
+  // Legacy stack conversions removed - attribution/taxonomy/media/times/nutrition stacks are no longer supported
+  // Schema.org data is mapped to recipe properties directly
   const stacks: Record<string, number> = {};
 
   const rawRecipe = {
@@ -387,7 +387,7 @@ function extractEntityName(
   return undefined;
 }
 
-// Legacy stack conversion functions removed - vNext doesn't support attribution/taxonomy stacks
+// Legacy stack conversion functions removed - attribution/taxonomy stacks are no longer supported
 
 function normalizeMediaList(value: SchemaOrgImage | undefined): string[] {
   if (!value) return [];
@@ -424,7 +424,7 @@ function toArray(value: string | string[] | undefined): string[] {
   return Array.isArray(value) ? value : [value];
 }
 
-// Legacy stack conversion functions removed - vNext doesn't support media/times stacks
+// Legacy stack conversion functions removed - media/times stacks are no longer supported
 // Media is handled via image property, time via time property
 
 function convertNutrition(

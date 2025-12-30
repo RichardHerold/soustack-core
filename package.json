@@ -24,12 +24,12 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "prebuild": "npm run generate:version",
+    "prebuild": "npm run generate:version && npm run clean:types-collisions",
     "generate:version": "node scripts/generate-version.mjs",
     "build": "tsup",
     "prepack": "npm run clean:collisions && npm run build",
     "prepublishOnly": "npm run assert:spec && npm run build && npm test",
-    "pretest": "npm run build --silent && npm run guard:canonical && npm run guard:stacks-filenames",
+    "pretest": "npm run assert:spec && npm run build --silent && npm run guard:canonical && npm run guard:stacks-filenames",
     "test": "jest",
     "release:prep": "cross-env SOUSTACK_SPEC_SOURCE=npm npm run sync:spec && npm run verify:sync && npm run verify:schema && npm test",
     "sync:spec": "node scripts/sync-spec.mjs",
@@ -39,6 +39,7 @@
     "guard:stacks-filenames": "node scripts/guard-stacks-filenames.mjs",
     "validate:version": "node scripts/check-version-drift.mjs",
     "clean:collisions": "node scripts/clean-collisions.mjs",
+    "clean:types-collisions": "node scripts/clean-npm-types-collisions.mjs",
     "assert:spec": "node scripts/assert-spec-present.mjs",
     "prepare": "node scripts/prepare-husky.mjs",
     "dump:ai": "node scripts/dump-repo-for-ai.mjs"
@@ -95,11 +96,11 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@soustack/spec": "0.0.2",
     "@types/jest": "^30.0.0",
     "cross-env": "^7.0.3",
     "husky": "^9.1.7",
     "jest": "^30.2.0",
-    "@soustack/spec": "0.0.2",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "tsup": "^8.3.5",

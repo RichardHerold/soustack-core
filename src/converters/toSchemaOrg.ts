@@ -168,7 +168,7 @@ export function convertTime(time?: Time): Partial<SchemaOrgRecipe> {
     return {};
   }
 
-  // vNext Time format: { total: { minutes: number } }
+  // Time format: { total: { minutes: number } }
   const result: Partial<SchemaOrgRecipe> = {};
   if (time.total && typeof time.total === 'object' && 'minutes' in time.total) {
     result.totalTime = formatDuration(time.total.minutes);
@@ -335,7 +335,7 @@ export function toSchemaOrg(recipe: Recipe): SchemaOrgRecipe {
   const hasMappableNutrition = mappableStacks.has('nutrition@1');
   const nutrition = hasMappableNutrition ? convertNutrition(recipe.nutrition) : undefined;
 
-  // Convert time - vNext uses recipe.time (Time format)
+  // Convert time - uses recipe.time (Time format)
   const timeData = convertTime(recipe.time);
 
   // Convert attribution if attribution stack is mappable (attribution@1 is mappable)
@@ -362,4 +362,4 @@ export function toSchemaOrg(recipe: Recipe): SchemaOrgRecipe {
   return withCanonicalSchema(schemaOrgRecipe) as SchemaOrgRecipe;
 }
 
-// Legacy isStructuredTime removed - vNext uses Time format with DurationMinutes
+// Legacy isStructuredTime removed - uses Time format with DurationMinutes

@@ -23,7 +23,7 @@ function normalizeFixture(fixture: Record<string, unknown>): Record<string, unkn
 }
 
 function findFixtureFiles(kind: 'valid' | 'invalid'): string[] {
-  // vNext fixtures are discovered by filename pattern: .valid. or .invalid.
+  // Fixtures are discovered by filename pattern: .valid. or .invalid.
   // Search recursively under spec/fixtures/**
   // Pattern matches files containing .valid. or .invalid. in the filename
   // Use a more specific pattern to avoid matching "invalid" when looking for "valid"
