@@ -6,6 +6,7 @@ import * as path from 'path';
 const DIST_CLI_PATH = path.join(__dirname, '..', 'dist', 'cli', 'index.js');
 const VALID_FIXTURE = path.join(__dirname, 'fixtures', 'cli', 'valid.soustack.json');
 const INVALID_FIXTURE = path.join(__dirname, 'fixtures', 'cli', 'invalid.soustack.invalid.json');
+const INGEST_HTML_FIXTURE = path.join(__dirname, 'fixtures', 'cli', 'ingest.html');
 
 function runCli(args: string[], options: SpawnSyncOptions = {}) {
   if (!existsSync(DIST_CLI_PATH)) {
@@ -23,6 +24,26 @@ function runCli(args: string[], options: SpawnSyncOptions = {}) {
 function expectNonZero(status: number | null) {
   expect(status).not.toBeNull();
   expect(status).not.toBe(0);
+}
+
+function createFetchMock(html: string) {
+  const dir = mkdtempSync(path.join(tmpdir(), 'soustack-fetch-'));
+  const mockPath = path.join(dir, 'fetch-mock.js');
+
+  writeFileSync(
+    mockPath,
+    `
+      global.fetch = async () => ({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        text: async () => ${JSON.stringify(html)}
+      });
+    `,
+    'utf-8',
+  );
+
+  return mockPath;
 }
 
 describe('soustack CLI', () => {
@@ -118,5 +139,31 @@ describe('soustack CLI', () => {
   "warnings": [],
 }
 `);
+  });
+
+  it('ingests a recipe from a local HTML file', () => {
+    const result = runCli(['ingest', INGEST_HTML_FIXTURE]);
+
+    expect(result.status).toBe(0);
+    const output = JSON.parse(result.stdout.toString());
+    expect(output.name).toBe('Test Ingest Recipe');
+    expect(output.ingredients?.length).toBeGreaterThan(0);
+    expect(output.instructions?.length).toBeGreaterThan(0);
+  });
+
+  it('ingests a recipe from a URL when fetch is mocked', () => {
+    const html = readFileSync(INGEST_HTML_FIXTURE, 'utf-8');
+    const fetchMockPath = createFetchMock(html);
+    const nodeOptions = process.env.NODE_OPTIONS
+      ? `${process.env.NODE_OPTIONS} --require ${fetchMockPath}`
+      : `--require ${fetchMockPath}`;
+    const env = { ...process.env, NODE_OPTIONS: nodeOptions };
+
+    const result = runCli(['ingest', 'https://example.com/recipe'], { env });
+
+    expect(result.status).toBe(0);
+    const output = JSON.parse(result.stdout.toString());
+    expect(output.name).toBe('Test Ingest Recipe');
+    expect(output.ingredients?.length).toBeGreaterThan(0);
   });
 });
