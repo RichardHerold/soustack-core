@@ -11,7 +11,7 @@ These instructions apply to the entire repository.
 - Avoid backward-compatibility work unless explicitly requested.
 
 ## Schema-related changes
-- Schema definitions live in soustack-spec, not soustack-core.
-- soustack-core syncs schemas from soustack-spec; do not duplicate schema logic.
+- Schema definitions live in @soustack/spec (soustack-spec repo), not soustack-core.
+- soustack-core syncs schemas from @soustack/spec; do not duplicate schema logic.
 - When schema changes affect conversions, update both toSchemaOrg and fromSchemaOrg tests.
 - Ensure JSON schema remains valid (no duplicate keys, no invalid enums).

@@ -19,7 +19,7 @@ const CHECK_DIRS = [
   'docs',
 ];
 
-// Directories/files to exclude (vendored schemas come from soustack-spec, fixtures test legacy acceptance)
+// Directories/files to exclude (vendored schemas come from @soustack/spec, fixtures test legacy acceptance)
 const EXCLUDE_PATTERNS = [
   '**/spec/**',
   '**/tests/fixtures/**',
