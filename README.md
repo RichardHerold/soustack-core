@@ -396,7 +396,7 @@ npx soustack scale recipe.soustack.json 2
 
 ## 🔄 Keeping the Schema in Sync
 
-The schema files in this repository are **copies** of the official standard. The source of truth lives in [RichardHerold/soustack-spec](https://github.com/RichardHerold/soustack-spec).
+The schema files in this repository are **copies** of the official standard. The source of truth lives in [RichardHerold/soustack-spec](https://github.com/RichardHerold/soustack-spec) (published as `@soustack/spec` on npm).
 
 **Do not edit any synced schema artifacts manually** (`src/schema.json`, `src/soustack.schema.json`, `src/profiles/*.schema.json`).
 

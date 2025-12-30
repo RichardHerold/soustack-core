@@ -40,7 +40,7 @@ function determineSpecTag(pkg) {
 }
 
 function cloneSpecRepository(ref) {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'soustack-spec-'));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), '@soustack-spec-'));
   const isCommitSha = /^[0-9a-f]{7,40}$/i.test(ref);
 
   try {
@@ -412,6 +412,7 @@ async function main() {
     fs.rmSync(SPEC_DIR, { recursive: true, force: true });
   }
   
+  // Note: soustack-spec is the GitHub repository name, @soustack/spec is the npm package name
   const pkg = readPackageJson();
   const specSource = process.env.SOUSTACK_SPEC_SOURCE;
   const usingNpmSpec = specSource === 'npm';
@@ -423,10 +424,10 @@ async function main() {
   let version;
 
   if (usingNpmSpec) {
-    sourceDir = path.join(ROOT_DIR, 'node_modules', 'soustack-spec');
+    sourceDir = path.join(ROOT_DIR, 'node_modules', '@soustack', 'spec');
     if (!fs.existsSync(sourceDir)) {
       throw new Error(
-        'SOUSTACK_SPEC_SOURCE is set to "npm" but node_modules/soustack-spec was not found. Run npm install.'
+        'SOUSTACK_SPEC_SOURCE is set to "npm" but node_modules/@soustack/spec was not found. Run npm install.'
       );
     }
     // For npm source, prefer SOUSTACK_SPEC_VERSION file over package.json version
@@ -437,11 +438,11 @@ async function main() {
       // Fall back to package.json version if SOUSTACK_SPEC_VERSION doesn't exist
       const specPackagePath = path.join(sourceDir, 'package.json');
       if (!fs.existsSync(specPackagePath)) {
-        throw new Error('soustack-spec package.json not found in node_modules.');
+        throw new Error('@soustack/spec package.json not found in node_modules.');
       }
       const specPackage = JSON.parse(fs.readFileSync(specPackagePath, 'utf8'));
       if (!specPackage.version) {
-        throw new Error('soustack-spec package.json is missing a version field.');
+        throw new Error('@soustack/spec package.json is missing a version field.');
       }
       version = specPackage.version;
     }
@@ -455,7 +456,7 @@ async function main() {
     const usingLocalSchemas = !usingLocalSpec && sourceDir === SPEC_DIR;
 
     if (usingLocalSpec && sourceDir === SPEC_DIR && !usingLocalSchemas) {
-      tempLocalCopy = fs.mkdtempSync(path.join(os.tmpdir(), 'soustack-spec-local-'));
+      tempLocalCopy = fs.mkdtempSync(path.join(os.tmpdir(), '@soustack-spec-local-'));
       fs.cpSync(sourceDir, tempLocalCopy, { recursive: true });
       sourceDir = tempLocalCopy;
     }
@@ -464,7 +465,7 @@ async function main() {
       console.log(
         `Using existing local schemas for version ${tag.replace(/^v/, '')} (regenerating sync metadata from local copy)`
       );
-      tempLocalCopy = fs.mkdtempSync(path.join(os.tmpdir(), 'soustack-spec-local-'));
+      tempLocalCopy = fs.mkdtempSync(path.join(os.tmpdir(), '@soustack-spec-local-'));
       fs.cpSync(sourceDir, tempLocalCopy, { recursive: true });
       sourceDir = tempLocalCopy;
     }
