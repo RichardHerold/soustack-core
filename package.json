@@ -32,7 +32,7 @@
     "pretest": "npm run assert:spec && npm run build --silent && npm run guard:canonical && npm run guard:stacks-filenames",
     "test": "jest",
     "release:prep": "cross-env SOUSTACK_SPEC_SOURCE=npm npm run sync:spec && npm run verify:sync && npm run verify:schema && npm test",
-    "sync:spec": "node scripts/sync-spec.mjs",
+    "sync:spec": "node scripts/sync-spec.mjs && npm run clean:collisions",
     "verify:schema": "node scripts/verify-synced-schema.mjs",
     "verify:sync": "node scripts/verify-sync-meta.mjs",
     "guard:canonical": "node scripts/guard-canonical-host.mjs",

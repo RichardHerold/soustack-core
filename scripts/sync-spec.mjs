@@ -106,7 +106,19 @@ function updatePackageJson(pkg, version, tag) {
 }
 
 function copyIntoSpecDirectory(sourceDir) {
-  fs.rmSync(SPEC_DIR, { recursive: true, force: true });
+  // #region agent log
+  try {
+    fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-spec.mjs:109',message:'Removing entire SPEC_DIR',data:{specDir:SPEC_DIR,exists:fs.existsSync(SPEC_DIR)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  } catch(e) {}
+  // #endregion
+  if (fs.existsSync(SPEC_DIR)) {
+    fs.rmSync(SPEC_DIR, { recursive: true, force: true });
+  }
+  // #region agent log
+  try {
+    fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-spec.mjs:110',message:'Creating SPEC_DIR',data:{specDir:SPEC_DIR},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  } catch(e) {}
+  // #endregion
   fs.mkdirSync(SPEC_DIR, { recursive: true });
 
   // Copy root schema
@@ -139,8 +151,25 @@ function copyIntoSpecDirectory(sourceDir) {
   const stacksDest = path.join(SPEC_DIR, 'stacks');
   if (fs.existsSync(stacksSource)) {
     // Always remove destination to prevent fs.cpSync from creating duplicates
-    fs.rmSync(stacksDest, { recursive: true, force: true });
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-spec.mjs:142',message:'Removing stacks dest before copy',data:{stacksDest,exists:fs.existsSync(stacksDest)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    } catch(e) {}
+    // #endregion
+    if (fs.existsSync(stacksDest)) {
+      fs.rmSync(stacksDest, { recursive: true, force: true });
+    }
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-spec.mjs:143',message:'Copying stacks directory',data:{stacksSource,stacksDest,sourceExists:fs.existsSync(stacksSource)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    } catch(e) {}
+    // #endregion
     fs.cpSync(stacksSource, stacksDest, { recursive: true });
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-spec.mjs:144',message:'After cpSync stacks',data:{destExists:fs.existsSync(stacksDest),collisionExists:fs.existsSync(stacksDest + ' 2')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    } catch(e) {}
+    // #endregion
   }
 
   // Copy schemas directory (may contain stacks-registry.schema.json)
@@ -157,8 +186,25 @@ function copyIntoSpecDirectory(sourceDir) {
   const fixturesDest = path.join(SPEC_DIR, 'fixtures');
   if (fs.existsSync(fixturesSource)) {
     // Always remove destination to prevent fs.cpSync from creating duplicates
-    fs.rmSync(fixturesDest, { recursive: true, force: true });
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-spec.mjs:160',message:'Removing fixtures dest before copy',data:{fixturesDest,exists:fs.existsSync(fixturesDest)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    } catch(e) {}
+    // #endregion
+    if (fs.existsSync(fixturesDest)) {
+      fs.rmSync(fixturesDest, { recursive: true, force: true });
+    }
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-spec.mjs:161',message:'Copying fixtures directory',data:{fixturesSource,fixturesDest,sourceExists:fs.existsSync(fixturesSource)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    } catch(e) {}
+    // #endregion
     fs.cpSync(fixturesSource, fixturesDest, { recursive: true });
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-spec.mjs:162',message:'After cpSync fixtures',data:{destExists:fs.existsSync(fixturesDest),collisionExists:fs.existsSync(fixturesDest + ' 2')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    } catch(e) {}
+    // #endregion
   }
 
   // Copy examples directory (if present)
@@ -197,8 +243,25 @@ function copySchemaIntoSrc() {
   const stacksDest = path.join(srcDir, 'stacks');
   if (fs.existsSync(stacksSource)) {
     // Always remove destination to prevent fs.cpSync from creating duplicates
-    fs.rmSync(stacksDest, { recursive: true, force: true });
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-spec.mjs:200',message:'Removing src/stacks dest before copy',data:{stacksDest,exists:fs.existsSync(stacksDest)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    } catch(e) {}
+    // #endregion
+    if (fs.existsSync(stacksDest)) {
+      fs.rmSync(stacksDest, { recursive: true, force: true });
+    }
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-spec.mjs:201',message:'Copying stacks to src',data:{stacksSource,stacksDest,sourceExists:fs.existsSync(stacksSource)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    } catch(e) {}
+    // #endregion
     fs.cpSync(stacksSource, stacksDest, { recursive: true });
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-spec.mjs:202',message:'After cpSync src/stacks',data:{destExists:fs.existsSync(stacksDest),collisionExists:fs.existsSync(stacksDest + ' 2')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    } catch(e) {}
+    // #endregion
   }
 
   // Copy schemas directory (may contain stacks-registry.schema.json or legacy recipe/registry)
@@ -523,6 +586,20 @@ async function main() {
 
     // Validate that all version files are synchronized
     validateVersionSync();
+
+    // Check for collision artifacts after sync
+    // #region agent log
+    try {
+      const collisionCheck = [];
+      const entries = fs.readdirSync(SPEC_DIR, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory() && /^.+ \d+$/.test(entry.name)) {
+          collisionCheck.push(entry.name);
+        }
+      }
+      fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sync-spec.mjs:525',message:'Post-sync collision check',data:{collisions:collisionCheck,specDir:SPEC_DIR},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    } catch(e) {}
+    // #endregion
 
     console.log(`Soustack spec synced successfully (version ${version}).`);
   } finally {
