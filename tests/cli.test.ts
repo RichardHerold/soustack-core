@@ -76,7 +76,6 @@ describe('soustack CLI', () => {
     expect(output).toMatchInlineSnapshot(`
 {
   "conformanceIssues": [],
-  "level": null,
   "ok": true,
   "schemaErrors": [],
   "stacks": {},
@@ -92,7 +91,6 @@ describe('soustack CLI', () => {
     expect(output).toMatchInlineSnapshot(`
 {
   "conformanceIssues": [],
-  "level": null,
   "ok": false,
   "schemaErrors": [
     {

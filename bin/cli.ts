@@ -566,7 +566,6 @@ function prepareOutputPayload(data: unknown): unknown {
 
 function buildConformanceReport(result: ValidateResult) {
   const recipe = result.normalizedRecipe;
-  const level = typeof recipe?.level === 'string' ? recipe.level : null;
   const stacks = normalizeStacksForReport(recipe?.stacks);
   const schemaErrors = sortSchemaErrors(result.schemaErrors).map((error) => ({
     path: error.path,
@@ -582,7 +581,6 @@ function buildConformanceReport(result: ValidateResult) {
 
   return {
     ok: result.ok,
-    level,
     stacks,
     warnings: result.warnings,
     schemaErrors,
