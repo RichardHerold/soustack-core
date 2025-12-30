@@ -158,7 +158,7 @@ function loadAllSchemas(ajv: Ajv2020): void {
 
   // Create legacy schema mappings BEFORE alias registration and profile loading
   // This ensures compatibility schemas with definitions are created before aliases
-  // Profiles reference http://soustack.org/schema/v0.0.2, but root schema uses https://soustack.spec/soustack.schema.json
+  // Profiles reference http://soustack.org/schema/v0.0.2, but root schema uses https://spec.soustack.org/soustack.schema.json
   // We need to create a mapping from the legacy ID to the root schema
   // Also need to map old #/definitions/ to new #/$defs/ for backward compatibility
   // Profile schemas use Draft 7 which uses "definitions", but they reference a Draft 2020-12 schema
@@ -203,22 +203,22 @@ function loadAllSchemas(ajv: Ajv2020): void {
             required: ["amount", "unit"],
             additionalProperties: false,
             patternProperties: {
-              "^x-": { $ref: "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue" },
+              "^x-": { $ref: "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue" },
             },
           },
           time: {
             type: "object",
             properties: {
-              total: { $ref: "https://soustack.spec/defs/duration.schema.json#/properties/DurationMinutes" },
+              total: { $ref: "https://spec.soustack.org/defs/duration.schema.json#/properties/DurationMinutes" },
               metadata: { type: "object", additionalProperties: true },
             },
             required: ["total"],
             additionalProperties: false,
             patternProperties: {
-              "^x-": { $ref: "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue" },
+              "^x-": { $ref: "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue" },
             },
           },
-          quantity: { $ref: `https://soustack.spec/defs/quantity.schema.json` },
+          quantity: { $ref: `https://spec.soustack.org/defs/quantity.schema.json` },
         },
       };
       ajv.addSchema(compatibilitySchema, legacyId);
@@ -465,7 +465,7 @@ function resolveStackSchemaRefs(schema: any): any {
             const [refPath, fragment] = value.split("#");
             const refName = refPath?.replace(/^(\.\/|\.{2}\/stacks\/)/, "").replace(/\.schema\.json$/, "");
             if (refName) {
-              const refId = `https://soustack.spec/stacks/${refName}.schema.json${fragment ? `#${fragment}` : ""}`;
+              const refId = `https://spec.soustack.org/stacks/${refName}.schema.json${fragment ? `#${fragment}` : ""}`;
               obj[key] = refId;
             }
           }
@@ -581,7 +581,8 @@ function ensureStackSchemaLoaded(
         } else if (obj && typeof obj === "object") {
           const refValue = (obj as any).$ref;
           if (typeof refValue === "string") {
-            const match = refValue.match(/^https:\/\/soustack\.spec\/stacks\/([^.#/]+)\.schema\.json/);
+            // Match both old domain (soustack.spec) and canonical domain (spec.soustack.org) for backward compatibility
+            const match = refValue.match(/^https:\/\/(?:soustack\.spec|spec\.soustack\.org)\/stacks\/([^.#/]+)\.schema\.json/);
             if (match && match[1]) {
               referencedStacks.add(match[1]);
             }
