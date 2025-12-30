@@ -10,7 +10,7 @@ describe('Soustack schema version', () => {
     expect(schemaId).toBeDefined();
 
     // The new schema $id does not contain a version, so we check for the exact ID
-    expect(schemaId).toBe("https://soustack.spec/soustack.schema.json");
+    expect(schemaId).toBe("https://spec.soustack.org/soustack.schema.json");
     // We can add a separate check for the SOUSTACK_SPEC_VERSION if needed
     // For now, we assume the sync script correctly updates SOUSTACK_SPEC_VERSION
     // based on the spec's SOUSTACK_SPEC_VERSION file.

@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://soustack.spec/soustack.schema.json",
+  "$id": "https://spec.soustack.org/soustack.schema.json",
   "title": "Soustack Specification",
   "type": "object",
   "properties": {
     "$schema": {
       "type": "string",
-      "const": "https://soustack.spec/soustack.schema.json"
+      "const": "https://spec.soustack.org/soustack.schema.json"
     },
     "profile": {
       "type": "string",
@@ -532,7 +532,7 @@
                     "additionalProperties": false,
                     "patternProperties": {
                       "^x-": {
-                        "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                        "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
                       }
                     }
                   },
@@ -581,7 +581,7 @@
                 ],
                 "patternProperties": {
                   "^x-": {
-                    "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                    "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
                   }
                 }
               }
@@ -717,13 +717,13 @@
               "images": {
                 "type": "array",
                 "items": {
-                  "$ref": "https://soustack.spec/defs/common.schema.json#/properties/uri"
+                  "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/uri"
                 }
               },
               "videos": {
                 "type": "array",
                 "items": {
-                  "$ref": "https://soustack.spec/defs/common.schema.json#/properties/uri"
+                  "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/uri"
                 }
               },
               "instructions": {
@@ -1092,7 +1092,7 @@
                         "additionalProperties": false,
                         "patternProperties": {
                           "^x-": {
-                            "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                            "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
                           }
                         }
                       },
@@ -1107,7 +1107,7 @@
                     "additionalProperties": false,
                     "patternProperties": {
                       "^x-": {
-                        "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                        "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
                       }
                     }
                   }
@@ -1211,7 +1211,7 @@
                 "additionalProperties": false,
                 "patternProperties": {
                   "^x-": {
-                    "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                    "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
                   }
                 }
               }
@@ -1391,7 +1391,7 @@
                             "additionalProperties": false,
                             "patternProperties": {
                               "^x-": {
-                                "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                                "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
                               }
                             }
                           },
@@ -1409,7 +1409,7 @@
                       "additionalProperties": false,
                       "patternProperties": {
                         "^x-": {
-                          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                          "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
                         }
                       }
                     },
@@ -1500,7 +1500,7 @@
                   "additionalProperties": false,
                   "patternProperties": {
                     "^x-": {
-                      "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+                      "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
                     }
                   }
                 },
@@ -1716,7 +1716,7 @@
     "illustrated@1_illustratedStep": {
       "allOf": [
         {
-          "$ref": "https://soustack.spec/defs/entities.schema.json#/$defs/StepBase"
+          "$ref": "https://spec.soustack.org/defs/entities.schema.json#/$defs/StepBase"
         },
         {
           "required": [
@@ -1736,10 +1736,10 @@
           "items": {
             "anyOf": [
               {
-                "$ref": "https://soustack.spec/stacks/illustrated.schema.json#/$defs/illustratedStep"
+                "$ref": "https://spec.soustack.org/stacks/illustrated.schema.json#/$defs/illustratedStep"
               },
               {
-                "$ref": "https://soustack.spec/stacks/illustrated.schema.json#/$defs/illustratedSection"
+                "$ref": "https://spec.soustack.org/stacks/illustrated.schema.json#/$defs/illustratedSection"
               }
             ]
           }
@@ -1756,7 +1756,7 @@
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
-          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+          "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
         }
       }
     },
@@ -1770,10 +1770,10 @@
           "type": "string"
         },
         "quantity": {
-          "$ref": "https://soustack.spec/defs/quantity.schema.json"
+          "$ref": "https://spec.soustack.org/defs/quantity.schema.json"
         },
         "temperature": {
-          "$ref": "https://soustack.spec/defs/temperature.schema.json"
+          "$ref": "https://spec.soustack.org/defs/temperature.schema.json"
         },
         "notes": {
           "type": "string"
@@ -1794,7 +1794,7 @@
                     "minLength": 1
                   },
                   {
-                    "$ref": "https://soustack.spec/stacks/prep.schema.json#/$defs/prepItem"
+                    "$ref": "https://spec.soustack.org/stacks/prep.schema.json#/$defs/prepItem"
                   }
                 ]
               }
@@ -1806,7 +1806,7 @@
           "additionalProperties": true
         },
         "scaling": {
-          "$ref": "https://soustack.spec/defs/scalingRule.schema.json"
+          "$ref": "https://spec.soustack.org/defs/scalingRule.schema.json"
         }
       },
       "required": [
@@ -1817,7 +1817,7 @@
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
-          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+          "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
         }
       }
     },
@@ -1832,10 +1832,10 @@
           "items": {
             "anyOf": [
               {
-                "$ref": "https://soustack.spec/stacks/quantified.schema.json#/$defs/ingredient"
+                "$ref": "https://spec.soustack.org/stacks/quantified.schema.json#/$defs/ingredient"
               },
               {
-                "$ref": "https://soustack.spec/stacks/quantified.schema.json#/$defs/ingredientSection"
+                "$ref": "https://spec.soustack.org/stacks/quantified.schema.json#/$defs/ingredientSection"
               }
             ]
           }
@@ -1852,14 +1852,14 @@
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
-          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+          "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
         }
       }
     },
     "referenced@1_ingredient": {
       "allOf": [
         {
-          "$ref": "https://soustack.spec/defs/entities.schema.json#/$defs/IngredientBase"
+          "$ref": "https://spec.soustack.org/defs/entities.schema.json#/$defs/IngredientBase"
         },
         {
           "required": [
@@ -1879,10 +1879,10 @@
           "items": {
             "anyOf": [
               {
-                "$ref": "https://soustack.spec/stacks/referenced.schema.json#/$defs/ingredient"
+                "$ref": "https://spec.soustack.org/stacks/referenced.schema.json#/$defs/ingredient"
               },
               {
-                "$ref": "https://soustack.spec/stacks/referenced.schema.json#/$defs/ingredientSection"
+                "$ref": "https://spec.soustack.org/stacks/referenced.schema.json#/$defs/ingredientSection"
               }
             ]
           }
@@ -1899,21 +1899,21 @@
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
-          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+          "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
         }
       }
     },
     "referenced@1_referencedStep": {
       "allOf": [
         {
-          "$ref": "https://soustack.spec/defs/entities.schema.json#/$defs/StepBase"
+          "$ref": "https://spec.soustack.org/defs/entities.schema.json#/$defs/StepBase"
         },
         {
           "properties": {
             "inputs": {
               "allOf": [
                 {
-                  "$ref": "https://soustack.spec/defs/entities.schema.json#/$defs/StepBase/properties/inputs"
+                  "$ref": "https://spec.soustack.org/defs/entities.schema.json#/$defs/StepBase/properties/inputs"
                 },
                 {
                   "minItems": 1
@@ -1939,10 +1939,10 @@
           "items": {
             "anyOf": [
               {
-                "$ref": "https://soustack.spec/stacks/referenced.schema.json#/$defs/referencedStep"
+                "$ref": "https://spec.soustack.org/stacks/referenced.schema.json#/$defs/referencedStep"
               },
               {
-                "$ref": "https://soustack.spec/stacks/referenced.schema.json#/$defs/referencedSection"
+                "$ref": "https://spec.soustack.org/stacks/referenced.schema.json#/$defs/referencedSection"
               }
             ]
           }
@@ -1959,7 +1959,7 @@
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
-          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+          "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
         }
       }
     },
@@ -1973,10 +1973,10 @@
           "type": "string"
         },
         "quantity": {
-          "$ref": "https://soustack.spec/defs/quantity.schema.json"
+          "$ref": "https://spec.soustack.org/defs/quantity.schema.json"
         },
         "temperature": {
-          "$ref": "https://soustack.spec/defs/temperature.schema.json"
+          "$ref": "https://spec.soustack.org/defs/temperature.schema.json"
         },
         "notes": {
           "type": "string"
@@ -1997,7 +1997,7 @@
                     "minLength": 1
                   },
                   {
-                    "$ref": "https://soustack.spec/stacks/prep.schema.json#/$defs/prepItem"
+                    "$ref": "https://spec.soustack.org/stacks/prep.schema.json#/$defs/prepItem"
                   }
                 ]
               }
@@ -2009,7 +2009,7 @@
           "additionalProperties": true
         },
         "scaling": {
-          "$ref": "https://soustack.spec/defs/scalingRule.schema.json"
+          "$ref": "https://spec.soustack.org/defs/scalingRule.schema.json"
         }
       },
       "required": [
@@ -2020,7 +2020,7 @@
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
-          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+          "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
         }
       }
     },
@@ -2035,10 +2035,10 @@
           "items": {
             "anyOf": [
               {
-                "$ref": "https://soustack.spec/stacks/scaling.schema.json#/$defs/ingredient"
+                "$ref": "https://spec.soustack.org/stacks/scaling.schema.json#/$defs/ingredient"
               },
               {
-                "$ref": "https://soustack.spec/stacks/scaling.schema.json#/$defs/ingredientSection"
+                "$ref": "https://spec.soustack.org/stacks/scaling.schema.json#/$defs/ingredientSection"
               }
             ]
           }
@@ -2055,7 +2055,7 @@
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
-          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+          "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
         }
       }
     },
@@ -2063,7 +2063,7 @@
       "type": "object",
       "properties": {
         "duration": {
-          "$ref": "https://soustack.spec/defs/duration.schema.json#/properties/StorageDuration"
+          "$ref": "https://spec.soustack.org/defs/duration.schema.json#/properties/StorageDuration"
         },
         "notes": {
           "type": "string"
@@ -2079,14 +2079,14 @@
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
-          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+          "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
         }
       }
     },
     "structured@1_step": {
       "allOf": [
         {
-          "$ref": "https://soustack.spec/defs/entities.schema.json#/$defs/StepBase"
+          "$ref": "https://spec.soustack.org/defs/entities.schema.json#/$defs/StepBase"
         },
         {
           "required": [
@@ -2106,10 +2106,10 @@
           "items": {
             "anyOf": [
               {
-                "$ref": "https://soustack.spec/stacks/structured.schema.json#/$defs/step"
+                "$ref": "https://spec.soustack.org/stacks/structured.schema.json#/$defs/step"
               },
               {
-                "$ref": "https://soustack.spec/stacks/structured.schema.json#/$defs/stepSection"
+                "$ref": "https://spec.soustack.org/stacks/structured.schema.json#/$defs/stepSection"
               }
             ]
           }
@@ -2126,21 +2126,21 @@
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
-          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+          "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
         }
       }
     },
     "timed@1_timedStep": {
       "allOf": [
         {
-          "$ref": "https://soustack.spec/defs/entities.schema.json#/$defs/StepBase"
+          "$ref": "https://spec.soustack.org/defs/entities.schema.json#/$defs/StepBase"
         },
         {
           "properties": {
             "timing": {
               "allOf": [
                 {
-                  "$ref": "https://soustack.spec/defs/entities.schema.json#/$defs/StepBase/properties/timing"
+                  "$ref": "https://spec.soustack.org/defs/entities.schema.json#/$defs/StepBase/properties/timing"
                 },
                 {
                   "required": [
@@ -2180,10 +2180,10 @@
           "items": {
             "anyOf": [
               {
-                "$ref": "https://soustack.spec/stacks/timed.schema.json#/$defs/timedStep"
+                "$ref": "https://spec.soustack.org/stacks/timed.schema.json#/$defs/timedStep"
               },
               {
-                "$ref": "https://soustack.spec/stacks/timed.schema.json#/$defs/timedStepSection"
+                "$ref": "https://spec.soustack.org/stacks/timed.schema.json#/$defs/timedStepSection"
               }
             ]
           }
@@ -2200,7 +2200,7 @@
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
-          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+          "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
         }
       }
     },
@@ -2297,7 +2297,7 @@
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
-          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+          "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
         }
       }
     },
@@ -2336,7 +2336,7 @@
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
-          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+          "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
         }
       }
     },
@@ -2358,20 +2358,20 @@
             {
               "type": "array",
               "items": {
-                "$ref": "https://soustack.spec/stacks/storage.schema.json#/$defs/reheatInstruction"
+                "$ref": "https://spec.soustack.org/stacks/storage.schema.json#/$defs/reheatInstruction"
               },
               "minItems": 1
             }
           ]
         },
         "portioning": {
-          "$ref": "https://soustack.spec/stacks/storage.schema.json#/$defs/portioning"
+          "$ref": "https://spec.soustack.org/stacks/storage.schema.json#/$defs/portioning"
         }
       },
       "additionalProperties": false,
       "patternProperties": {
         "^x-": {
-          "$ref": "https://soustack.spec/defs/common.schema.json#/properties/extensionLaneValue"
+          "$ref": "https://spec.soustack.org/defs/common.schema.json#/properties/extensionLaneValue"
         }
       }
     }
