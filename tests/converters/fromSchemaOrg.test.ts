@@ -87,12 +87,12 @@ describe('metadata mapping', () => {
     expect(recipe.tags).toEqual(expect.arrayContaining(['Italian', 'pasta', 'vegetarian', 'easy']));
   });
 
-  it('converts nutrition to vNext format', () => {
+  it('converts nutrition format', () => {
     const withNutrition = getRecipe({ nutrition: { calories: '200 cal' } });
     const withoutNutrition = getRecipe({ nutrition: 'invalid' });
     const missingNutrition = getRecipe();
 
-    // vNext: nutrition is directly on recipe, parsed as numbers
+    // nutrition is directly on recipe, parsed as numbers
     expect(withNutrition.nutrition).toEqual({ calories: 200 });
     expect(withoutNutrition.nutrition).toBeUndefined();
     expect(withoutNutrition).not.toHaveProperty('nutrition');
@@ -359,7 +359,7 @@ describe('time and yield parsing', () => {
       recipeYield: '24 cookies'
     });
 
-    // vNext: time uses DurationMinutes format
+    // time uses DurationMinutes format
     expect(recipe.time).toMatchObject({ total: { minutes: 80 } });
     expect(recipe.yield).toMatchObject({ amount: 24, unit: 'cookies' });
   });
@@ -389,7 +389,7 @@ describe('time and yield parsing', () => {
   });
 });
 
-describe('lite profile and vNext format', () => {
+describe('lite profile format', () => {
   const schemaOrgSample = {
     '@context': 'https://schema.org',
     '@type': 'Recipe',
@@ -414,31 +414,31 @@ describe('lite profile and vNext format', () => {
     }
   } as const;
 
-  it('defaults to lite profile with vNext format and validates', () => {
+  it('defaults to lite profile and validates', () => {
     const soustack = fromSchemaOrg(schemaOrgSample);
     expect(soustack).not.toBeNull();
     const recipe = soustack as Recipe;
 
     expect(recipe.profile).toBe('lite');
-    // vNext: no legacy stacks
+    // no legacy stacks
     expect(recipe.stacks).toEqual({});
 
-    // vNext: source is directly on recipe
+    // source is directly on recipe
     expect(recipe.source).toEqual(
       expect.objectContaining({
         url: 'https://example.com/lasagna',
         author: 'Chef Example'
       })
     );
-    // vNext: category and tags are directly on recipe
+    // category and tags are directly on recipe
     expect(recipe.category).toBe('Dinner');
     expect(recipe.tags).toEqual(expect.arrayContaining(['Italian', 'pasta', 'cheese', 'baked']));
-    // vNext: image is directly on recipe (may be string or array)
+    // image is directly on recipe (may be string or array)
     expect(recipe.images).toEqual(expect.arrayContaining(['https://example.com/lasagna.jpg']));
     expect(recipe.videos).toEqual(['https://example.com/lasagna.mp4']);
-    // vNext: time uses DurationMinutes format
+    // time uses DurationMinutes format
     expect(recipe.time).toMatchObject({ total: { minutes: 60 } });
-    // vNext: nutrition is directly on recipe
+    // nutrition is directly on recipe
     expect(recipe.nutrition).toMatchObject({ calories: 400 });
 
     const validation = validateRecipe(recipe);

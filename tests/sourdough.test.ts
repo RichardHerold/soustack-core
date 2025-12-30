@@ -100,7 +100,7 @@ describe('Soustack Logic Engine', () => {
 
     const scaled = scaleRecipe(timedRecipe, { multiplier: 2 });
     const firstInstruction = scaled.instructions[0] as any;
-    // Timing scaling is not implemented in vNext, so duration should remain unchanged
+    // Timing scaling may not be implemented, so duration should remain unchanged
     // or be scaled if the parser supports it
     expect(firstInstruction.timing?.duration).toBeDefined();
   });

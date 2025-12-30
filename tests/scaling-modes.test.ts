@@ -1,7 +1,7 @@
 import { scaleRecipe } from '../src/parser';
 import { Ingredient, Recipe } from '../src/types';
 
-// Inline vNext fixture with various scaling modes
+// Inline fixture with various scaling modes
 const scalingModesFixture: Recipe = {
   profile: 'scalable',
   stacks: { quantified: 1, scaling: 1 },

@@ -553,11 +553,11 @@ describe('round-trip conversion', () => {
     }
     expect(roundTrip?.ingredients.length).toBeGreaterThanOrEqual(2);
     expect(roundTrip?.instructions.length).toBe(3);
-    // vNext: time is directly on recipe
+    // time is directly on recipe
     if (recipe.time) {
       expect(roundTrip?.time).toBeDefined();
     }
-    // vNext: images are directly on recipe
+    // images are directly on recipe
     if (recipe.images) {
       expect(roundTrip?.images).toBeDefined();
     }

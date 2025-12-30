@@ -255,7 +255,7 @@ function loadAllSchemas(ajv: Ajv2020): void {
     }
   }
 
-  // Load profile schemas (vNext only)
+  // Load profile schemas
   const liteProfileSchema = require("./profiles/lite.schema.json");
   const equippedProfileSchema = require("./profiles/equipped.schema.json");
   const preppedProfileSchema = require("./profiles/prepped.schema.json");

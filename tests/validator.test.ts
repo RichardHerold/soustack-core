@@ -16,7 +16,7 @@ function loadExampleFixture(file: string): Recipe {
 describe('Soustack validation', () => {
   const legacyKey = ['mod', 'ules'].join('');
   const legacyErrorMessage = 'legacy field is no longer supported';
-  // Inline base fixture (vNext format)
+  // Inline base fixture
   const baseValid: Recipe = {
     profile: 'lite',
     name: 'Quick Salsa',
@@ -38,7 +38,7 @@ describe('Soustack validation', () => {
     ]
   };
   
-  // vNext test recipes
+  // Test recipes
   const liteRecipe: Recipe = {
     '@type': 'Recipe',
     profile: 'lite',
@@ -247,7 +247,7 @@ describe('Soustack validation', () => {
       const result = validateRecipe(recipe);
 
       expect(result.ok).toBe(true);
-      // vNext Time format: { total: { minutes: number } }
+      // Time format: { total: { minutes: number } }
       expect(result.normalizedRecipe?.time).toEqual(
         expect.objectContaining({ total: { minutes: 15 } })
       );
@@ -272,7 +272,7 @@ describe('Soustack validation', () => {
     );
   });
 
-  describe('vNext profile validation', () => {
+  describe('profile validation', () => {
     it('validates lite profile recipe', () => {
       const recipe: Recipe = {
         profile: 'lite',
@@ -341,7 +341,7 @@ describe('Soustack validation', () => {
   it('detects all profiles that validate a recipe', () => {
     const profiles = detectProfiles(baseValid);
     expect(profiles.length).toBeGreaterThanOrEqual(1);
-    // Should detect at least lite (vNext default) and base (has yield/time)
+    // Should detect at least lite (default) and base (has yield/time)
     expect(profiles).toEqual(expect.arrayContaining(['lite', 'base']));
   });
 
@@ -540,8 +540,8 @@ describe('Soustack validation', () => {
   });
 
   describe('vendored spec fixtures', () => {
-    it('validates a valid vNext fixture from spec/fixtures/valid', () => {
-      // Use a vNext fixture if available, otherwise use inline fixture
+    it('validates a valid fixture from spec/fixtures/valid', () => {
+      // Use a fixture if available, otherwise use inline fixture
       const validFixturePath = path.join(__dirname, '..', 'spec', 'fixtures', 'valid', 'prep-ingredient-strings.valid.json');
       let recipe: Recipe;
       
