@@ -389,8 +389,10 @@ npx soustack test --profile base
 npx soustack convert --from schemaorg --to soustack recipe.jsonld -o recipe.soustack.json
 npx soustack convert --from soustack --to schemaorg recipe.soustack.json -o recipe.jsonld
 
-# Import (scrape) or scale from the CLI
+# Scrape, import, ingest, or scale from the CLI
+npx soustack scrape <url> -o recipe.soustack.json
 npx soustack import --url "https://example.com/recipe" -o recipe.soustack.json
+npx soustack ingest <source> [--out <path>]  # bulk pipeline, requires @soustack/ingest
 npx soustack scale recipe.soustack.json 2
 ```
 
