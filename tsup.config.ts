@@ -52,6 +52,6 @@ export default defineConfig([
     banner: {
       js: '#!/usr/bin/env node'
     },
-    external: ['ajv', 'ajv-formats', 'cheerio', 'zod', 'glob']
+    external: ['ajv', 'ajv-formats', 'cheerio', 'zod', 'glob', '@soustack/ingest']
   }
 ]);
