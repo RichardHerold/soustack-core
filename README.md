@@ -98,19 +98,18 @@ if (!result.ok) {
   console.error('Profile validation failed', result.schemaErrors);
 }
 
-// Validate with modules
-const recipeWithModules = {
+// Validate with stacks
+const recipeWithStacks = {
   profile: 'base',
-  modules: ['nutrition@1', 'times@1'],
+  stacks: { scaling: 1, storage: 1 },
   name: 'Test Recipe',
-  ingredients: ['1 cup flour'],
+  ingredients: [{ ingredient: 'flour', quantity: 1, unit: 'cup' }],
   instructions: ['Mix'],
-  nutrition: { calories: 100, protein_g: 5 }, // Module payload required if declared
-  times: { prepMinutes: 10, cookMinutes: 20, totalMinutes: 30 }, // v0.3: uses *Minutes fields
+  // Stack payloads are validated when stacks are declared
 };
-const result2 = validateRecipe(recipeWithModules);
-// Validates using: base + profile + nutrition@1 module + times@1 module
-// Module contract: if module is declared, payload must exist (and vice versa)
+const result2 = validateRecipe(recipeWithStacks);
+// Validates using: base profile + scaling@1 stack + storage@1 stack
+// Stack contract: if stack is declared, corresponding payload must exist (and vice versa)
 ```
 
 ### Imperial → metric ingredient conversion
@@ -147,7 +146,7 @@ The converter rounds using “sane” defaults (1 g/ml under 1 kg/1 L, the
 ## Spec compatibility & bundled schemas
 
 - Targets Soustack spec **v0.0.2** (`spec/SOUSTACK_SPEC_VERSION`, exported as `SOUSTACK_SPEC_VERSION`).
-- Ships the base schema, profile schemas, and module schemas in `spec/schemas/recipe/` and mirrors them into `src/schemas/recipe/` for consumers.
+- Ships the base schema, profile schemas, and stack schemas in `spec/stacks/` and mirrors them into `src/stacks/` for consumers.
 - Vendored fixtures live in `spec/fixtures` so tests can run offline, and version drift can be checked via `npm run validate:version`.
 
 ### Composed Validation Model
@@ -159,46 +158,51 @@ Soustack v0.0.2 uses a **composed validation model** where recipes are validated
   "allOf": [
     { "$ref": "base.schema.json" },
     { "$ref": "profiles/{profile}.schema.json" },
-    { "$ref": "modules/{module1}/{version}.schema.json" },
-    { "$ref": "modules/{module2}/{version}.schema.json" }
+    { "$ref": "stacks/{stack1}.schema.json" },
+    { "$ref": "stacks/{stack2}.schema.json" }
   ]
 }
 ```
 
 The validator:
-- **Base schema**: Defines the core recipe structure (`@type`, `name`, `ingredients`, `instructions`, `profile`, `modules`)
+- **Base schema**: Defines the core recipe structure (`@type`, `name`, `ingredients`, `instructions`, `profile`, `stacks`)
 - **Profile overlay**: Adds profile-specific requirements (e.g., `base` or `lite`)
-- **Module overlays**: Each declared module adds its own validation rules
+- **Stack overlays**: Each declared stack adds its own validation rules
 
 **Defaults:**
 - If `profile` is missing, it defaults to the schema bundle's configured default
-- If `modules` is missing, it defaults to `[]`
+- If `stacks` is missing, it defaults to `{}`
 
-**Module Contract:** Modules enforce a symmetric contract:
-- If a module is declared in `modules`, the corresponding payload must exist
-- If a payload exists (e.g., `nutrition`, `times`), the module must be declared
-- The validator automatically infers modules from payloads and enforces this contract
+**Stack Contract:** Stacks enforce a symmetric contract:
+- If a stack is declared in `stacks`, the corresponding payload must exist (for non-structural stacks)
+- If a payload exists (e.g., `storage`, `equipment`), the stack must be declared
+- The validator automatically infers stacks from payloads and enforces this contract
 
-**Caching:** Validators are cached by `${profile}::${sortedModules.join(",")}` for performance.
+**Caching:** Validators are cached by `${profile}::${sortedStackNames.join(",")}` for performance.
 
-### Module Resolution
+### Stack Resolution
 
-Modules are resolved to schema references using the pattern:
-- Module identifier format: `<name>@<version>` (e.g., `nutrition@1`, `schedule@1`)
-- Schema reference: `https://soustack.org/schemas/recipe/modules/<name>/<version>.schema.json`
+Stacks are resolved to schema references using the pattern:
+- Stack declaration format: `{ "stackName": versionNumber }` (e.g., `{ "scaling": 1, "storage": 1 }`)
+- Schema reference: `https://spec.soustack.org/stacks/{stackName}.schema.json`
 
-The module registry (`schemas/registry/modules.json`) defines which modules are available and their properties, including:
-- `schemaOrgMappable`: Whether the module can be converted to Schema.org format
-- `minProfile`: Minimum profile required to use the module
-- `allowedOnLite`: Whether the module can be used with the lite profile
+The stack registry (`stacks/registry.json`) defines which stacks are available and their properties, including:
+- Stack dependencies (e.g., `scaling` requires `quantified`)
+- Profile requirements (some stacks require specific profiles)
 
-**Available Modules (v0.0.2):**
-- `attribution@1`: Source attribution (url, author, datePublished)
-- `taxonomy@1`: Classification (keywords, category, cuisine)
-- `media@1`: Images and videos (images, videos arrays)
-- `times@1`: Timing information (prepMinutes, cookMinutes, totalMinutes)
-- `nutrition@1`: Nutritional data (calories, protein_g as numbers)
-- `schedule@1`: Task scheduling (requires timed profile, includes instruction dependencies)
+**Available Stacks (v0.0.2):**
+- `quantified`: Quantified ingredients with units
+- `scaling`: Scaling rules and modes
+- `structured`: Structured instructions with steps
+- `timed`: Timing information for instructions
+- `illustrated`: Images and videos
+- `equipment`: Required tools and equipment
+- `storage`: Storage instructions
+- `prep`: Prep guidance and mise en place
+- `dietary`: Dietary information
+- `substitutions`: Ingredient substitutions
+- `techniques`: Cooking techniques
+- `compute`: Computational recipe features
 
 ## Programmatic Usage
 
@@ -271,7 +275,7 @@ async function convert(url: string) {
 
 Use the helpers to move between Schema.org JSON-LD and Soustack's structured recipe format. The conversion automatically handles image normalization, supporting multiple image formats from Schema.org.
 
-**BREAKING CHANGE in v0.0.2:** `toSchemaOrg()` now targets the **lite profile** and only includes modules that are marked as `schemaOrgMappable` in the modules registry. Non-mappable modules (e.g., `nutrition@1`, `schedule@1`) are excluded from the conversion.
+**BREAKING CHANGE in v0.0.2:** `toSchemaOrg()` now targets the **lite profile** and only includes stacks that can be mapped to Schema.org format. Non-mappable stacks are excluded from the conversion.
 
 ```ts
 import { fromSchemaOrg, toSchemaOrg, normalizeImage } from 'soustack';
@@ -392,11 +396,11 @@ npx soustack convert --from soustack --to schemaorg recipe.soustack.json -o reci
 # Scrape URLs (canonical workflow)
 npx soustack scrape <url> -o recipe.soustack.json
 
-# Import from URL (alias for scrape, for compatibility)
+# Import from URL (optional alias for scrape, for compatibility)
 npx soustack import --url "https://example.com/recipe" -o recipe.soustack.json
 
-# Bulk pipeline (delegates to @soustack/ingest)
-npx soustack ingest <source> [--out <path>]  # requires @soustack/ingest
+# Bulk ingest pipeline (delegates to @soustack/ingest)
+npx soustack ingest <input> --out <dir>  # requires @soustack/ingest
 
 # Scale recipes
 npx soustack scale recipe.soustack.json 2
