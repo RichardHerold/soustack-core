@@ -107,11 +107,11 @@ function printUsage() {
     '  soustack validate <fileOrGlob> [--profile <name>] [--force-profile] [--schema-only] [--strict] [--json]',
   );
   console.log('  soustack convert --from <schemaorg|soustack> --to <schemaorg|soustack> <input> [-o <output>]');
-  console.log('  soustack import --url <url> [-o <soustack.json>]');
+  console.log('  soustack scrape <url> -o <soustack.json>  (canonical URL ingestion)');
+  console.log('  soustack import --url <url> [-o <soustack.json>]  (alias for scrape)');
+  console.log('  soustack ingest <input> [--out <path>]  (bulk pipeline, requires @soustack/ingest)');
   console.log('  soustack test [--profile <name>] [--force-profile] [--schema-only] [--strict] [--json]');
   console.log('  soustack scale <soustack.json> <multiplier>');
-  console.log('  soustack scrape <url> -o <soustack.json>');
-  console.log('  soustack ingest <source> [--out <path>]  (bulk pipeline, requires @soustack/ingest)');
   console.log(`\nProfiles: ${supportedProfiles.join(', ')}`);
 }
 
@@ -198,9 +198,13 @@ async function handleImport(args: string[]) {
   const { url, outputPath } = parseImportArgs(args);
   if (!url) throw new Error('Import usage: import --url <url> [-o <soustack.json>]');
 
-  const recipe = await scrapeRecipe(url);
-  writeOutput(recipe, outputPath);
-  console.log(`✅ Imported recipe from ${url}${outputPath ? ` (${outputPath})` : ''}`);
+  // Forward to scrape (compatibility alias)
+  console.error('Note: "soustack import --url" is an alias for "soustack scrape". Use "soustack scrape <url>" for the canonical workflow.');
+  const scrapeArgs = [url];
+  if (outputPath) {
+    scrapeArgs.push('-o', outputPath);
+  }
+  await handleScrape(scrapeArgs);
 }
 
 async function handleIngest(args: string[]) {
