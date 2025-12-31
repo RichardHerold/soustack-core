@@ -4,7 +4,7 @@ import { globSync } from 'glob';
 import { scaleRecipe } from '../src/parser';
 import { fromSchemaOrg } from '../src/fromSchemaOrg';
 import { toSchemaOrg } from '../src/toSchemaOrg';
-import { extractRecipeFromHTML, scrapeRecipe } from '../src/scraper/index';
+import { scrapeRecipe } from '../src/scraper/index';
 import { withCanonicalSchema } from '../src/schemaMetadata';
 import {
   validateRecipe,
@@ -111,7 +111,7 @@ function printUsage() {
   console.log('  soustack test [--profile <name>] [--force-profile] [--schema-only] [--strict] [--json]');
   console.log('  soustack scale <soustack.json> <multiplier>');
   console.log('  soustack scrape <url> -o <soustack.json>');
-  console.log('  soustack ingest <source> [--out <path>]');
+  console.log('  soustack ingest <source> [--out <path>]  (bulk pipeline, requires @soustack/ingest)');
   console.log(`\nProfiles: ${supportedProfiles.join(', ')}`);
 }
 
@@ -204,15 +204,33 @@ async function handleImport(args: string[]) {
 }
 
 async function handleIngest(args: string[]) {
-  const source = args[0];
-  const outputPath = resolveOutputPath(args.slice(1));
-  if (!source) throw new Error('Ingest usage: ingest <source> [--out <path>]');
-
-  const recipe = await ingestRecipe(source);
-  writeOutput(recipe, outputPath);
-
-  if (outputPath) {
-    console.log(`✅ Ingested recipe from ${source}${outputPath ? ` (${outputPath})` : ''}`);
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const ingestModule = await import('@soustack/ingest' as string);
+    if (typeof ingestModule.run === 'function') {
+      await ingestModule.run(['ingest', ...args]);
+      process.exitCode = process.exitCode || 0;
+    } else if (typeof ingestModule.default === 'function') {
+      await ingestModule.default(['ingest', ...args]);
+      process.exitCode = process.exitCode || 0;
+    } else {
+      throw new Error('@soustack/ingest does not export a run function or default export');
+    }
+  } catch (error: any) {
+    const errorMessage = error?.message ?? String(error);
+    if (
+      error?.code === 'MODULE_NOT_FOUND' ||
+      errorMessage.includes('Cannot find module') ||
+      errorMessage.includes('Cannot find package') ||
+      errorMessage.includes("@soustack/ingest")
+    ) {
+      console.error('soustack ingest requires @soustack/ingest. Install with:');
+      console.error('  npm i -D @soustack/ingest  or  npx @soustack/ingest ingest …');
+      process.exitCode = 1;
+      return;
+    } else {
+      throw error;
+    }
   }
 }
 
@@ -371,33 +389,6 @@ function parseImportArgs(args: string[]): { url?: string; outputPath?: string } 
   return { url, outputPath };
 }
 
-async function ingestRecipe(source: string) {
-  if (source.startsWith('http://') || source.startsWith('https://')) {
-    return scrapeRecipe(source);
-  }
-
-  const absolutePath = path.resolve(source);
-  if (!fs.existsSync(absolutePath)) {
-    throw new Error(`File not found: ${absolutePath}`);
-  }
-
-  const extension = path.extname(absolutePath).toLowerCase();
-  if (extension === '.html' || extension === '.htm') {
-    const html = fs.readFileSync(absolutePath, 'utf-8');
-    return extractRecipeFromHTML(html);
-  }
-
-  if (extension === '.json') {
-    const payload = readJsonFile(absolutePath);
-    const recipe = fromSchemaOrg(payload as any);
-    if (!recipe) {
-      throw new Error('Schema.org recipe not found in JSON input');
-    }
-    return recipe;
-  }
-
-  throw new Error(`Unsupported ingest input: ${source} (expected URL, .html, or Schema.org .json)`);
-}
 
 function resolveConvertDirection(from: string, to: string): ConvertDirection | null {
   if (from === 'schemaorg' && to === 'soustack') return 'schemaorg-to-soustack';
