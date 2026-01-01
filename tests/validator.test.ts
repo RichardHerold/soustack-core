@@ -650,4 +650,66 @@ describe('Soustack validation', () => {
       }
     });
   });
+
+  describe('storage duration validation', () => {
+    it('validates StorageDuration with object shape (iso8601 property)', () => {
+      const recipe: Recipe = {
+        profile: 'base',
+        name: 'Test Recipe',
+        yield: { amount: 1, unit: 'serving' },
+        time: { total: { minutes: 10 } },
+        stacks: { storage: 1 },
+        ingredients: [{ id: 'flour', name: 'Flour' }],
+        instructions: [{ id: 'mix', text: 'Mix' }],
+        storage: {
+          refrigerated: {
+            duration: { iso8601: 'P3D' }
+          }
+        }
+      };
+      const result = validateRecipe(recipe);
+      expect(result.ok).toBe(true);
+    });
+
+    it('validates StorageDuration with metadata', () => {
+      const recipe: Recipe = {
+        profile: 'base',
+        name: 'Test Recipe',
+        yield: { amount: 1, unit: 'serving' },
+        time: { total: { minutes: 10 } },
+        stacks: { storage: 1 },
+        ingredients: [{ id: 'flour', name: 'Flour' }],
+        instructions: [{ id: 'mix', text: 'Mix' }],
+        storage: {
+          frozen: {
+            duration: {
+              iso8601: 'P2M',
+              metadata: { source: 'test' }
+            }
+          }
+        }
+      };
+      const result = validateRecipe(recipe);
+      expect(result.ok).toBe(true);
+    });
+
+    it('rejects string duration (must be object shape)', () => {
+      const recipe = {
+        profile: 'base',
+        name: 'Test Recipe',
+        yield: { amount: 1, unit: 'serving' },
+        time: { total: { minutes: 10 } },
+        stacks: { storage: 1 },
+        ingredients: [{ id: 'flour', name: 'Flour' }],
+        instructions: [{ id: 'mix', text: 'Mix' }],
+        storage: {
+          refrigerated: {
+            duration: 'P3D' // Invalid: must be object with iso8601 property
+          }
+        }
+      };
+      const result = validateRecipe(recipe);
+      expect(result.ok).toBe(false);
+    });
+  });
 });

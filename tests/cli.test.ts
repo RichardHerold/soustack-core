@@ -8,7 +8,16 @@ const VALID_FIXTURE = path.join(__dirname, 'fixtures', 'cli', 'valid.soustack.js
 const INVALID_FIXTURE = path.join(__dirname, 'fixtures', 'cli', 'invalid.soustack.invalid.json');
 
 function runCli(args: string[], options: SpawnSyncOptions = {}) {
+  // #region agent log
+  fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cli.test.ts:10',message:'runCli entry',data:{distCliPath:DIST_CLI_PATH,__dirname:__dirname,resolvedPath:path.resolve(DIST_CLI_PATH),exists:existsSync(DIST_CLI_PATH)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  // #region agent log
+  fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cli.test.ts:11',message:'checking file existence',data:{path:DIST_CLI_PATH,exists:existsSync(DIST_CLI_PATH),absolutePath:path.resolve(DIST_CLI_PATH)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
   if (!existsSync(DIST_CLI_PATH)) {
+    // #region agent log
+    fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cli.test.ts:12',message:'file missing error',data:{path:DIST_CLI_PATH,resolved:path.resolve(DIST_CLI_PATH),cwd:process.cwd()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     throw new Error(
       `Missing built CLI at ${DIST_CLI_PATH}. Build artifacts are required before running tests.`,
     );
@@ -26,6 +35,11 @@ function expectNonZero(status: number | null) {
 }
 
 describe('soustack CLI', () => {
+  // #region agent log
+  beforeAll(() => {
+    fetch('http://127.0.0.1:7255/ingest/4f34f152-5cff-4133-a069-6f90159cb43b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'cli.test.ts:28',message:'beforeAll hook',data:{distCliPath:DIST_CLI_PATH,exists:existsSync(DIST_CLI_PATH),cwd:process.cwd(),__dirname:__dirname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  });
+  // #endregion
   it('validates a known good fixture successfully', () => {
     const result = runCli(['validate', VALID_FIXTURE]);
     expect(result.status).toBe(0);
