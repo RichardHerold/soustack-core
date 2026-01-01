@@ -1,6 +1,16 @@
 import { SOUSTACK_SPEC_VERSION } from "./specVersion";
 
-export const CANONICAL_ROOT_SCHEMA_URL = "https://spec.soustack.org/soustack.schema.json";
+/**
+ * Canonical schema host: https://spec.soustack.org
+ * This is the authoritative host for all Soustack schema URLs.
+ */
+export const CANONICAL_HOST = "https://spec.soustack.org";
+
+/**
+ * Canonical root schema URL: https://spec.soustack.org/soustack.schema.json
+ * This is the default $schema value for Soustack recipes.
+ */
+export const CANONICAL_ROOT_SCHEMA_URL = `${CANONICAL_HOST}/soustack.schema.json`;
 export const CANONICAL_SCHEMA_ID = CANONICAL_ROOT_SCHEMA_URL;
 export const LEGACY_SCHEMA_ID = `http://soustack.org/schema/v${SOUSTACK_SPEC_VERSION}`;
 

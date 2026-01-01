@@ -184,6 +184,7 @@ function main() {
     console.error('Legacy schema URLs must not be emitted in generated output.');
     console.error('Core accepts legacy URLs for validation/backward compatibility,');
     console.error('but always emits canonical URLs (https://spec.soustack.org) in generated output.');
+    console.error('See src/schemaMetadata.ts for the canonical constants.');
     console.error('');
     console.error('Note: Legacy URLs in SCHEMA_ALIAS_MAP, isLegacySchemaUrl, normalizeSchemaUrl,');
     console.error('and similar mapping/acceptance functions are allowed.');

@@ -1,6 +1,11 @@
 import { normalizeRecipe } from '../src/normalize';
 import { Recipe } from '../src/types';
-import { CANONICAL_ROOT_SCHEMA_URL } from '../src/schemaMetadata';
+import { 
+  CANONICAL_ROOT_SCHEMA_URL, 
+  CANONICAL_HOST,
+  CANONICAL_SCHEMA_ID,
+  normalizeSchemaUrl 
+} from '../src/schemaMetadata';
 
 describe('normalizeRecipe', () => {
   const legacyKey = ['mod', 'ules'].join('');
@@ -263,6 +268,32 @@ describe('normalizeRecipe', () => {
 
       const result = normalizeRecipe(input);
       expect(result.recipe.$schema).toBeUndefined();
+    });
+  });
+
+  describe('canonical constants regression', () => {
+    it('ensures CANONICAL_HOST is https://spec.soustack.org', () => {
+      expect(CANONICAL_HOST).toBe('https://spec.soustack.org');
+    });
+
+    it('ensures CANONICAL_ROOT_SCHEMA_URL uses CANONICAL_HOST', () => {
+      expect(CANONICAL_ROOT_SCHEMA_URL).toBe(`${CANONICAL_HOST}/soustack.schema.json`);
+      expect(CANONICAL_ROOT_SCHEMA_URL).toBe('https://spec.soustack.org/soustack.schema.json');
+    });
+
+    it('ensures CANONICAL_SCHEMA_ID equals CANONICAL_ROOT_SCHEMA_URL', () => {
+      expect(CANONICAL_SCHEMA_ID).toBe(CANONICAL_ROOT_SCHEMA_URL);
+    });
+
+    it('ensures normalizeSchemaUrl normalizes legacy soustack.spec URL to canonical', () => {
+      const legacyUrl = 'https://soustack.spec/soustack.schema.json';
+      const normalized = normalizeSchemaUrl(legacyUrl);
+      expect(normalized).toBe(CANONICAL_ROOT_SCHEMA_URL);
+    });
+
+    it('ensures normalizeSchemaUrl preserves canonical URL unchanged', () => {
+      const normalized = normalizeSchemaUrl(CANONICAL_ROOT_SCHEMA_URL);
+      expect(normalized).toBe(CANONICAL_ROOT_SCHEMA_URL);
     });
   });
 });
