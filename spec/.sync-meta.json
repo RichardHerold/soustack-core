@@ -135,7 +135,7 @@
     "stacks/prep.schema.json": "001e9edb27c13dee4c7f366d8b172c5fec40e0ebe0f62830e918586a2daf0bdf",
     "stacks/quantified.schema.json": "b03d57190630e2d0d7b4b6951a3d3242463e173eaa7222f83910f7560fc974a5",
     "stacks/referenced.schema.json": "81183cba2b99a35ea487e4a310ed3667897bb48c3d7bcba2db9590a925f0279d",
-    "stacks/registry.json": "7df3b607781143e57272c6847cdd44d9d580cc4b85693807fadaab6e784d38d5",
+    "stacks/registry.json": "02a15fa914b10c1339b087121271f279a2253e225f1748ef0d3b532a29256000",
     "stacks/scaling.schema.json": "cdfb751c7de467e9127773eebe767b7472347a04c9378522acf3deed5f001673",
     "stacks/storage.schema.json": "f621a661fecaecb799962cb439199af820f6ee958b392dde965a4a8f21b74a28",
     "stacks/structured.schema.json": "a17dc85b8b500bc29f7c652350d2f8ce733377583ca18e1cd25ab2a9c35d7509",
@@ -144,5 +144,5 @@
     "stacks/timed.schema.json": "42bc29dc05ff2eea4f716c0edcfa9b068b0d5c9f4de5741e76d0fc79584749c8"
   },
   "source": "npm",
-  "syncedAt": "2025-12-30T05:18:57.725Z"
+  "syncedAt": "2026-01-01T15:56:49.748Z"
 }
