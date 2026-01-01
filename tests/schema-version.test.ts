@@ -21,4 +21,21 @@ describe('Soustack schema version', () => {
     const vendoredVersion = fs.readFileSync(versionPath, 'utf8').trim();
     expect(vendoredVersion).toBe(SOUSTACK_SPEC_VERSION);
   });
+
+  it('registry.json currentSpecVersion matches SOUSTACK_SPEC_VERSION', () => {
+    const specVersion = SOUSTACK_SPEC_VERSION;
+    
+    // Check spec/stacks/registry.json
+    const specRegistryPath = path.join(__dirname, '..', 'spec', 'stacks', 'registry.json');
+    const specRegistry = JSON.parse(fs.readFileSync(specRegistryPath, 'utf8'));
+    expect(specRegistry.spec?.currentSpecVersion).toBe(specVersion);
+    
+    // Check src/stacks/registry.json
+    const srcRegistryPath = path.join(__dirname, '..', 'src', 'stacks', 'registry.json');
+    const srcRegistry = JSON.parse(fs.readFileSync(srcRegistryPath, 'utf8'));
+    expect(srcRegistry.spec?.currentSpecVersion).toBe(specVersion);
+    
+    // Ensure both registry files match each other
+    expect(specRegistry.spec?.currentSpecVersion).toBe(srcRegistry.spec?.currentSpecVersion);
+  });
 });

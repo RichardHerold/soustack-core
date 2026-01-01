@@ -3,7 +3,7 @@
   "registryVersion": 1,
   "spec": {
     "name": "soustack",
-    "currentSpecVersion": "0.3.0",
+    "currentSpecVersion": "0.0.2",
     "canonicalStacksFormat": "map"
   },
   "profiles": {

@@ -432,6 +432,35 @@ function ensureVersionConsistency(version) {
 }
 
 /**
+ * Update registry.json files to match the given spec version
+ */
+function updateRegistryVersion(version) {
+  const registryPaths = [
+    path.join(SPEC_DIR, 'stacks', 'registry.json'),
+    path.join(ROOT_DIR, 'src', 'stacks', 'registry.json'),
+  ];
+  
+  let updated = false;
+  registryPaths.forEach((registryPath) => {
+    if (!fs.existsSync(registryPath)) {
+      // Registry file may not exist, skip silently
+      return;
+    }
+    
+    const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
+    if (registry.spec?.currentSpecVersion !== version) {
+      registry.spec = registry.spec || {};
+      registry.spec.currentSpecVersion = version;
+      fs.writeFileSync(registryPath, `${JSON.stringify(registry, null, 2)}\n`);
+      updated = true;
+      console.log(`Updated ${path.relative(ROOT_DIR, registryPath)}.spec.currentSpecVersion to ${version}`);
+    }
+  });
+  
+  return updated;
+}
+
+/**
  * Validate that all version files are synchronized
  */
 function validateVersionSync() {
@@ -456,6 +485,30 @@ function validateVersionSync() {
   const mismatches = [];
   if (specVersion !== srcVersion) {
     mismatches.push(`spec/SOUSTACK_SPEC_VERSION (${specVersion}) !== src/specVersion.ts (${srcVersion})`);
+  }
+  
+  // Validate registry.json files
+  const specRegistryPath = path.join(SPEC_DIR, 'stacks', 'registry.json');
+  const srcRegistryPath = path.join(ROOT_DIR, 'src', 'stacks', 'registry.json');
+  
+  if (fs.existsSync(specRegistryPath)) {
+    const specRegistry = JSON.parse(fs.readFileSync(specRegistryPath, 'utf8'));
+    if (specRegistry.spec?.currentSpecVersion !== specVersion) {
+      mismatches.push(
+        `spec/stacks/registry.json.spec.currentSpecVersion (${specRegistry.spec?.currentSpecVersion}) !== spec/SOUSTACK_SPEC_VERSION (${specVersion}). ` +
+        `spec/SOUSTACK_SPEC_VERSION is the source of truth.`
+      );
+    }
+  }
+  
+  if (fs.existsSync(srcRegistryPath)) {
+    const srcRegistry = JSON.parse(fs.readFileSync(srcRegistryPath, 'utf8'));
+    if (srcRegistry.spec?.currentSpecVersion !== specVersion) {
+      mismatches.push(
+        `src/stacks/registry.json.spec.currentSpecVersion (${srcRegistry.spec?.currentSpecVersion}) !== spec/SOUSTACK_SPEC_VERSION (${specVersion}). ` +
+        `spec/SOUSTACK_SPEC_VERSION is the source of truth.`
+      );
+    }
   }
   
   if (mismatches.length > 0) {
@@ -569,6 +622,10 @@ async function main() {
     ensureVersionConsistency(version);
     
     copySchemaIntoSrc();
+    
+    // Update registry.json files to match SOUSTACK_SPEC_VERSION (source of truth)
+    updateRegistryVersion(version);
+    
     // Note: package.json is not modified to prevent version drift and CI failures.
     // soustackSpecVersion and soustackSpecTag should be manually maintained.
 
