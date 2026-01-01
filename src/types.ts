@@ -90,6 +90,12 @@ export interface DurationMinutes {
   [k: `x-${string}`]: unknown;
 }
 
+export interface StorageDuration {
+  iso8601: string;
+  metadata?: Record<string, unknown>;
+  [k: `x-${string}`]: unknown;
+}
+
 export interface Equipment {
   id?: string;
   name: string;
@@ -285,10 +291,10 @@ export interface Storage {
 }
 
 export interface StorageMethod {
-  /** ISO 8601 duration (e.g. P3D) */
-  duration: string;
-  method?: string;
+  duration: StorageDuration;
   notes?: string;
+  metadata?: Record<string, unknown>;
+  [k: `x-${string}`]: unknown;
 }
 
 export interface FrozenStorageMethod extends StorageMethod {

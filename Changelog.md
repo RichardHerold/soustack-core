@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### BREAKING CHANGES
 
 - Removed legacy profile artifacts from the npm package; shipped schemas now reflect the current stack/profile vocabulary only.
+- **StorageMethod.duration type changed**: `StorageMethod.duration` is now typed as `StorageDuration` (object with `iso8601` property) instead of `string`, matching the JSON schema. The schema requires `{ iso8601: "P3D" }` format, not a plain string. This is a breaking change for TypeScript consumers, but aligns types with the actual schema validation requirements.
 
 ### Added
 
