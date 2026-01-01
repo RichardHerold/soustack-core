@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `validateRecipe()` now returns a stable `{ ok, schemaErrors, conformanceIssues, warnings, normalizedRecipe }` payload.
 - Updated CLI profile vocabulary and help text to match the latest spec.
-- `$schema` defaults to the canonical `https://soustack.spec/soustack.schema.json` URL and uses the current profile vocabulary across validation and conversion helpers.
+- `$schema` defaults to the canonical `https://spec.soustack.org/soustack.schema.json` URL and uses the current profile vocabulary across validation and conversion helpers.
 - Recipe/types, converters, and scaling helpers align to the current stack map structure instead of legacy profiles.
 
 ## [0.3.0] - 2025-12-16
