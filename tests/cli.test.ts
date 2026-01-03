@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import * as path from 'path';
 
-const DIST_CLI_PATH = path.join(__dirname, '..', 'dist', 'cli', 'index.js');
+const DIST_CLI_PATH = path.join(__dirname, '..', 'dist', 'bin', 'cli.js');
 const VALID_FIXTURE = path.join(__dirname, 'fixtures', 'cli', 'valid.soustack.json');
 const INVALID_FIXTURE = path.join(__dirname, 'fixtures', 'cli', 'invalid.soustack.invalid.json');
 

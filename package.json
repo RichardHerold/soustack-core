@@ -51,8 +51,8 @@
   "soustackSpecVersion": "0.0.2",
   "soustackSpecTag": "v0.0.2",
   "bin": {
-    "soustack": "dist/cli/index.js",
-    "soustack-convert": "dist/cli/index.js"
+    "soustack": "dist/bin/cli.js",
+    "soustack-convert": "dist/bin/cli.js"
   },
   "files": [
     "dist",

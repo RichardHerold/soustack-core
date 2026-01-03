@@ -41,7 +41,7 @@ export default defineConfig([
   },
   {
     ...shared,
-    entry: { 'cli/index': 'bin/cli.ts' },
+    entry: { 'bin/cli': 'bin/cli.ts' },
     format: ['cjs'],
     dts: false,
     clean: false, // Explicitly don't clean on subsequent entries
