@@ -169,4 +169,95 @@ describe('soustack CLI', () => {
     const output = `${result.stdout}${result.stderr ?? ''}`;
     expect(output).toContain('Usage: soustack scrape');
   });
+
+  it('check --help exits 0 and shows usage', () => {
+    const result = runCli(['check', '--help']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack check');
+    expect(output).toContain('--json');
+  });
+
+  it('check -h exits 0 and shows usage', () => {
+    const result = runCli(['check', '-h']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack check');
+  });
+
+  it('validate --help exits 0 and shows usage', () => {
+    const result = runCli(['validate', '--help']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack validate');
+    expect(output).toContain('--profile');
+  });
+
+  it('validate -h exits 0 and shows usage', () => {
+    const result = runCli(['validate', '-h']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack validate');
+  });
+
+  it('test --help exits 0 and shows usage', () => {
+    const result = runCli(['test', '--help']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack test');
+    expect(output).toContain('--profile');
+  });
+
+  it('test -h exits 0 and shows usage', () => {
+    const result = runCli(['test', '-h']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack test');
+  });
+
+  it('convert --help exits 0 and shows usage', () => {
+    const result = runCli(['convert', '--help']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack convert');
+    expect(output).toContain('--from');
+    expect(output).toContain('--to');
+  });
+
+  it('convert -h exits 0 and shows usage', () => {
+    const result = runCli(['convert', '-h']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack convert');
+  });
+
+  it('import --help exits 0 and shows usage', () => {
+    const result = runCli(['import', '--help']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack import');
+    expect(output).toContain('--url');
+  });
+
+  it('import -h exits 0 and shows usage', () => {
+    const result = runCli(['import', '-h']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack import');
+  });
+
+  it('ingest --help exits 0 and shows usage', () => {
+    const result = runCli(['ingest', '--help']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack ingest');
+    expect(output).toContain('--out');
+  });
+
+  it('ingest -h exits 0 and shows usage', () => {
+    const result = runCli(['ingest', '-h']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack ingest');
+  });
 });
