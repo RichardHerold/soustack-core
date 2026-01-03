@@ -28,7 +28,7 @@
     "generate:version": "node scripts/generate-version.mjs",
     "build": "tsup",
     "docs:cli": "npm run build && node scripts/generate-cli-docs.mjs",
-    "prepack": "node scripts/clean-collisions.mjs && npm run build",
+    "prepack": "node scripts/clean-collisions.mjs && npm run build && node scripts/generate-cli-docs.mjs",
     "prepublishOnly": "npm run assert:spec && npm run build && npm test",
     "pretest": "npm run assert:spec && npm run build --silent && npm run guard:canonical && npm run guard:stacks-filenames",
     "test": "jest",
@@ -65,6 +65,7 @@
     "src/schema.json",
     "src/soustack.schema.json",
     "src/profiles",
+    "docs/cli",
     "README.md",
     "LICENSE"
   ],
