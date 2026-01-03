@@ -18,3 +18,4 @@ jobs:
       - run: npm run verify:sync
       - run: npm run verify:schema
       - run: npm run verify:cli-docs
+        if: github.event_name == 'pull_request'
