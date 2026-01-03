@@ -129,4 +129,14 @@ describe('soustack CLI', () => {
     expect(output).toContain('npm i -D @soustack/ingest');
     expect(output).toContain('npx @soustack/ingest ingest');
   });
+
+  it('--help output includes delimited commands section', () => {
+    const result = runCli(['--help']);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+
+    expect(output).toContain('--- COMMANDS BEGIN ---');
+    expect(output).toContain('--- COMMANDS END ---');
+    expect(output).toContain('validate');
+    expect(output).toContain('Commands:');
+  });
 });

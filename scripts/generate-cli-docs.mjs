@@ -50,31 +50,57 @@ function runCliCommand(args) {
 }
 
 /**
- * Extract command names from top-level help output
- * Ignores aliases, headings, and empty lines
+ * Extract command names from the delimited commands block in help output
+ * Parses only the section between --- COMMANDS BEGIN --- and --- COMMANDS END ---
  */
 function extractCommands(helpOutput) {
   const lines = helpOutput.split('\n');
   const commands = [];
   
+  // Find the delimited block
+  let inCommandsBlock = false;
+  const commandsBeginMarker = '--- COMMANDS BEGIN ---';
+  const commandsEndMarker = '--- COMMANDS END ---';
+  
   for (const line of lines) {
     const trimmed = line.trim();
     
-    // Skip empty lines, headings, and lines that don't look like commands
-    if (!trimmed || trimmed.startsWith('Usage:') || trimmed.startsWith('Profiles:')) {
+    // Check for start marker
+    if (trimmed === commandsBeginMarker) {
+      inCommandsBlock = true;
       continue;
     }
     
-    // Look for lines that start with "  soustack <command>"
-    // Match pattern: "  soustack <cmd> ..."
-    const match = trimmed.match(/^\s*soustack\s+(\w+)/);
-    if (match) {
-      const cmd = match[1];
-      // Skip if it's already in the list (avoid duplicates)
-      if (!commands.includes(cmd)) {
-        commands.push(cmd);
+    // Check for end marker
+    if (trimmed === commandsEndMarker) {
+      break;
+    }
+    
+    // If we're in the commands block, extract command tokens
+    if (inCommandsBlock) {
+      // Skip blank lines and the "Commands:" header
+      if (!trimmed || trimmed === 'Commands:') {
+        continue;
+      }
+      
+      // Extract the first word (command token) from lines like:
+      // "  check     Generate JSON conformance report for a recipe file"
+      // "  validate  Validate recipe files against schema and conformance rules"
+      const match = trimmed.match(/^\s*(\w+)/);
+      if (match) {
+        const cmd = match[1];
+        // Skip if it's already in the list (avoid duplicates)
+        if (!commands.includes(cmd)) {
+          commands.push(cmd);
+        }
       }
     }
+  }
+  
+  // If we never found the delimiters, throw an error
+  if (!inCommandsBlock || commands.length === 0) {
+    console.error('Could not find delimited commands block in `soustack --help` output.');
+    process.exit(1);
   }
   
   // Sort commands for deterministic output
@@ -131,16 +157,9 @@ function main() {
   console.log('Fetching top-level help...');
   const topLevelHelp = runCliCommand(['--help']);
   
-  // Extract commands
-  console.log('Extracting commands...');
+  // Extract commands from delimited block
+  console.log('Extracting commands from delimited block...');
   const commands = extractCommands(topLevelHelp);
-  
-  if (commands.length === 0) {
-    console.error('Error: No commands found in help output');
-    console.error('Help output:');
-    console.error(topLevelHelp);
-    process.exit(1);
-  }
   
   console.log(`Found ${commands.length} commands: ${commands.join(', ')}`);
   
