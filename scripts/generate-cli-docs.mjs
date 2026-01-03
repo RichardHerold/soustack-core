@@ -130,16 +130,28 @@ function generateReadme(commands) {
 }
 
 /**
+ * Normalize paths in help output to avoid environment-specific absolute paths
+ * Replaces absolute paths with relative paths or placeholders
+ */
+function normalizePathsInOutput(output, rootDir) {
+  // Replace absolute paths with relative paths
+  return output.replace(new RegExp(rootDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '.');
+}
+
+/**
  * Generate individual command documentation
  */
 function generateCommandDoc(cmd, helpOutput) {
+  // Normalize paths to avoid environment-specific absolute paths in docs
+  const normalizedOutput = normalizePathsInOutput(helpOutput, ROOT_DIR);
+  
   const lines = [
     `# soustack ${cmd}`,
     '',
     `Generated from \`soustack ${cmd} --help\`. Do not edit manually.`,
     '',
     '```text',
-    helpOutput.trim(),
+    normalizedOutput.trim(),
     '```',
     '',
   ];
