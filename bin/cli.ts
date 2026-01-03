@@ -113,6 +113,17 @@ function printUsage() {
   console.log('  soustack test [--profile <name>] [--force-profile] [--schema-only] [--strict] [--json]');
   console.log('  soustack scale <soustack.json> <multiplier>');
   console.log(`\nProfiles: ${supportedProfiles.join(', ')}`);
+  console.log('\n--- COMMANDS BEGIN ---');
+  console.log('Commands:');
+  console.log('  check     Generate JSON conformance report for a recipe file');
+  console.log('  convert   Convert between Schema.org and Soustack formats');
+  console.log('  import    Import recipe from URL (alias for scrape)');
+  console.log('  ingest    Bulk pipeline for processing multiple recipes');
+  console.log('  scale     Scale a recipe by a multiplier');
+  console.log('  scrape    Scrape recipe from a URL');
+  console.log('  test      Validate all recipes in the repository');
+  console.log('  validate  Validate recipe files against schema and conformance rules');
+  console.log('--- COMMANDS END ---');
 }
 
 async function handleCheck(args: string[]) {
