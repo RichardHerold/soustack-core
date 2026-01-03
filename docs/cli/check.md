@@ -3,5 +3,7 @@
 Generated from `soustack check --help`. Do not edit manually.
 
 ```text
-❌ Path to Soustack recipe JSON is required
+Usage: soustack check <file> --json
+
+Generate JSON conformance report for a recipe file
 ```

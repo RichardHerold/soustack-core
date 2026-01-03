@@ -3,6 +3,7 @@
 Generated from `soustack ingest --help`. Do not edit manually.
 
 ```text
-soustack ingest requires @soustack/ingest. Install with:
-  npm i -D @soustack/ingest  or  npx @soustack/ingest ingest …
+Usage: soustack ingest <input> [--out <path>]
+
+Bulk pipeline for processing multiple recipes (requires @soustack/ingest)
 ```

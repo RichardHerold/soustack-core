@@ -3,5 +3,7 @@
 Generated from `soustack scale --help`. Do not edit manually.
 
 ```text
-❌ File not found: ./--help
+Usage: soustack scale <soustack.json> <multiplier>
+
+Scale a recipe by a multiplier
 ```

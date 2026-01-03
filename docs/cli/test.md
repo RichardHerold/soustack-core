@@ -3,6 +3,7 @@
 Generated from `soustack test --help`. Do not edit manually.
 
 ```text
-✅ tests/fixtures/cli/valid.soustack.json
-Test summary: 1/1 files valid
+Usage: soustack test [--profile <name>] [--force-profile] [--schema-only] [--strict] [--json]
+
+Validate all recipes in the repository
 ```

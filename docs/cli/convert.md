@@ -3,5 +3,7 @@
 Generated from `soustack convert --help`. Do not edit manually.
 
 ```text
-❌ Convert usage: convert --from <schemaorg|soustack> --to <schemaorg|soustack> <input> [-o <output>]
+Usage: soustack convert --from <schemaorg|soustack> --to <schemaorg|soustack> <input> [-o <output>]
+
+Convert between Schema.org and Soustack formats
 ```
