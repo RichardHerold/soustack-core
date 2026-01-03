@@ -129,24 +129,98 @@ function printUsage() {
 /**
  * Check if args contain help flags (--help or -h)
  */
-function hasHelpFlag(args: string[]): boolean {
+function wantsHelp(args: string[]): boolean {
   return args.includes('--help') || args.includes('-h');
 }
 
 /**
  * Print command-specific help and exit with code 0
  */
-function printCommandHelp(command: string, usage: string, description?: string) {
-  console.log(`Usage: soustack ${usage}`);
-  if (description) {
-    console.log(`\n${description}`);
+function printCommandHelp(cmd: KnownCommand): void {
+  switch (cmd) {
+    case 'check':
+      console.log('Usage: soustack check <file> --json');
+      console.log('\nGenerate JSON conformance report for a recipe file.');
+      console.log('\nOptions:');
+      console.log('  --json    Output results as JSON');
+      console.log('\nExample:');
+      console.log('  soustack check recipe.soustack.json --json');
+      break;
+    case 'validate':
+      console.log('Usage: soustack validate <fileOrGlob> [options]');
+      console.log('\nValidate recipe files against schema and conformance rules.');
+      console.log('\nOptions:');
+      console.log('  --profile <name>     Validate against a specific profile');
+      console.log('  --force-profile      Override recipe profile with --profile value');
+      console.log('  --schema-only        Only validate against JSON schema');
+      console.log('  --strict             Treat warnings as errors');
+      console.log('  --json               Output results as JSON');
+      console.log('\nExample:');
+      console.log('  soustack validate "**/*.soustack.json" --profile scalable --strict');
+      break;
+    case 'test':
+      console.log('Usage: soustack test [options]');
+      console.log('\nValidate all recipes in the repository.');
+      console.log('\nOptions:');
+      console.log('  --profile <name>     Validate against a specific profile');
+      console.log('  --force-profile      Override recipe profile with --profile value');
+      console.log('  --schema-only        Only validate against JSON schema');
+      console.log('  --strict            Treat warnings as errors');
+      console.log('  --json               Output results as JSON');
+      console.log('\nExample:');
+      console.log('  soustack test --profile base --strict');
+      break;
+    case 'convert':
+      console.log('Usage: soustack convert --from <schemaorg|soustack> --to <schemaorg|soustack> <input> [-o <output>]');
+      console.log('\nConvert between Schema.org and Soustack formats.');
+      console.log('\nOptions:');
+      console.log('  --from <format>      Source format: schemaorg or soustack');
+      console.log('  --to <format>        Target format: schemaorg or soustack');
+      console.log('  -o, --output <path>  Output file path (default: stdout)');
+      console.log('\nExample:');
+      console.log('  soustack convert --from schemaorg --to soustack recipe.json -o recipe.soustack.json');
+      break;
+    case 'import':
+      console.log('Usage: soustack import --url <url> [-o <soustack.json>]');
+      console.log('\nImport recipe from URL (alias for scrape).');
+      console.log('\nOptions:');
+      console.log('  --url <url>          URL of the recipe to import');
+      console.log('  -o, --output <path>  Output file path (default: stdout)');
+      console.log('\nExample:');
+      console.log('  soustack import --url https://example.com/recipe -o recipe.soustack.json');
+      break;
+    case 'ingest':
+      console.log('Usage: soustack ingest <input> [--out <path>]');
+      console.log('\nBulk pipeline for processing multiple recipes (requires @soustack/ingest).');
+      console.log('\nOptions:');
+      console.log('  --out <path>         Output directory or file path');
+      console.log('\nExample:');
+      console.log('  soustack ingest recipes/ --out output/');
+      break;
+    case 'scale':
+      console.log('Usage: soustack scale <soustack.json> <multiplier>');
+      console.log('\nScale a recipe by a multiplier.');
+      console.log('\nArguments:');
+      console.log('  <soustack.json>      Path to the recipe file');
+      console.log('  <multiplier>         Scaling factor (e.g., 2 for double, 0.5 for half)');
+      console.log('\nExample:');
+      console.log('  soustack scale recipe.soustack.json 2');
+      break;
+    case 'scrape':
+      console.log('Usage: soustack scrape <url> [-o <soustack.json>]');
+      console.log('\nScrape recipe from a URL (canonical URL ingestion).');
+      console.log('\nOptions:');
+      console.log('  -o, --output <path>  Output file path (default: stdout)');
+      console.log('\nExample:');
+      console.log('  soustack scrape https://example.com/recipe -o recipe.soustack.json');
+      break;
   }
   process.exitCode = 0;
 }
 
 async function handleCheck(args: string[]) {
-  if (hasHelpFlag(args)) {
-    printCommandHelp('check', 'check <file> --json', 'Generate JSON conformance report for a recipe file');
+  if (wantsHelp(args)) {
+    printCommandHelp('check');
     return;
   }
   const { target, json } = parseCheckArgs(args);
@@ -173,12 +247,8 @@ async function handleCheck(args: string[]) {
 }
 
 async function handleValidate(args: string[]) {
-  if (hasHelpFlag(args)) {
-    printCommandHelp(
-      'validate',
-      'validate <fileOrGlob> [--profile <name>] [--force-profile] [--schema-only] [--strict] [--json]',
-      'Validate recipe files against schema and conformance rules',
-    );
+  if (wantsHelp(args)) {
+    printCommandHelp('validate');
     return;
   }
   const { target, profile, forceProfile, strict, json, mode } = parseValidateArgs(args);
@@ -192,12 +262,8 @@ async function handleValidate(args: string[]) {
 }
 
 async function handleTest(args: string[]) {
-  if (hasHelpFlag(args)) {
-    printCommandHelp(
-      'test',
-      'test [--profile <name>] [--force-profile] [--schema-only] [--strict] [--json]',
-      'Validate all recipes in the repository',
-    );
+  if (wantsHelp(args)) {
+    printCommandHelp('test');
     return;
   }
   const { profile, forceProfile, strict, json, mode } = parseValidationFlags(args);
@@ -219,12 +285,8 @@ async function handleTest(args: string[]) {
 }
 
 async function handleConvert(args: string[]) {
-  if (hasHelpFlag(args)) {
-    printCommandHelp(
-      'convert',
-      'convert --from <schemaorg|soustack> --to <schemaorg|soustack> <input> [-o <output>]',
-      'Convert between Schema.org and Soustack formats',
-    );
+  if (wantsHelp(args)) {
+    printCommandHelp('convert');
     return;
   }
   const { from, to, inputPath, outputPath } = parseConvertArgs(args);
@@ -252,12 +314,8 @@ async function handleConvert(args: string[]) {
 }
 
 async function handleImport(args: string[]) {
-  if (hasHelpFlag(args)) {
-    printCommandHelp(
-      'import',
-      'import --url <url> [-o <soustack.json>]',
-      'Import recipe from URL (alias for scrape)',
-    );
+  if (wantsHelp(args)) {
+    printCommandHelp('import');
     return;
   }
   const { url, outputPath } = parseImportArgs(args);
@@ -273,12 +331,8 @@ async function handleImport(args: string[]) {
 }
 
 async function handleIngest(args: string[]) {
-  if (hasHelpFlag(args)) {
-    printCommandHelp(
-      'ingest',
-      'ingest <input> [--out <path>]',
-      'Bulk pipeline for processing multiple recipes (requires @soustack/ingest)',
-    );
+  if (wantsHelp(args)) {
+    printCommandHelp('ingest');
     return;
   }
   try {
@@ -312,8 +366,8 @@ async function handleIngest(args: string[]) {
 }
 
 async function handleScale(args: string[]) {
-  if (hasHelpFlag(args)) {
-    printCommandHelp('scale', 'scale <soustack.json> <multiplier>', 'Scale a recipe by a multiplier');
+  if (wantsHelp(args)) {
+    printCommandHelp('scale');
     return;
   }
   const filePath = args[0];
@@ -330,8 +384,8 @@ async function handleScale(args: string[]) {
 }
 
 async function handleScrape(args: string[]) {
-  if (hasHelpFlag(args)) {
-    printCommandHelp('scrape', 'scrape <url> -o <soustack.json>', 'Scrape recipe from a URL (canonical URL ingestion)');
+  if (wantsHelp(args)) {
+    printCommandHelp('scrape');
     return;
   }
   const url = args[0];

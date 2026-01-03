@@ -5,5 +5,11 @@ Generated from `soustack ingest --help`. Do not edit manually.
 ```text
 Usage: soustack ingest <input> [--out <path>]
 
-Bulk pipeline for processing multiple recipes (requires @soustack/ingest)
+Bulk pipeline for processing multiple recipes (requires @soustack/ingest).
+
+Options:
+  --out <path>         Output directory or file path
+
+Example:
+  soustack ingest recipes/ --out output/
 ```
