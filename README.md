@@ -37,6 +37,41 @@ Soustack is **computational**—it understands _how_ a recipe behaves.
 npm install soustack
 ```
 
+## CLI Quickstart
+
+### Install
+
+```bash
+npm install -g soustack
+```
+
+### Validate a file
+
+```bash
+soustack validate recipe.soustack.json
+```
+
+### Validate a directory or glob
+
+```bash
+soustack validate "recipes/**/*.soustack.json"
+```
+
+### Use in CI
+
+```yaml
+- name: Validate Soustack recipes
+  run: npx soustack test --strict --json
+```
+
+### Exit codes
+
+- `0` = success
+- `1` = validation or conformance failure
+- `>1` = tool/runtime error
+
+For the full command reference, see docs/cli/README.md.
+
 ## What's Included
 
 - **Validation**: `validateRecipe()` validates Soustack JSON against the bundled schema and optional conformance checks.
