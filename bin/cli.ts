@@ -126,7 +126,29 @@ function printUsage() {
   console.log('--- COMMANDS END ---');
 }
 
+/**
+ * Check if args contain help flags (--help or -h)
+ */
+function hasHelpFlag(args: string[]): boolean {
+  return args.includes('--help') || args.includes('-h');
+}
+
+/**
+ * Print command-specific help and exit with code 0
+ */
+function printCommandHelp(command: string, usage: string, description?: string) {
+  console.log(`Usage: soustack ${usage}`);
+  if (description) {
+    console.log(`\n${description}`);
+  }
+  process.exitCode = 0;
+}
+
 async function handleCheck(args: string[]) {
+  if (hasHelpFlag(args)) {
+    printCommandHelp('check', 'check <file> --json', 'Generate JSON conformance report for a recipe file');
+    return;
+  }
   const { target, json } = parseCheckArgs(args);
   if (!target) throw new Error('Path to Soustack recipe JSON is required');
   if (!json) throw new Error('Check usage: check <file> --json');
@@ -151,6 +173,14 @@ async function handleCheck(args: string[]) {
 }
 
 async function handleValidate(args: string[]) {
+  if (hasHelpFlag(args)) {
+    printCommandHelp(
+      'validate',
+      'validate <fileOrGlob> [--profile <name>] [--force-profile] [--schema-only] [--strict] [--json]',
+      'Validate recipe files against schema and conformance rules',
+    );
+    return;
+  }
   const { target, profile, forceProfile, strict, json, mode } = parseValidateArgs(args);
   if (!target) throw new Error('Path or glob to Soustack recipe JSON is required');
 
@@ -162,6 +192,14 @@ async function handleValidate(args: string[]) {
 }
 
 async function handleTest(args: string[]) {
+  if (hasHelpFlag(args)) {
+    printCommandHelp(
+      'test',
+      'test [--profile <name>] [--force-profile] [--schema-only] [--strict] [--json]',
+      'Validate all recipes in the repository',
+    );
+    return;
+  }
   const { profile, forceProfile, strict, json, mode } = parseValidationFlags(args);
   const cwd = process.cwd();
   const files = globSync('**/*.soustack.json', {
@@ -181,6 +219,14 @@ async function handleTest(args: string[]) {
 }
 
 async function handleConvert(args: string[]) {
+  if (hasHelpFlag(args)) {
+    printCommandHelp(
+      'convert',
+      'convert --from <schemaorg|soustack> --to <schemaorg|soustack> <input> [-o <output>]',
+      'Convert between Schema.org and Soustack formats',
+    );
+    return;
+  }
   const { from, to, inputPath, outputPath } = parseConvertArgs(args);
   const fromKey = from?.toLowerCase();
   const toKey = to?.toLowerCase();
@@ -206,6 +252,14 @@ async function handleConvert(args: string[]) {
 }
 
 async function handleImport(args: string[]) {
+  if (hasHelpFlag(args)) {
+    printCommandHelp(
+      'import',
+      'import --url <url> [-o <soustack.json>]',
+      'Import recipe from URL (alias for scrape)',
+    );
+    return;
+  }
   const { url, outputPath } = parseImportArgs(args);
   if (!url) throw new Error('Import usage: import --url <url> [-o <soustack.json>]');
 
@@ -219,6 +273,14 @@ async function handleImport(args: string[]) {
 }
 
 async function handleIngest(args: string[]) {
+  if (hasHelpFlag(args)) {
+    printCommandHelp(
+      'ingest',
+      'ingest <input> [--out <path>]',
+      'Bulk pipeline for processing multiple recipes (requires @soustack/ingest)',
+    );
+    return;
+  }
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const ingestModule = await import('@soustack/ingest' as string);
@@ -250,6 +312,10 @@ async function handleIngest(args: string[]) {
 }
 
 async function handleScale(args: string[]) {
+  if (hasHelpFlag(args)) {
+    printCommandHelp('scale', 'scale <soustack.json> <multiplier>', 'Scale a recipe by a multiplier');
+    return;
+  }
   const filePath = args[0];
   const multiplier = args[1] ? parseFloat(args[1]) : 1;
   if (!filePath || Number.isNaN(multiplier)) {
@@ -264,6 +330,10 @@ async function handleScale(args: string[]) {
 }
 
 async function handleScrape(args: string[]) {
+  if (hasHelpFlag(args)) {
+    printCommandHelp('scrape', 'scrape <url> -o <soustack.json>', 'Scrape recipe from a URL (canonical URL ingestion)');
+    return;
+  }
   const url = args[0];
   const outputPath = resolveOutputPath(args.slice(1));
   if (!url) throw new Error('Scrape usage: scrape <url> -o <soustack.json>');

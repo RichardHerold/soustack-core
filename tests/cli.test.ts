@@ -139,4 +139,34 @@ describe('soustack CLI', () => {
     expect(output).toContain('validate');
     expect(output).toContain('Commands:');
   });
+
+  it('scale --help exits 0 and shows usage', () => {
+    const result = runCli(['scale', '--help']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack scale');
+    expect(output).toContain('multiplier');
+  });
+
+  it('scale -h exits 0 and shows usage', () => {
+    const result = runCli(['scale', '-h']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack scale');
+  });
+
+  it('scrape --help exits 0 and shows usage', () => {
+    const result = runCli(['scrape', '--help']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack scrape');
+    expect(output).toContain('url');
+  });
+
+  it('scrape -h exits 0 and shows usage', () => {
+    const result = runCli(['scrape', '-h']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack scrape');
+  });
 });
