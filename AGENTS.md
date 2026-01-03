@@ -15,3 +15,8 @@ These instructions apply to the entire repository.
 - soustack-core syncs schemas from @soustack/spec; do not duplicate schema logic.
 - When schema changes affect conversions, update both toSchemaOrg and fromSchemaOrg tests.
 - Ensure JSON schema remains valid (no duplicate keys, no invalid enums).
+
+## Build configuration
+- The CLI must be built to `dist/bin/cli.js` (configured in tsup.config.ts as entry `'bin/cli': 'bin/cli.ts'`).
+- The `package.json` `bin` field must point to `dist/bin/cli.js` for both `soustack` and `soustack-convert`.
+- Do not change the CLI build output path without updating both tsup.config.ts and package.json, and verifying that `scripts/generate-cli-docs.mjs` works with the new path.
