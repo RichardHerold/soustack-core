@@ -7,7 +7,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '..');
 const CLI_PATH = path.join(ROOT_DIR, 'dist', 'bin', 'cli.js');
-const CLI_PATH_ALTERNATIVE = path.join(ROOT_DIR, 'dist', 'cli', 'index.js');
 const DOCS_DIR = path.join(ROOT_DIR, 'docs', 'cli');
 
 /**
@@ -15,15 +14,7 @@ const DOCS_DIR = path.join(ROOT_DIR, 'docs', 'cli');
  */
 function ensureCliExists() {
   if (!fs.existsSync(CLI_PATH)) {
-    // Check alternative location and provide helpful error
-    if (fs.existsSync(CLI_PATH_ALTERNATIVE)) {
-      console.error(`Error: CLI entrypoint not found at ${CLI_PATH}`);
-      console.error(`Found CLI at alternative location: ${CLI_PATH_ALTERNATIVE}`);
-      console.error('Please update the script to use the correct path, or ensure the CLI is built to dist/bin/cli.js');
-    } else {
-      console.error(`Error: CLI entrypoint not found at ${CLI_PATH}`);
-      console.error('Please run "npm run build" first to build the CLI.');
-    }
+    console.error('Missing dist/bin/cli.js. Run `npm run build` first.');
     process.exit(1);
   }
 }
@@ -50,10 +41,11 @@ function runCliCommand(args) {
     }
     // Otherwise, this is a real error
     const commandName = args[0] || '--help';
-    console.error(`Error running command: soustack ${commandName}`);
-    if (error.stdout) console.error(error.stdout);
-    if (error.stderr) console.error(error.stderr);
-    throw error;
+    const errorMessage = `Error running command: soustack ${commandName}`;
+    if (error.stderr) {
+      throw new Error(`${errorMessage}\n${error.stderr}`);
+    }
+    throw new Error(errorMessage);
   }
 }
 
@@ -98,14 +90,14 @@ function generateReadme(commands) {
   const lines = [
     '# Soustack CLI Reference',
     '',
-    'Command-line interface for the Soustack recipe format.',
+    'Generated from `soustack --help`. Do not edit manually.',
     '',
     '## Commands',
     '',
   ];
   
   for (const cmd of commands) {
-    lines.push(`- [\`soustack ${cmd}\`](./${cmd}.md)`);
+    lines.push(`- \`soustack ${cmd}\` → ${cmd}.md`);
   }
   
   return lines.join('\n') + '\n';
@@ -118,7 +110,9 @@ function generateCommandDoc(cmd, helpOutput) {
   const lines = [
     `# soustack ${cmd}`,
     '',
-    '```',
+    `Generated from \`soustack ${cmd} --help\`. Do not edit manually.`,
+    '',
+    '```text',
     helpOutput.trim(),
     '```',
     '',
@@ -177,4 +171,3 @@ function main() {
 }
 
 main();
-
