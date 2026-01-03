@@ -163,6 +163,13 @@ function generateCommandDoc(cmd, helpOutput) {
  * Main function
  */
 function main() {
+  // Check for skip flag (case-insensitive)
+  const skipFlag = process.env.SKIP_CLI_DOCS;
+  if (skipFlag && (skipFlag.toLowerCase() === '1' || skipFlag.toLowerCase() === 'true')) {
+    console.log('SKIP_CLI_DOCS set; skipping CLI docs generation.');
+    process.exit(0);
+  }
+
   ensureCliExists();
   
   // Get top-level help
