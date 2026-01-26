@@ -1,5 +1,5 @@
 import { spawnSync, SpawnSyncOptions } from 'child_process';
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import * as path from 'path';
 
@@ -118,6 +118,66 @@ describe('soustack CLI', () => {
   "warnings": [],
 }
 `);
+  });
+
+  it('packs recipe files with deterministic ordering', () => {
+    const tmp = mkdtempSync(path.join(tmpdir(), 'soustack-pack-'));
+    const dirA = path.join(tmp, 'a');
+    const dirB = path.join(tmp, 'b');
+    mkdirSync(dirA);
+    mkdirSync(dirB);
+
+    const recipe = (name: string) => ({
+      name,
+      profile: 'base',
+      stacks: {},
+      ingredients: [],
+      instructions: [],
+    });
+
+    writeFileSync(path.join(dirA, 'a.soustack.json'), JSON.stringify(recipe('a'), null, 2), 'utf-8');
+    writeFileSync(path.join(dirB, 'z.json'), JSON.stringify(recipe('z'), null, 2), 'utf-8');
+    writeFileSync(path.join(tmp, 'root.json'), JSON.stringify(recipe('root'), null, 2), 'utf-8');
+    writeFileSync(path.join(tmp, 'skip.json'), JSON.stringify({ name: 'skip' }, null, 2), 'utf-8');
+    writeFileSync(path.join(tmp, 'bad.json'), '{not json', 'utf-8');
+
+    const outputPath = path.join(tmp, 'out.pack.json');
+    const result = runCli(['pack', tmp, '-o', outputPath]);
+
+    expect(result.status).toBe(0);
+    const packed = JSON.parse(readFileSync(outputPath, 'utf-8')) as {
+      recipes: Array<{ name?: unknown }>;
+      meta: { count: number; source?: string; packedAt: string };
+    };
+
+    expect(packed.meta.count).toBe(3);
+    expect(packed.meta.source).toBe(path.resolve(tmp));
+    expect(typeof packed.meta.packedAt).toBe('string');
+    const names = packed.recipes.map((entry) => (typeof entry.name === 'string' ? entry.name : ''));
+    expect(names).toEqual(['a', 'z', 'root']);
+  });
+
+  it('packs recipes from zip archives deterministically', () => {
+    const tmp = mkdtempSync(path.join(tmpdir(), 'soustack-pack-zip-'));
+    const zipBase64 =
+      'UEsDBBQAAAAIAKN9OlzbrmOMRAAAAEwAAAAPAAAAYS5zb3VzdGFjay5qc29uq1bKS8xNVbJSSlTSUSooyk/LzAHxkhKLU4ECxSWJydnFSlbVtTpKmXnpRakpmal5JUCB6FiQQHFJUWlySWZ+HlikFgBQSwMEFAAAAAgAo306XOR2ZtpGAAAATwAAAAsAAABiL3Jvb3QuanNvbh3IsQ2AMAwEwF2+zgSsgihCMMgCbGSbKsruJFx5FZJvwgRTDSQ8pjtfI9bs1MMjl9Mx1ZbAchhtTBI95mWEh70lWOWf9gFQSwMEFAAAAAgAo306XCxOuNARAAAADwAAAAkAAABza2lwLmpzb26rVspLzE1VslIqzs4sUKoFAFBLAQIUAxQAAAAIAKN9OlzbrmOMRAAAAEwAAAAPAAAAAAAAAAAAAACAAQAAAABhLnNvdXN0YWNrLmpzb25QSwECFAMUAAAACACjfTpc5HZm2kYAAABPAAAACwAAAAAAAAAAAAAAgAFxAAAAYi9yb290Lmpzb25QSwECFAMUAAAACACjfTpcLE640BEAAAAPAAAACQAAAAAAAAAAAAAAgAHgAAAAc2tpcC5qc29uUEsFBgAAAAADAAMArQAAABgBAAAAAA==';
+    const zipPath = path.join(tmp, 'recipes.zip');
+    writeFileSync(zipPath, Buffer.from(zipBase64, 'base64'));
+
+    const outputPath = path.join(tmp, 'out.pack.json');
+    const result = runCli(['pack', zipPath, '-o', outputPath]);
+
+    expect(result.status).toBe(0);
+    const packed = JSON.parse(readFileSync(outputPath, 'utf-8')) as {
+      recipes: Array<{ name?: unknown }>;
+      meta: { count: number; source?: string; packedAt: string };
+    };
+
+    expect(packed.meta.count).toBe(2);
+    expect(packed.meta.source).toBe(path.resolve(zipPath));
+    expect(typeof packed.meta.packedAt).toBe('string');
+    const names = packed.recipes.map((entry) => (typeof entry.name === 'string' ? entry.name : ''));
+    expect(names).toEqual(['a', 'root']);
   });
 
   it('ingest command shows helpful error when @soustack/ingest is not installed', () => {
@@ -259,5 +319,20 @@ describe('soustack CLI', () => {
     expect(result.status).toBe(0);
     const output = `${result.stdout}${result.stderr ?? ''}`;
     expect(output).toContain('Usage: soustack ingest');
+  });
+
+  it('pack --help exits 0 and shows usage', () => {
+    const result = runCli(['pack', '--help']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack pack');
+    expect(output).toContain('soustack-recipes.pack.json');
+  });
+
+  it('pack -h exits 0 and shows usage', () => {
+    const result = runCli(['pack', '-h']);
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}${result.stderr ?? ''}`;
+    expect(output).toContain('Usage: soustack pack');
   });
 });

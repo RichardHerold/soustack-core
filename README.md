@@ -434,7 +434,7 @@ npx soustack scrape <url> -o recipe.soustack.json
 # Import from URL (optional alias for scrape, for compatibility)
 npx soustack import --url "https://example.com/recipe" -o recipe.soustack.json
 
-# Bulk ingest pipeline (delegates to @soustack/ingest)
+# Bulk ingest pipeline (content→recipe only; no packaging, delegates to @soustack/ingest)
 npx soustack ingest <input> --out <dir>  # requires @soustack/ingest
 
 # Scale recipes

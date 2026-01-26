@@ -1,11 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { globSync } from 'glob';
+import * as zlib from 'node:zlib';
 import { scaleRecipe } from '../src/parser';
 import { fromSchemaOrg } from '../src/fromSchemaOrg';
 import { toSchemaOrg } from '../src/toSchemaOrg';
 import { scrapeRecipe } from '../src/scraper/index';
 import { withCanonicalSchema } from '../src/schemaMetadata';
+import { packSoustackRecipes } from '../src/bundle/pack';
 import {
   validateRecipe,
   type NormalizedError,
@@ -47,6 +49,7 @@ type KnownCommand =
   | 'convert'
   | 'import'
   | 'ingest'
+  | 'pack'
   | 'scale'
   | 'scrape'
   | 'test';
@@ -81,6 +84,9 @@ export async function runCli(argv: string[]): Promise<void> {
       case 'ingest':
         await handleIngest(args);
         return;
+      case 'pack':
+        await handlePack(args);
+        return;
       case 'scale':
         await handleScale(args);
         return;
@@ -109,7 +115,8 @@ function printUsage() {
   console.log('  soustack convert --from <schemaorg|soustack> --to <schemaorg|soustack> <input> [-o <output>]');
   console.log('  soustack scrape <url> -o <soustack.json>  (canonical URL ingestion)');
   console.log('  soustack import --url <url> [-o <soustack.json>]  (alias for scrape)');
-  console.log('  soustack ingest <input> [--out <path>]  (bulk pipeline, requires @soustack/ingest)');
+  console.log('  soustack ingest <input> [--out <path>]  (content→recipe pipeline, requires @soustack/ingest)');
+  console.log('  soustack pack <path> -o <file>');
   console.log('  soustack test [--profile <name>] [--force-profile] [--schema-only] [--strict] [--json]');
   console.log('  soustack scale <soustack.json> <multiplier>');
   console.log(`\nProfiles: ${supportedProfiles.join(', ')}`);
@@ -118,7 +125,8 @@ function printUsage() {
   console.log('  check     Generate JSON conformance report for a recipe file');
   console.log('  convert   Convert between Schema.org and Soustack formats');
   console.log('  import    Import recipe from URL (alias for scrape)');
-  console.log('  ingest    Bulk pipeline for processing multiple recipes');
+  console.log('  ingest    Content→recipe pipeline (no packaging)');
+  console.log('  pack      Pack a folder of recipes into a single JSON bundle');
   console.log('  scale     Scale a recipe by a multiplier');
   console.log('  scrape    Scrape recipe from a URL');
   console.log('  test      Validate all recipes in the repository');
@@ -191,7 +199,7 @@ function printCommandHelp(cmd: KnownCommand): void {
       break;
     case 'ingest':
       console.log('Usage: soustack ingest <input> [--out <path>]');
-      console.log('\nBulk pipeline for processing multiple recipes (requires @soustack/ingest).');
+      console.log('\nContent→recipe pipeline only (no packaging, requires @soustack/ingest).');
       console.log('\nOptions:');
       console.log('  --out <path>         Output directory or file path');
       console.log('\nExample:');
@@ -205,6 +213,14 @@ function printCommandHelp(cmd: KnownCommand): void {
       console.log('  <multiplier>         Scaling factor (e.g., 2 for double, 0.5 for half)');
       console.log('\nExample:');
       console.log('  soustack scale recipe.soustack.json 2');
+      break;
+    case 'pack':
+      console.log('Usage: soustack pack <path> -o <file>');
+      console.log('\nPack a folder or file of recipes into a single JSON bundle.');
+      console.log('\nOptions:');
+      console.log('  -o, --out <path>     Output file path (default: soustack-recipes.pack.json)');
+      console.log('\nExample:');
+      console.log('  soustack pack ./recipes -o soustack-recipes.pack.json');
       break;
     case 'scrape':
       console.log('Usage: soustack scrape <url> [-o <soustack.json>]');
@@ -363,6 +379,32 @@ async function handleIngest(args: string[]) {
       throw error;
     }
   }
+}
+
+async function handlePack(args: string[]) {
+  if (wantsHelp(args)) {
+    printCommandHelp('pack');
+    return;
+  }
+  const { inputPath, outputPath } = parsePackArgs(args);
+  const resolvedInput = path.resolve(process.cwd(), inputPath);
+  if (!fs.existsSync(resolvedInput)) {
+    throw new Error(`Pack usage: pack <path> -o <file>. Path not found: ${resolvedInput}`);
+  }
+
+  const raw = isZipFile(resolvedInput)
+    ? readZipJsonEntries(resolvedInput)
+    : readJsonFiles(collectPackFiles(resolvedInput));
+
+  const packed = packSoustackRecipes({
+    recipes: raw,
+    packedAt: new Date().toISOString(),
+    source: resolvedInput,
+  });
+
+  const resolvedOutput = path.resolve(process.cwd(), outputPath);
+  fs.writeFileSync(resolvedOutput, JSON.stringify(packed, null, 2) + '\n', 'utf-8');
+  console.log(`Packed ${packed.meta.count} recipe(s) → ${resolvedOutput}`);
 }
 
 async function handleScale(args: string[]) {
@@ -528,6 +570,28 @@ function parseImportArgs(args: string[]): { url?: string; outputPath?: string } 
   return { url, outputPath };
 }
 
+function parsePackArgs(args: string[]): { inputPath: string; outputPath: string } {
+  let inputPath: string | undefined;
+  let outputPath: string | undefined;
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '-o' || arg === '--out' || arg === '--output') {
+      outputPath = args[i + 1];
+      if (!outputPath) {
+        throw new Error('Missing output file for pack. Use: soustack pack <path> -o <file>');
+      }
+      i++;
+    } else if (!arg.startsWith('-') && !inputPath) {
+      inputPath = arg;
+    }
+  }
+
+  return {
+    inputPath: inputPath ?? '.',
+    outputPath: outputPath ?? 'soustack-recipes.pack.json',
+  };
+}
 
 function resolveConvertDirection(from: string, to: string): ConvertDirection | null {
   if (from === 'schemaorg' && to === 'soustack') return 'schemaorg-to-soustack';
@@ -539,6 +603,161 @@ function expandTargets(target: string): string[] {
   const matches = globSync(target, { absolute: true, nodir: true });
   const unique = Array.from(new Set(matches.map((match) => path.resolve(match))));
   return unique;
+}
+
+function collectPackFiles(target: string): string[] {
+  const stats = fs.statSync(target);
+  if (stats.isDirectory()) {
+    return walkPackDirectory(target);
+  }
+  if (stats.isFile() && isPackableJson(target) && !isZipFile(target)) {
+    return [target];
+  }
+  return [];
+}
+
+function walkPackDirectory(dir: string): string[] {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  entries.sort((a, b) => a.name.localeCompare(b.name));
+  const output: string[] = [];
+  for (const entry of entries) {
+    const abs = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      output.push(...walkPackDirectory(abs));
+    } else if (entry.isFile() && isPackableJson(entry.name)) {
+      output.push(abs);
+    }
+  }
+  return output;
+}
+
+function isPackableJson(fileName: string): boolean {
+  const lower = fileName.toLowerCase();
+  return lower.endsWith('.soustack.json') || lower.endsWith('.json');
+}
+
+function isZipFile(fileName: string): boolean {
+  return fileName.toLowerCase().endsWith('.zip');
+}
+
+function readJsonFiles(files: string[]): unknown[] {
+  const raw: unknown[] = [];
+  for (const file of files) {
+    try {
+      const content = fs.readFileSync(file, 'utf-8');
+      raw.push(JSON.parse(content) as unknown);
+    } catch {
+      // Skip unreadable JSON files.
+    }
+  }
+  return raw;
+}
+
+function readZipJsonEntries(zipPath: string): unknown[] {
+  const entries = readZipEntries(zipPath)
+    .filter((entry) => isPackableJson(entry.name))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const raw: unknown[] = [];
+  for (const entry of entries) {
+    try {
+      raw.push(JSON.parse(entry.content) as unknown);
+    } catch {
+      // Skip unreadable JSON entries.
+    }
+  }
+  return raw;
+}
+
+type ZipEntry = {
+  name: string;
+  content: string;
+};
+
+function readZipEntries(zipPath: string): ZipEntry[] {
+  const buffer = fs.readFileSync(zipPath);
+  const eocdOffset = findZipEocdOffset(buffer);
+  const centralDirectoryOffset = buffer.readUInt32LE(eocdOffset + 16);
+  const totalEntries = buffer.readUInt16LE(eocdOffset + 10);
+
+  let offset = centralDirectoryOffset;
+  const entries: ZipEntry[] = [];
+  for (let i = 0; i < totalEntries; i++) {
+    if (buffer.readUInt32LE(offset) !== 0x02014b50) {
+      throw new Error('Invalid ZIP central directory entry.');
+    }
+
+    const flags = buffer.readUInt16LE(offset + 8);
+    const compressionMethod = buffer.readUInt16LE(offset + 10);
+    const compressedSize = buffer.readUInt32LE(offset + 20);
+    const uncompressedSize = buffer.readUInt32LE(offset + 24);
+    const fileNameLength = buffer.readUInt16LE(offset + 28);
+    const extraLength = buffer.readUInt16LE(offset + 30);
+    const commentLength = buffer.readUInt16LE(offset + 32);
+    const localHeaderOffset = buffer.readUInt32LE(offset + 42);
+    const fileNameStart = offset + 46;
+    const fileName = buffer.slice(fileNameStart, fileNameStart + fileNameLength).toString('utf-8');
+    offset = fileNameStart + fileNameLength + extraLength + commentLength;
+
+    if (fileName.endsWith('/')) {
+      continue;
+    }
+
+    if ((flags & 0x8) !== 0) {
+      throw new Error(`Unsupported ZIP entry (data descriptor) for ${fileName}.`);
+    }
+
+    const content = readZipEntryData({
+      buffer,
+      localHeaderOffset,
+      compressionMethod,
+      compressedSize,
+      uncompressedSize,
+    });
+    entries.push({ name: fileName, content });
+  }
+
+  return entries;
+}
+
+function readZipEntryData(args: {
+  buffer: Buffer;
+  localHeaderOffset: number;
+  compressionMethod: number;
+  compressedSize: number;
+  uncompressedSize: number;
+}): string {
+  const { buffer, localHeaderOffset, compressionMethod, compressedSize, uncompressedSize } = args;
+  if (buffer.readUInt32LE(localHeaderOffset) !== 0x04034b50) {
+    throw new Error('Invalid ZIP local file header.');
+  }
+  const fileNameLength = buffer.readUInt16LE(localHeaderOffset + 26);
+  const extraLength = buffer.readUInt16LE(localHeaderOffset + 28);
+  const dataStart = localHeaderOffset + 30 + fileNameLength + extraLength;
+  const dataEnd = dataStart + compressedSize;
+  const compressed = buffer.slice(dataStart, dataEnd);
+
+  if (compressionMethod === 0) {
+    return compressed.toString('utf-8');
+  }
+  if (compressionMethod === 8) {
+    const inflated = zlib.inflateRawSync(compressed);
+    if (inflated.length !== uncompressedSize) {
+      throw new Error('ZIP entry size mismatch.');
+    }
+    return inflated.toString('utf-8');
+  }
+
+  throw new Error(`Unsupported ZIP compression method: ${compressionMethod}`);
+}
+
+function findZipEocdOffset(buffer: Buffer): number {
+  const minOffset = Math.max(0, buffer.length - 22 - 0xffff);
+  for (let i = buffer.length - 22; i >= minOffset; i--) {
+    if (buffer.readUInt32LE(i) === 0x06054b50) {
+      return i;
+    }
+  }
+  throw new Error('Invalid ZIP archive (missing end of central directory).');
 }
 
 function validateFile(

@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `--schema-only` flag to the CLI to run schema-only validation.
 - Added `soustack check <file> --json` CLI command for stable JSON conformance reports.
 - Added `--force-profile` to the CLI to override a mismatched recipe profile.
+- Added `soustack pack <path> -o <file>` CLI command to bundle recipes from folders, files, or ZIP archives.
 - Added a release checklist covering CI verification, tagging, and npm publish steps.
 
 ### Changed

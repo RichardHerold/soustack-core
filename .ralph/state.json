@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "createdAt": "2026-01-26T20:09:42Z",
+  "planFile": "plan-bulk-combine.md",
+  "branch": null,
+  "baseBranch": "main",
+  "lastRunAt": "2026-01-26T20:36:29Z",
+  "runs": 7,
+  "lastSuccessAt": null,
+  "lastFailureAt": "2026-01-26T20:36:39Z",
+  "lastFailureStep": "Initial Verification",
+  "pr": {
+    "number": null,
+    "url": null,
+    "createdAt": null
+  }
+}
